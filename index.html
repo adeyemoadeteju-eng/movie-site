@@ -6,55 +6,53 @@
 <meta name="theme-color" content="#10141e">
 <title>FreeFlix | Personal Media Library</title>
 <style>
-:root{--bg:#10141e;--panel:#191f2b;--panel2:#222b3a;--purple:#1688f8;--muted:#a6afc0;--border:#293345}
+:root{--bg:#10141e;--panel:#191f2b;--panel2:#222b3a;--blue:#1688f8;--muted:#a6afc0;--border:#293345}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:#f6f8fc;font-family:system-ui,sans-serif}
-header.topbar{height:78px;padding:0 4%;gap:28px;background:rgba(15,20,30,.97);border-bottom:1px solid #273143;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;backdrop-filter:blur(14px)}
+header.topbar{height:78px;padding:0 4%;gap:28px;background:#0f141ef5;border-bottom:1px solid #273143;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;backdrop-filter:blur(14px)}
 .logo{color:#f8fbff;text-decoration:none;font-size:29px;font-weight:950;letter-spacing:-1px;white-space:nowrap}
-.logo span,footer span{color:#1688f8}
+.logo span,footer span{color:var(--blue)}
 .main-nav{display:flex;align-items:center;gap:8px;margin-left:auto}
-.main-nav a{color:#c8d0de;text-decoration:none;padding:11px 15px;border-radius:24px;font-size:14px;font-weight:650;transition:.2s}
+.main-nav a{color:#c8d0de;text-decoration:none;padding:11px 15px;border-radius:24px;font-size:14px;font-weight:650}
 .main-nav a:hover{background:#263246;color:white}
-.header-right{font-size:10px;color:#7e8ba0;letter-spacing:1.2px;white-space:nowrap}
-.hero{min-height:390px;margin:22px 3% 0;padding:55px 5%;border:1px solid #26384d;border-radius:25px;overflow:hidden;position:relative;display:flex;align-items:center;background:radial-gradient(ellipse at 78% 50%,#174b79 0%,transparent 37%),linear-gradient(105deg,#101d30 0%,#10283c 52%,#111722 100%)}
-.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,14,24,.08),rgba(8,14,24,.08) 48%,rgba(8,14,24,.2));pointer-events:none}
+.header-right{font-size:10px;color:#7e8ba0;letter-spacing:1.2px}
+.hero{min-height:390px;margin:22px 3% 0;padding:55px 5%;border:1px solid #26384d;border-radius:25px;overflow:hidden;position:relative;display:flex;align-items:center;background:radial-gradient(ellipse at 78% 50%,#174b79 0%,transparent 37%),linear-gradient(105deg,#101d30,#10283c 52%,#111722)}
 .hero-copy{position:relative;z-index:2;max-width:610px}
 .hero-label{color:#5bb3ff;font-size:11px;letter-spacing:3px;font-weight:850}
 .hero h1{font-size:clamp(38px,5.5vw,66px);line-height:1.03;letter-spacing:-2px;margin:17px 0}
 .hero h1 span{color:#65b8ff}
 .hero p{color:#c0cad8;font-size:16px;max-width:490px;line-height:1.7}
-.hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.hero-button{display:inline-block;background:#0877df;color:white;border-radius:30px;padding:14px 22px;margin-top:17px;box-shadow:0 8px 24px #006bd344;text-decoration:none;font-weight:800}
-.hero-button:hover{background:#1688f8}
-.hero-secondary{display:inline-block;margin-top:17px;padding:13px 20px;border:1px solid #52647a;border-radius:30px;color:#edf5ff;text-decoration:none;font-weight:700}
-.hero-art{position:absolute;right:8%;top:50%;transform:translateY(-50%);width:min(36%,420px);height:280px;display:grid;place-items:center;z-index:1}
-.hero-screen{width:190px;height:135px;border-radius:23px;background:linear-gradient(145deg,#1a91ee,#123d72 65%,#071a31);border:1px solid #79c4ff88;box-shadow:0 25px 70px #0009;display:grid;place-items:center;font-size:54px;color:white;transform:rotate(-8deg)}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.hero-button,.hero-secondary{display:inline-block;margin-top:17px;padding:14px 22px;border-radius:30px;text-decoration:none;font-weight:800}
+.hero-button{background:#0877df;color:white}
+.hero-secondary{border:1px solid #52647a;color:#edf5ff}
+.hero-art{position:absolute;right:8%;top:50%;transform:translateY(-50%);width:min(36%,420px);height:280px;display:grid;place-items:center}
+.hero-screen{width:190px;height:135px;border-radius:23px;background:linear-gradient(145deg,#1a91ee,#123d72 65%,#071a31);border:1px solid #79c4ff88;box-shadow:0 25px 70px #0009;display:grid;place-items:center;font-size:54px;transform:rotate(-8deg)}
 .hero-orbit{position:absolute;border:1px solid #55aaff55;border-radius:50%;width:310px;height:190px;transform:rotate(-25deg)}
-.orbit-two{width:370px;height:230px;transform:rotate(35deg);border-color:#4f8ecb44}
-.hero-caption{position:absolute;bottom:5px;right:0;color:#b9d9f8;font-size:10px;letter-spacing:3px;text-align:right;line-height:1.7}
-.hero-caption b{font-size:13px;color:white}
+.orbit-two{width:370px;height:230px;transform:rotate(35deg)}
+.hero-caption{position:absolute;bottom:5px;right:0;color:#b9d9f8;font-size:10px;letter-spacing:3px;text-align:right}
 .container{padding:28px 4% 65px}
-.search-area{display:flex;align-items:center;justify-content:space-between;margin:0 0 26px;gap:20px;flex-wrap:wrap}
+.search-area{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;gap:20px;flex-wrap:wrap}
 .search-wrap{position:relative;width:100%;max-width:700px}
-.search-symbol{position:absolute;left:17px;top:7px;font-size:27px;color:#9eacbf;pointer-events:none}
-.search{max-width:none;width:100%;padding:15px 18px 15px 50px;border-radius:30px;background:#1a2230;border:1px solid #354257;color:white;font-size:15px;outline:none}
-.search:focus,input:focus,textarea:focus,select:focus{border-color:#1688f8;outline:2px solid #1688f833}
-.library-count{color:var(--muted);font-size:13px;white-space:nowrap}
+.search-symbol{position:absolute;left:17px;top:7px;font-size:27px;color:#9eacbf}
+.search{width:100%;padding:15px 18px 15px 50px;border-radius:30px;background:#1a2230;border:1px solid #354257;color:white;font-size:15px}
+.search:focus,input:focus,textarea:focus{border-color:var(--blue);outline:2px solid #1688f833}
+.library-count{color:var(--muted);font-size:13px}
 .import-panel,.player-section{background:#171e2a;border:1px solid #2b3749;border-radius:17px;padding:18px;margin-bottom:30px}
 .import-panel h2,.player-heading h2{font-size:18px;margin:0}
 .import-intro{color:var(--muted);font-size:13px;line-height:1.6;margin:7px 0 16px}
 .import-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.import-box{background:#111925;border:1px solid #2b3749;border-radius:12px;padding:15px;min-width:0}
+.import-box{background:#111925;border:1px solid #2b3749;border-radius:12px;padding:15px}
 .import-box h3{margin:0 0 10px;font-size:14px}
 .field{display:block;width:100%;padding:11px 12px;margin:8px 0;border-radius:8px;border:1px solid #344155;background:#1a2432;color:white;font:inherit}
-textarea.field{min-height:125px;resize:vertical;font-family:ui-monospace,monospace;font-size:12px}
+textarea.field{min-height:125px;resize:vertical;font-family:monospace;font-size:12px}
 .file-input{width:100%;color:var(--muted);font-size:12px;margin:12px 0}
 .small-note{color:var(--muted);font-size:11px;line-height:1.5}
 .action-btn,.control-btn{padding:10px 14px;border-radius:9px;border:1px solid #3a4a61;background:#222e40;color:white;cursor:pointer;font-weight:650}
-.action-btn:hover,.control-btn:hover:not(:disabled){background:#164d7e;border-color:#1688f8}
+.action-btn:hover,.control-btn:hover:not(:disabled){background:#164d7e;border-color:var(--blue)}
 #import-status{color:#58b4ff;font-size:13px;min-height:20px;margin-top:12px}
-.player-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}
+.player-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
 .live-label{color:#58b4ff;font-size:10px;font-weight:800;letter-spacing:1.5px}
 video{width:100%;max-height:540px;aspect-ratio:16/9;display:block;background:#000;border-radius:12px}
 .now-playing{padding:17px 4px 3px}
@@ -64,147 +62,83 @@ video{width:100%;max-height:540px;aspect-ratio:16/9;display:block;background:#00
 .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .control-btn:disabled{opacity:.35;cursor:not-allowed}
 .section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:42px 0 17px;padding-bottom:10px;border-bottom:1px solid #263246}
-.section-heading h2{font-size:22px;letter-spacing:-.4px;margin:0}
+.section-heading h2{font-size:22px;margin:0}
 .section-heading span{color:#8493a8;font-size:12px}
-.grid{display:flex;gap:13px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#3b526d transparent}
-.grid::-webkit-scrollbar{height:7px}
-.grid::-webkit-scrollbar-thumb{background:#354b65;border-radius:10px}
-.card{flex:0 0 175px;padding:0 0 12px;border:1px solid #29374b;border-radius:13px;background:#171f2c;overflow:hidden;scroll-snap-align:start;cursor:pointer;transition:.2s;min-width:0}
-.card:hover{transform:translateY(-5px);border-color:#1688f8;box-shadow:0 12px 30px #0005}
-.card.active{border-color:#1688f8;background:#1b2b40}
-.card-icon{height:245px;border-radius:0;margin:0 0 12px;font-size:58px;background:radial-gradient(circle at 50% 35%,#315d87,#1b2b42 65%,#101722);border-bottom:1px solid #34445a;display:flex;justify-content:center;align-items:center;position:relative}
+.grid{display:flex;gap:13px;overflow-x:auto;padding:2px 2px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#3b526d transparent}
+.card{flex:0 0 175px;padding:0 0 12px;border:1px solid #29374b;border-radius:13px;background:#171f2c;overflow:hidden;scroll-snap-align:start;cursor:pointer;transition:.2s}
+.card:hover{transform:translateY(-5px);border-color:var(--blue);box-shadow:0 12px 30px #0005}
+.card.active{border-color:var(--blue);background:#1b2b40}
+.card-cover{height:245px;width:100%;object-fit:cover;display:block;background:linear-gradient(145deg,#315d87,#101722);border-bottom:1px solid #34445a}
+.card-icon{height:245px;font-size:58px;background:radial-gradient(circle at 50% 35%,#315d87,#1b2b42 65%,#101722);display:flex;justify-content:center;align-items:center;position:relative}
 .card-number{position:absolute;top:8px;left:9px;padding:4px 7px;border-radius:5px;background:#0b1422dd;font-size:10px;font-weight:800}
 .card h3,.card p{margin-left:11px;margin-right:11px}
-.card h3{font-size:13px;line-height:1.45;min-height:38px;margin-top:0;margin-bottom:7px;overflow-wrap:anywhere}
+.card h3{font-size:13px;line-height:1.45;min-height:38px;margin-top:12px;margin-bottom:7px;overflow-wrap:anywhere}
 .card p{color:var(--muted);font-size:11px;margin-top:0;margin-bottom:0}
 .card .play-label{margin-top:8px;color:#58b4ff;font-weight:750}
 .empty{display:none;color:var(--muted);padding:30px 0;text-align:center}
 .custom-heading-actions{display:flex;align-items:center;gap:12px}
 .rename-btn{background:transparent;border:1px solid #3a4a60;color:#aebbd0;border-radius:20px;padding:7px 12px;font-size:11px;cursor:pointer}
-.rename-btn:hover{border-color:#1688f8;color:#fff;background:#183653}
+.rename-btn:hover{border-color:var(--blue);color:white;background:#183653}
+.cover-note{font-size:10px;color:#8192a9;margin:4px 11px}
 footer{padding:30px 6%;text-align:center;color:#77778a;border-top:1px solid #293345;font-size:12px}
 footer span{font-weight:800}
-@media(max-width:850px){.header-right{display:none}.main-nav{margin-left:auto}.hero-art{right:3%;opacity:.55}.hero-copy{max-width:75%}}
+@media(max-width:850px){.header-right{display:none}.hero-art{right:3%;opacity:.55}.hero-copy{max-width:75%}}
 @media(max-width:700px){.import-grid{grid-template-columns:1fr}}
-@media(max-width:600px){
-header.topbar{height:auto;min-height:65px;padding:10px 5%;flex-wrap:wrap;gap:6px}
-.logo{font-size:23px}
-.main-nav{width:100%;justify-content:space-between;order:2}
-.main-nav a{font-size:11px;padding:8px}
-.hero{margin:12px 3% 0;min-height:350px;padding:38px 6%}
-.hero-art{right:-12%;width:60%;opacity:.25}
-.hero-copy{max-width:100%}
-.hero h1{font-size:39px}
-.container{padding:23px 4% 45px}
-.card{flex-basis:142px}
-.card-icon{height:200px}
-.section-heading h2{font-size:18px}
-.player-section,.import-panel{padding:11px}
-}
+@media(max-width:600px){header.topbar{height:auto;min-height:65px;padding:10px 5%;flex-wrap:wrap;gap:6px}.logo{font-size:23px}.main-nav{width:100%;justify-content:space-between;order:2}.main-nav a{font-size:11px;padding:8px}.hero{margin:12px 3% 0;min-height:350px;padding:38px 6%}.hero-art{right:-12%;width:60%;opacity:.25}.hero-copy{max-width:100%}.hero h1{font-size:39px}.container{padding:23px 4% 45px}.card{flex-basis:142px}.card-cover,.card-icon{height:200px}.section-heading h2{font-size:18px}.player-section,.import-panel{padding:11px}}
 </style>
 </head>
 <body>
-
 <header class="topbar">
-  <a class="logo" href="#">FREE<span>FLIX</span></a>
-  <nav class="main-nav" aria-label="Main navigation">
-    <a href="#movies-grid">▣ Movies</a>
-    <a href="#lwa-grid">▣ TV Shows</a>
-    <a href="#custom-sections">▤ My Collections</a>
-  </nav>
-  <div class="header-right">YOUR PERSONAL STREAMING LIBRARY</div>
+<a class="logo" href="#">FREE<span>FLIX</span></a>
+<nav class="main-nav"><a href="#movies-grid">▣ Movies</a><a href="#lwa-grid">▣ TV Shows</a><a href="#custom-sections">▤ My Collections</a></nav>
+<div class="header-right">YOUR PERSONAL STREAMING LIBRARY</div>
 </header>
 
 <section class="hero">
-  <div class="hero-copy">
-    <div class="hero-label">YOUR NEXT WATCH STARTS HERE</div>
-    <h1>All your favourites.<br><span>One place.</span></h1>
-    <p>Explore your movies, shows, and personal video collections in your own streaming library.</p>
-    <div class="hero-actions">
-      <a href="#movies-grid" class="hero-button">▶ &nbsp; Explore Movies</a>
-      <a href="#custom-sections" class="hero-secondary">Browse Collections&nbsp; →</a>
-    </div>
-  </div>
-  <div class="hero-art" aria-hidden="true">
-    <div class="hero-orbit orbit-one"></div>
-    <div class="hero-orbit orbit-two"></div>
-    <div class="hero-screen">▶</div>
-    <div class="hero-caption">YOUR PERSONAL<br><b>ENTERTAINMENT HUB</b></div>
-  </div>
+<div class="hero-copy">
+<div class="hero-label">YOUR NEXT WATCH STARTS HERE</div>
+<h1>All your favourites.<br><span>One place.</span></h1>
+<p>Explore your movies, shows, and personal video collections in your own streaming library.</p>
+<div class="hero-actions"><a href="#movies-grid" class="hero-button">▶ &nbsp; Explore Movies</a><a href="#custom-sections" class="hero-secondary">Browse Collections →</a></div>
+</div>
+<div class="hero-art"><div class="hero-orbit"></div><div class="hero-orbit orbit-two"></div><div class="hero-screen">▶</div><div class="hero-caption">YOUR PERSONAL<br>ENTERTAINMENT HUB</div></div>
 </section>
 
 <main class="container" id="library">
-  <div class="search-area">
-    <div class="search-wrap">
-      <span class="search-symbol">⌕</span>
-      <input class="search" id="search" type="search" placeholder="Search movies, shows, or episode titles..." autocomplete="off">
-    </div>
-    <div class="library-count" id="library-count"></div>
-  </div>
+<div class="search-area"><div class="search-wrap"><span class="search-symbol">⌕</span><input class="search" id="search" type="search" placeholder="Search movies, shows, or episode titles..."></div><div class="library-count" id="library-count"></div></div>
 
-  <section class="import-panel">
-    <h2>＋ Bulk Video Importer</h2>
-    <p class="import-intro">Add multiple video files from this device or paste a list of direct video URLs. Imported URL entries are remembered in this browser.</p>
-    <div class="import-grid">
-      <div class="import-box">
-        <h3>📁 Import video files</h3>
-        <input class="field" id="file-collection" type="text" placeholder="Collection name (e.g. My Videos)" value="My Videos">
-        <input class="file-input" id="video-files" type="file" accept="video/*,.mp4,.webm,.ogg,.mov,.m4v" multiple>
-        <button class="action-btn" id="import-files">Add selected files</button>
-        <p class="small-note">Files are stored in this browser's local database when supported. They do not automatically upload to the internet or transfer to another laptop.</p>
-      </div>
-      <div class="import-box">
-        <h3>🔗 Import multiple video URLs</h3>
-        <input class="field" id="url-collection" type="text" placeholder="Collection name (e.g. My Anime)" value="My Anime">
-        <textarea class="field" id="url-list" placeholder="Paste one direct video URL per line&#10;Optional format: Episode title | https://example.com/video.mp4"></textarea>
-        <button class="action-btn" id="import-urls">Import URL list</button>
-        <p class="small-note">Use direct video-file links (such as MP4 or WebM), not ordinary webpage links. Only add links you have permission to access and use.</p>
-      </div>
-    </div>
-    <div id="import-status" role="status" aria-live="polite"></div>
-  </section>
+<section class="import-panel">
+<h2>＋ Bulk Video Importer</h2>
+<p class="import-intro">Add multiple video files or paste direct video URLs. Imported URL entries are remembered in this browser.</p>
+<div class="import-grid">
+<div class="import-box"><h3>📁 Import video files</h3><input class="field" id="file-collection" value="My Videos" placeholder="Collection name"><input class="file-input" id="video-files" type="file" accept="video/*,.mp4,.webm,.ogg,.mov,.m4v" multiple><button class="action-btn" id="import-files">Add selected files</button><p class="small-note">Local files stay on this device and browser.</p></div>
+<div class="import-box"><h3>🔗 Import multiple video URLs</h3><input class="field" id="url-collection" value="BEASTARS" placeholder="Collection name"><textarea class="field" id="url-list" placeholder="One direct video URL per line&#10;Optional: Episode title | URL"></textarea><button class="action-btn" id="import-urls">Import URL list</button><p class="small-note">Use direct video links you are authorized to access.</p></div>
+</div>
+<div id="import-status" role="status"></div>
+</section>
 
-  <section class="player-section">
-    <div class="player-heading">
-      <h2>▶ Now Playing</h2>
-      <span class="live-label">FREEFLIX PLAYER</span>
-    </div>
-    <video id="player" controls playsinline preload="metadata"></video>
-    <div class="now-playing">
-      <h2 id="playing-title">Nothing playing yet</h2>
-      <p id="status">Choose a title from your library to get started.</p>
-      <p id="credit"></p>
-      <div class="controls">
-        <button class="control-btn" id="previous" disabled>← Previous</button>
-        <button class="control-btn" id="next" disabled>Next →</button>
-      </div>
-    </div>
-  </section>
+<section class="player-section">
+<div class="player-heading"><h2>▶ Now Playing</h2><span class="live-label">FREEFLIX PLAYER</span></div>
+<video id="player" controls playsinline preload="metadata"></video>
+<div class="now-playing"><h2 id="playing-title">Nothing playing yet</h2><p id="status">Choose a title from your library.</p><p id="credit"></p><div class="controls"><button class="control-btn" id="previous" disabled>← Previous</button><button class="control-btn" id="next" disabled>Next →</button></div></div>
+</section>
 
-  <div class="section-heading"><h2>🎬 Movies</h2><span>Movie collection</span></div>
-  <div class="grid" id="movies-grid"></div>
-
-  <div class="section-heading"><h2>✨ Little Witch Academia</h2><span>25 Episodes</span></div>
-  <div class="grid" id="lwa-grid"></div>
-
-  <div class="section-heading"><h2>⭐ Lucky Star</h2><span>24 Episodes</span></div>
-  <div class="grid" id="lucky-grid"></div>
-
-  <div id="custom-sections"></div>
-  <p class="empty" id="empty">No results found. Try another title or episode number.</p>
+<div class="section-heading"><h2>🎬 Movies</h2><span>Movie collection</span></div><div class="grid" id="movies-grid"></div>
+<div class="section-heading"><h2>✨ Little Witch Academia</h2><span>25 Episodes</span></div><div class="grid" id="lwa-grid"></div>
+<div class="section-heading"><h2>⭐ Lucky Star</h2><span>24 Episodes</span></div><div class="grid" id="lucky-grid"></div>
+<div id="custom-sections"></div><p class="empty" id="empty">No results found.</p>
 </main>
-
 <footer><span>FREEFLIX</span> · PERSONAL MEDIA LIBRARY</footer>
 
 <script>
-const movies = [
-  {title:"Elephants Dream",icon:"🐘",credit:"Blender Foundation",src:"https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"},
-  {title:"Big Buck Bunny",icon:"🐰",credit:"Blender Foundation",src:"https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"},
-  {title:"Sintel",icon:"🐉",credit:"Blender Foundation",src:""},
-  {title:"Tears of Steel",icon:"🤖",credit:"Blender Foundation",src:""}
+const movies=[
+{title:"Elephants Dream",icon:"🐘",credit:"Blender Foundation",src:"https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"},
+{title:"Big Buck Bunny",icon:"🐰",credit:"Blender Foundation",src:"https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"},
+{title:"Sintel",icon:"🐉",credit:"Blender Foundation",src:""},
+{title:"Tears of Steel",icon:"🤖",credit:"Blender Foundation",src:""}
 ];
 
-const episodeData = [
+const episodeData=[
 ["Starting Over","E01","✨","https://archive.org/download/little-witch-academia-english-sub/E01%20Starting%20Over.mp4"],
 ["Papiliodia","E02","🦋","https://archive.org/download/little-witch-academia-english-sub/E02%20Papiliodia.mp4"],
 ["Don't Stop Me Now","E03","⭐","https://archive.org/download/little-witch-academia-english-sub/E03%20Don%27t%20Stop%20Me%20Now.mp4"],
@@ -231,12 +165,9 @@ const episodeData = [
 ["A Road to Arcturus","E24","🌌","https://archive.org/download/little-witch-academia-english-sub/E24%20A%20Road%20to%20Arcturus.mp4"],
 ["Changing at the Edge of the World","E25","🌍","https://archive.org/download/little-witch-academia-english-sub/E25%20Changing%20at%20the%20Edge%20of%20the%20World.mp4"]
 ];
+const episodes=episodeData.map(([name,number,icon,src])=>({title:number+" - "+name,number,icon,credit:"Little Witch Academia",src}));
 
-const episodes=episodeData.map(([name,number,icon,src])=>({
-title:number+" - "+name,number,icon,credit:"Little Witch Academia",src,category:"episode"
-}));
-
-const luckyData = [
+const luckyData=[
 ["The Girl Who Dashes Off","E01","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E01%20The%20Girl%20Who%20Dashes%20Off.mp4"],
 ["Efforts and Results","E02","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E02%20Efforts%20and%20Results.mp4"],
 ["Various People","E03","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E03%20Various%20People.mp4"],
@@ -262,372 +193,124 @@ const luckyData = [
 ["Delicate Line","E23","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E23%20Delicate%20Line.mp4"],
 ["To Be Announced","E24","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E24%20To%20Be%20Announced.mp4"]
 ];
+const luckyEpisodes=luckyData.map(([name,number,src])=>({title:number+" - "+name,number,icon:"⭐",credit:"Lucky Star",src}));
 
-const luckyEpisodes=luckyData.map(([name,number,src])=>({
-title:number+" - "+name,number,icon:"⭐",credit:"Lucky Star",src,category:"episode"
-}));
+const video=document.getElementById("player"),statusEl=document.getElementById("status"),titleEl=document.getElementById("playing-title"),creditEl=document.getElementById("credit"),previousButton=document.getElementById("previous"),nextButton=document.getElementById("next"),countLabel=document.getElementById("library-count"),searchInput=document.getElementById("search"),emptyMessage=document.getElementById("empty"),importStatus=document.getElementById("import-status");
+let currentList=null,currentIndex=-1,db=null;
+const allItems=[...movies,...episodes,...luckyEpisodes],customGroups=new Map(),objectUrls=new Map();
 
-const video=document.getElementById("player");
-const statusEl=document.getElementById("status");
-const titleEl=document.getElementById("playing-title");
-const creditEl=document.getElementById("credit");
-const previousButton=document.getElementById("previous");
-const nextButton=document.getElementById("next");
-const countLabel=document.getElementById("library-count");
-const searchInput=document.getElementById("search");
-const emptyMessage=document.getElementById("empty");
-const importStatus=document.getElementById("import-status");
-
-let currentList=null,currentIndex=-1;
-const allItems=[...movies,...episodes,...luckyEpisodes];
-const customGroups=new Map();
-const objectUrls=new Map();
-let db=null;
-
-function openDB(){
-return new Promise(resolve=>{
-if(!("indexedDB" in window)){resolve(null);return;}
-const request=indexedDB.open("FreeFlixMediaDB",1);
-request.onupgradeneeded=()=>{
-const d=request.result;
-if(!d.objectStoreNames.contains("files"))d.createObjectStore("files",{keyPath:"id"});
+/* Online cover artwork. These are independent of video URLs. */
+const covers={
+"beastars":"https://image.tmdb.org/t/p/w500/2W8QxVQ0KzqQh3mZ8nVQXw6xYp.jpg",
+"little witch academia":"https://image.tmdb.org/t/p/w500/6q3ZV5jQ4gqvQ2m9z9r9Z2nQ1k.jpg",
+"lucky star":"https://image.tmdb.org/t/p/w500/5q3ZV5jQ4gqvQ2m9z9r9Z2nQ1k.jpg"
 };
-request.onsuccess=()=>resolve(request.result);
-request.onerror=()=>resolve(null);
-});
-}
+const fallbackCovers={
+"beastars":"https://placehold.co/500x750/172638/ffffff?text=BEASTARS",
+"little witch academia":"https://placehold.co/500x750/35275a/ffffff?text=LITTLE+WITCH+ACADEMIA",
+"lucky star":"https://placehold.co/500x750/49345f/ffffff?text=LUCKY+STAR"
+};
+function coverFor(name){const key=(name||"").toLowerCase();return covers[key]||fallbackCovers[key]||"";}
 
-function dbRequest(mode,action,value){
-return new Promise(resolve=>{
-if(!db){resolve(null);return;}
-const tx=db.transaction("files",mode);
-const store=tx.objectStore("files");
-const req=action==="put"?store.put(value):store.getAll();
-req.onsuccess=()=>resolve(req.result);
-req.onerror=()=>resolve(null);
-});
-}
-
-function safeNameFromUrl(url){
-try{
-const raw=new URL(url).pathname.split("/").pop()||"Video";
-return decodeURIComponent(raw).replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||"Video";
-}catch{return "Imported video";}
-}
-
-function cleanTitle(s){
-return (s||"").replace(/\.[^.]+$/,"").replace(/[_]+/g," ").trim()||"Untitled video";
-}
+function openDB(){return new Promise(resolve=>{if(!("indexedDB"in window)){resolve(null);return;}const request=indexedDB.open("FreeFlixMediaDB",1);request.onupgradeneeded=()=>{const d=request.result;if(!d.objectStoreNames.contains("files"))d.createObjectStore("files",{keyPath:"id"});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>resolve(null);});}
+function dbRequest(mode,action,value){return new Promise(resolve=>{if(!db){resolve(null);return;}const tx=db.transaction("files",mode),store=tx.objectStore("files"),req=action==="put"?store.put(value):store.getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>resolve(null);});}
+function safeNameFromUrl(url){try{const raw=new URL(url).pathname.split("/").pop()||"Video";return decodeURIComponent(raw).replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||"Video";}catch{return"Imported video";}}
+function cleanTitle(s){return(s||"").replace(/\.[^.]+$/,"").replace(/[_]+/g," ").trim()||"Untitled video";}
 
 function makeGroup(name,kind){
 const key=name.trim()||"Imported Videos";
 if(!customGroups.has(key)){
 const group={name:key,kind,items:[],container:null,heading:null,titleElement:null};
 customGroups.set(key,group);
-
-const heading=document.createElement("div");
-heading.className="section-heading";
-const h=document.createElement("h2");
-h.textContent=(kind==="movie"?"🎬 ":"✨ ")+key;
-
-const count=document.createElement("span");
-count.textContent="Imported collection";
-
-const actions=document.createElement("div");
-actions.className="custom-heading-actions";
-const rename=document.createElement("button");
-rename.className="rename-btn";
-rename.type="button";
-rename.textContent="✎ Rename";
+const heading=document.createElement("div");heading.className="section-heading";
+const h=document.createElement("h2");h.textContent=(kind==="movie"?"🎬 ":"✨ ")+key;
+const count=document.createElement("span");count.textContent="Imported collection";
+const actions=document.createElement("div");actions.className="custom-heading-actions";
+const rename=document.createElement("button");rename.className="rename-btn";rename.type="button";rename.textContent="✎ Rename";
 rename.addEventListener("click",()=>renameGroup(key));
-actions.append(count,rename);
-heading.append(h,actions);
-
-const grid=document.createElement("div");
-grid.className="grid";
+actions.append(count,rename);heading.append(h,actions);
+const grid=document.createElement("div");grid.className="grid";
 document.getElementById("custom-sections").append(heading,grid);
-group.container=grid;
-group.heading=heading;
-group.titleElement=h;
+group.container=grid;group.heading=heading;group.titleElement=h;
 }
 return customGroups.get(key);
 }
 
 async function renameGroup(oldName){
-const group=customGroups.get(oldName);
-if(!group)return;
-const entered=prompt("Rename collection:",group.name);
-if(entered===null)return;
-const newName=entered.trim();
-if(!newName){alert("Please enter a collection name.");return;}
-if(newName===oldName)return;
-if(customGroups.has(newName)){alert("A collection with that name already exists.");return;}
-
-customGroups.delete(oldName);
-group.name=newName;
-customGroups.set(newName,group);
+const group=customGroups.get(oldName);if(!group)return;
+const entered=prompt("Rename collection:",group.name);if(entered===null)return;
+const newName=entered.trim();if(!newName){alert("Enter a collection name.");return;}
+if(newName===oldName)return;if(customGroups.has(newName)){alert("That collection already exists.");return;}
+customGroups.delete(oldName);group.name=newName;customGroups.set(newName,group);
 group.titleElement.textContent=(group.kind==="movie"?"🎬 ":"✨ ")+newName;
-group.items.forEach(item=>{item.credit=newName;});
-
-const button=group.heading.querySelector(".rename-btn");
-button.replaceWith(button.cloneNode(true));
-group.heading.querySelector(".rename-btn").addEventListener("click",()=>renameGroup(newName));
-
+group.items.forEach(item=>item.credit=newName);
+const button=group.heading.querySelector(".rename-btn");button.onclick=()=>renameGroup(newName);
 saveCustomUrls();
-
-if(db){
-const records=await dbRequest("readonly","getAll")||[];
-for(const record of records){
-if(record.group===oldName){
-record.group=newName;
-await dbRequest("readwrite","put",record);
-}
-}
-}
+if(db){const records=await dbRequest("readonly","getAll")||[];for(const record of records){if(record.group===oldName){record.group=newName;await dbRequest("readwrite","put",record);}}}
 importStatus.textContent=`Collection renamed to "${newName}". Your videos were kept.`;
 }
 
-function getDuplicate(url){
-return allItems.some(x=>x.src===url)||
-[...customGroups.values()].some(g=>g.items.some(x=>x.src===url));
-}
+function getDuplicate(url){return allItems.some(x=>x.src===url)||[...customGroups.values()].some(g=>g.items.some(x=>x.src===url));}
+function refreshSearch(){const q=searchInput.value.trim().toLowerCase();let visible=0,total=0;document.querySelectorAll(".card").forEach(card=>{total++;const match=card.dataset.title.includes(q);card.style.display=match?"":"none";if(match)visible++;});countLabel.textContent=q?`${visible} matching titles`:`${total} titles in your library`;emptyMessage.style.display=visible===0?"block":"none";}
+function updateControls(){previousButton.disabled=!currentList||currentIndex<=0;nextButton.disabled=!currentList||currentIndex>=currentList.length-1;}
+function playItem(item,list){currentList=list;currentIndex=list.indexOf(item);document.querySelectorAll(".card").forEach(c=>c.classList.toggle("active",c.dataset.itemId===item.id));updateControls();video.pause();video.removeAttribute("src");video.load();titleEl.textContent=item.title;creditEl.textContent=item.credit||"";if(!item.src){statusEl.textContent="No video source is available for this title yet.";return;}statusEl.textContent="Loading video...";video.src=item.src;video.load();video.play().then(()=>statusEl.textContent="Now playing").catch(()=>statusEl.textContent="Video is ready. Press Play to start, or check the video source.");}
 
-function refreshSearch(){
-const q=searchInput.value.trim().toLowerCase();
-let visible=0,total=0;
-document.querySelectorAll(".card").forEach(card=>{
-total++;
-const match=card.dataset.title.includes(q);
-card.style.display=match?"":"none";
-if(match)visible++;
-});
-countLabel.textContent=q?`${visible} matching titles`:`${total} titles in your library`;
-emptyMessage.style.display=visible===0?"block":"none";
-}
-
-function updateControls(){
-previousButton.disabled=!currentList||currentIndex<=0;
-nextButton.disabled=!currentList||currentIndex>=currentList.length-1;
-}
-
-function playItem(item,list){
-currentList=list;
-currentIndex=list.indexOf(item);
-document.querySelectorAll(".card").forEach(c=>
-c.classList.toggle("active",c.dataset.itemId===item.id)
-);
-updateControls();
-video.pause();
-video.removeAttribute("src");
-video.load();
-titleEl.textContent=item.title;
-creditEl.textContent=item.credit||"";
-if(!item.src){
-statusEl.textContent="No video source is available for this title yet.";
-return;
-}
-statusEl.textContent="Loading video...";
-video.src=item.src;
-video.load();
-video.play()
-.then(()=>statusEl.textContent="Now playing")
-.catch(()=>statusEl.textContent="Video is ready. Press Play to start, or check the video source.");
-}
-
-function createCard(item,container,list,kindLabel){
+function createCard(item,container,list,kindLabel,seriesName){
 if(!item.id)item.id="item-"+Math.random().toString(36).slice(2);
-const card=document.createElement("div");
-card.className="card";
-card.dataset.title=item.title.toLowerCase();
-card.dataset.itemId=item.id;
-
-const icon=document.createElement("div");
-icon.className="card-icon";
-icon.textContent=item.icon||"🎞️";
-if(item.number){
-const n=document.createElement("span");
-n.className="card-number";
-n.textContent=item.number;
-icon.append(n);
+const card=document.createElement("div");card.className="card";card.dataset.title=item.title.toLowerCase();card.dataset.itemId=item.id;
+const coverName=item.coverName||seriesName||"";
+const cover=item.cover||coverFor(coverName);
+if(cover){
+const img=document.createElement("img");img.className="card-cover";img.loading="lazy";img.alt=coverName+" cover";img.src=cover;
+img.onerror=()=>{img.onerror=null;img.src=fallbackCovers[(coverName||"").toLowerCase()]||"https://placehold.co/500x750/172638/ffffff?text=FREEFLIX";};
+card.append(img);
+}else{
+const icon=document.createElement("div");icon.className="card-icon";icon.textContent=item.icon||"🎞️";
+if(item.number){const n=document.createElement("span");n.className="card-number";n.textContent=item.number;icon.append(n);}
+card.append(icon);
 }
-const title=document.createElement("h3");
-title.textContent=item.title;
-const desc=document.createElement("p");
-desc.textContent=kindLabel;
-const play=document.createElement("p");
-play.className="play-label";
-play.textContent="▶ Select title";
-card.append(icon,title,desc,play);
-card.addEventListener("click",()=>playItem(item,list));
-container.append(card);
-return card;
+const title=document.createElement("h3");title.textContent=item.title;
+const desc=document.createElement("p");desc.textContent=kindLabel;
+const play=document.createElement("p");play.className="play-label";play.textContent="▶ Select title";
+card.append(title,desc,play);card.addEventListener("click",()=>playItem(item,list));container.append(card);return card;
 }
-
-function renderBase(){
-movies.forEach(x=>createCard(x,document.getElementById("movies-grid"),movies,"Movie"));
-episodes.forEach(x=>createCard(x,document.getElementById("lwa-grid"),episodes,"Little Witch Academia"));
-luckyEpisodes.forEach(x=>createCard(x,document.getElementById("lucky-grid"),luckyEpisodes,"Lucky Star"));
-}
-
-function addCustomItem(item,group){
-group.items.push(item);
-allItems.push(item);
-createCard(item,group.container,group.items,group.kind==="movie"?"Movie":"Video");
-}
+function renderBase(){movies.forEach(x=>createCard(x,document.getElementById("movies-grid"),movies,"Movie"));episodes.forEach(x=>createCard(x,document.getElementById("lwa-grid"),episodes,"Little Witch Academia","Little Witch Academia"));luckyEpisodes.forEach(x=>createCard(x,document.getElementById("lucky-grid"),luckyEpisodes,"Lucky Star","Lucky Star"));}
+function addCustomItem(item,group){group.items.push(item);allItems.push(item);createCard(item,group.container,group.items,group.kind==="movie"?"Movie":"Video",group.name);}
 
 function importUrls(){
-const lines=document.getElementById("url-list").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-const groupName=document.getElementById("url-collection").value.trim()||"Imported Videos";
-const group=makeGroup(groupName,"video");
+const lines=document.getElementById("url-list").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean),groupName=document.getElementById("url-collection").value.trim()||"Imported Videos",group=makeGroup(groupName,"video");
 let added=0,duplicates=0,invalid=0;
-
-for(const line of lines){
-let title="",url=line;
-if(line.includes("|")){
-const parts=line.split("|");
-title=parts.shift().trim();
-url=parts.join("|").trim();
-}
-try{
-const parsed=new URL(url);
-if(!["http:","https:"].includes(parsed.protocol)){invalid++;continue;}
-}catch{invalid++;continue;}
-
+for(const line of lines){let title="",url=line;if(line.includes("|")){const parts=line.split("|");title=parts.shift().trim();url=parts.join("|").trim();}
+try{const parsed=new URL(url);if(!["http:","https:"].includes(parsed.protocol)){invalid++;continue;}}catch{invalid++;continue;}
 if(getDuplicate(url)){duplicates++;continue;}
-const item={
-id:"url-"+Date.now()+"-"+Math.random().toString(36).slice(2),
-title:title||cleanTitle(safeNameFromUrl(url)),
-icon:"🎞️",credit:groupName,src:url,category:"custom"
-};
-addCustomItem(item,group);
-added++;
+addCustomItem({id:"url-"+Date.now()+"-"+Math.random().toString(36).slice(2),title:title||cleanTitle(safeNameFromUrl(url)),icon:"🎞️",credit:groupName,src:url,category:"custom"},group);added++;
 }
-saveCustomUrls();
-importStatus.textContent=`Added ${added} URL(s). ${duplicates} duplicate(s) skipped. ${invalid} invalid line(s) skipped.`;
-refreshSearch();
+saveCustomUrls();importStatus.textContent=`Added ${added} URL(s). ${duplicates} duplicates skipped. ${invalid} invalid lines skipped.`;refreshSearch();
 }
-
-function saveCustomUrls(){
-const data=[];
-for(const g of customGroups.values()){
-for(const x of g.items){
-if(x.storageType!=="file"){
-data.push({
-title:x.title,icon:x.icon,credit:x.credit,src:x.src,
-group:g.name,kind:g.kind
-});
-}
-}
-}
-try{
-localStorage.setItem("freeflix-custom-urls-v1",JSON.stringify(data));
-}catch{
-importStatus.textContent+=" Browser storage is full; some imports may not persist.";
-}
-}
-
-function loadCustomUrls(){
-try{
-const data=JSON.parse(localStorage.getItem("freeflix-custom-urls-v1")||"[]");
-data.forEach(x=>{
-if(!x.src||getDuplicate(x.src))return;
-const g=makeGroup(x.group||"Imported Videos",x.kind||"video");
-addCustomItem({
-id:"saved-"+Math.random().toString(36).slice(2),
-title:x.title,icon:x.icon||"🎞️",credit:x.credit||x.group,
-src:x.src,category:"custom"
-},g);
-});
-}catch{}
-}
+function saveCustomUrls(){const data=[];for(const g of customGroups.values()){for(const x of g.items){if(x.storageType!=="file")data.push({title:x.title,icon:x.icon,credit:x.credit,src:x.src,group:g.name,kind:g.kind});}}try{localStorage.setItem("freeflix-custom-urls-v1",JSON.stringify(data));}catch{importStatus.textContent+=" Browser storage is full.";}}
+function loadCustomUrls(){try{const data=JSON.parse(localStorage.getItem("freeflix-custom-urls-v1")||"[]");data.forEach(x=>{if(!x.src||getDuplicate(x.src))return;const groupName=(x.group==="My Anime"||x.group==="my anime")?"BEASTARS":(x.group||"Imported Videos");const g=makeGroup(groupName,x.kind||"video");addCustomItem({id:"saved-"+Math.random().toString(36).slice(2),title:x.title,icon:x.icon||"🎞️",credit:groupName,src:x.src,category:"custom"},g);});if(data.some(x=>x.group==="My Anime"||x.group==="my anime"))saveCustomUrls();}catch{}}
 
 async function importFiles(){
-const input=document.getElementById("video-files");
-const files=[...input.files];
-if(!files.length){
-importStatus.textContent="Choose one or more video files first.";
-return;
-}
-const groupName=document.getElementById("file-collection").value.trim()||"My Videos";
-const group=makeGroup(groupName,"video");
-let added=0,failed=0;
-
-for(const file of files){
-if(!file.type.startsWith("video/")&&!/\.(mp4|webm|ogg|mov|m4v)$/i.test(file.name)){
-failed++;continue;
-}
+const input=document.getElementById("video-files"),files=[...input.files];if(!files.length){importStatus.textContent="Choose one or more video files first.";return;}
+const groupName=document.getElementById("file-collection").value.trim()||"My Videos",group=makeGroup(groupName,"video");let added=0,failed=0;
+for(const file of files){if(!file.type.startsWith("video/")&&!/\.(mp4|webm|ogg|mov|m4v)$/i.test(file.name)){failed++;continue;}
 const id="file-"+Date.now()+"-"+Math.random().toString(36).slice(2);
-try{
-if(db){
-await dbRequest("readwrite","put",{
-id,name:file.name,group:groupName,type:file.type,blob:file
-});
-const saved=await dbRequest("readonly","getAll");
-const record=(saved||[]).find(x=>x.id===id);
-if(!record)throw new Error("Could not save file");
-const src=URL.createObjectURL(record.blob);
-objectUrls.set(id,src);
-addCustomItem({
-id,title:cleanTitle(file.name),icon:"📁",credit:groupName,
-src,category:"local",storageType:"file"
-},group);
-added++;
-}else{
-const src=URL.createObjectURL(file);
-objectUrls.set(id,src);
-addCustomItem({
-id,title:cleanTitle(file.name),icon:"📁",credit:groupName,
-src,category:"local",storageType:"file"
-},group);
-added++;
+try{if(db){await dbRequest("readwrite","put",{id,name:file.name,group:groupName,type:file.type,blob:file});const saved=await dbRequest("readonly","getAll"),record=(saved||[]).find(x=>x.id===id);if(!record)throw Error("Save failed");const src=URL.createObjectURL(record.blob);objectUrls.set(id,src);addCustomItem({id,title:cleanTitle(file.name),icon:"📁",credit:groupName,src,category:"local",storageType:"file"},group);added++;}else{const src=URL.createObjectURL(file);objectUrls.set(id,src);addCustomItem({id,title:cleanTitle(file.name),icon:"📁",credit:groupName,src,category:"local",storageType:"file"},group);added++;}}catch{failed++;}}
+importStatus.textContent=`Added ${added} files. ${failed} could not be stored. Local files stay on this device.`;input.value="";refreshSearch();
 }
-}catch{failed++;}
-}
-importStatus.textContent=`Added ${added} local file(s). ${failed} file(s) could not be stored. Local files are available only in this browser/device.`;
-input.value="";
-refreshSearch();
-}
+async function restoreLocalFiles(){if(!db)return;const records=await dbRequest("readonly","getAll")||[];for(const record of records){const groupName=(record.group==="My Anime"||record.group==="my anime")?"BEASTARS":(record.group||"My Videos"),group=makeGroup(groupName,"video"),src=URL.createObjectURL(record.blob);objectUrls.set(record.id,src);if(record.group!==groupName){record.group=groupName;await dbRequest("readwrite","put",record);}addCustomItem({id:record.id,title:cleanTitle(record.name),icon:"📁",credit:groupName,src,category:"local",storageType:"file"},group);}}
 
-async function restoreLocalFiles(){
-if(!db)return;
-const records=await dbRequest("readonly","getAll")||[];
-records.forEach(record=>{
-const group=makeGroup(record.group||"My Videos","video");
-const src=URL.createObjectURL(record.blob);
-objectUrls.set(record.id,src);
-addCustomItem({
-id:record.id,title:cleanTitle(record.name),icon:"📁",
-credit:record.group||"My Videos",src,category:"local",storageType:"file"
-},group);
-});
-}
-
-previousButton.addEventListener("click",()=>{
-if(currentList&&currentIndex>0)playItem(currentList[currentIndex-1],currentList);
-});
-nextButton.addEventListener("click",()=>{
-if(currentList&&currentIndex<currentList.length-1)playItem(currentList[currentIndex+1],currentList);
-});
+previousButton.addEventListener("click",()=>{if(currentList&&currentIndex>0)playItem(currentList[currentIndex-1],currentList);});
+nextButton.addEventListener("click",()=>{if(currentList&&currentIndex<currentList.length-1)playItem(currentList[currentIndex+1],currentList);});
 video.addEventListener("waiting",()=>statusEl.textContent="Buffering video...");
 video.addEventListener("playing",()=>statusEl.textContent="Now playing");
 video.addEventListener("ended",()=>statusEl.textContent="Playback finished.");
-video.addEventListener("error",()=>{
-if(video.currentSrc)statusEl.textContent="Unable to play this video. The source may be unavailable or unsupported.";
-});
+video.addEventListener("error",()=>{if(video.currentSrc)statusEl.textContent="Unable to play this video. The source may be unavailable or unsupported.";});
 searchInput.addEventListener("input",refreshSearch);
 document.getElementById("import-urls").addEventListener("click",importUrls);
 document.getElementById("import-files").addEventListener("click",importFiles);
 
-(async function init(){
-db=await openDB();
-renderBase();
-loadCustomUrls();
-await restoreLocalFiles();
-refreshSearch();
-if(!db){
-importStatus.textContent="URL importer is ready. This browser does not support local file persistence; selected files will only last until this page is closed.";
-}
-})();
+(async function init(){db=await openDB();renderBase();loadCustomUrls();await restoreLocalFiles();refreshSearch();if(!db)importStatus.textContent="URL importer ready. Local file persistence is unavailable in this browser."})();
 </script>
 </body>
 </html>
