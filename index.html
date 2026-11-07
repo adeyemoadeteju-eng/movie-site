@@ -4,188 +4,347 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FreeFlix</title>
+<meta name="theme-color" content="#090910">
+<title>FreeFlix | Personal Media Library</title>
 
 <style>
+:root {
+  --bg: #090910;
+  --panel: #151520;
+  --panel2: #1d1d2b;
+  --purple: #a78bfa;
+  --muted: #9999ad;
+  --border: #2b2b3b;
+}
+
 * { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background: #0b0b10;
-  color: #f5f5f7;
+  background: var(--bg);
+  color: #f7f7fb;
   font-family: system-ui, sans-serif;
 }
 
 header {
-  padding: 22px 6%;
-  background: #111119;
-  border-bottom: 1px solid #292936;
+  height: 76px;
+  padding: 0 6%;
+  background: rgba(15,15,23,.94);
+  border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+  backdrop-filter: blur(14px);
 }
 
 .logo {
-  font-size: 26px;
-  font-weight: 900;
+  font-size: 27px;
+  font-weight: 950;
+  letter-spacing: -1px;
 }
 
-.logo span { color: #a78bfa; }
+.logo span { color: var(--purple); }
 
-.header-label {
-  color: #9999aa;
-  font-size: 12px;
+.header-right {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 1.5px;
 }
 
 .hero {
-  padding: 42px 6% 25px;
+  padding: 65px 6% 45px;
+  background:
+    radial-gradient(ellipse at 80% 10%, #39205e 0%, transparent 40%),
+    linear-gradient(120deg,#171323,#0c0c14 65%);
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-label {
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 3px;
 }
 
 .hero h1 {
-  font-size: clamp(28px, 5vw, 42px);
-  margin: 0 0 8px;
+  font-size: clamp(35px,6vw,58px);
+  margin: 12px 0;
+  letter-spacing: -2px;
 }
 
-.hero p { color: #9999aa; }
+.hero p {
+  color: #aaa8bb;
+  max-width: 540px;
+  line-height: 1.7;
+}
 
-.container { padding: 15px 6% 60px; }
+.hero-button {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 12px 22px;
+  border-radius: 9px;
+  background: var(--purple);
+  color: #130d20;
+  text-decoration: none;
+  font-weight: 800;
+  transition: .2s;
+}
+
+.hero-button:hover {
+  background: white;
+  transform: translateY(-2px);
+}
+
+.container { padding: 30px 6% 65px; }
+
+.search-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
 
 .search {
   width: 100%;
-  max-width: 550px;
-  padding: 15px;
-  border-radius: 12px;
-  border: 1px solid #30303e;
-  background: #171721;
+  max-width: 470px;
+  padding: 14px 17px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--panel);
   color: white;
   font-size: 15px;
-  margin-bottom: 28px;
+  outline: none;
+}
+
+.search:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px #a78bfa22;
+}
+
+.library-count {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .player-section {
-  background: #15151f;
-  border: 1px solid #292936;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
   padding: 18px;
-  border-radius: 16px;
-  margin-bottom: 35px;
+  margin-bottom: 45px;
+  overflow: hidden;
+}
+
+.player-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.player-heading h2 {
+  font-size: 17px;
+  margin: 0;
+}
+
+.live-label {
+  color: var(--purple);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
 }
 
 video {
   width: 100%;
   max-height: 540px;
-  background: black;
-  border-radius: 10px;
+  aspect-ratio: 16/9;
   display: block;
+  background: #000;
+  border-radius: 12px;
 }
 
-.now-playing { padding: 15px 4px 5px; }
+.now-playing { padding: 17px 4px 3px; }
 
 .now-playing h2 {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
   font-size: 21px;
 }
 
-#status, #credit {
-  color: #9999aa;
+#status {
+  color: var(--muted);
   font-size: 13px;
+  min-height: 20px;
+}
+
+#credit {
+  color: #77778d;
+  font-size: 12px;
 }
 
 .controls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
 .control-btn {
-  border: 1px solid #383847;
-  background: #242432;
-  color: white;
   padding: 11px 17px;
   border-radius: 9px;
+  border: 1px solid #39394b;
+  background: var(--panel2);
+  color: white;
   cursor: pointer;
+  font-weight: 650;
+  transition: .2s;
 }
 
-.control-btn:hover {
-  background: #39334e;
-  border-color: #a78bfa;
+.control-btn:hover:not(:disabled) {
+  background: #39304e;
+  border-color: var(--purple);
 }
 
-.section-title {
+.control-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 38px 0 18px;
+}
+
+.section-heading h2 {
   font-size: 23px;
-  margin: 35px 0 17px;
+  margin: 0;
+}
+
+.section-heading span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  grid-template-columns: repeat(auto-fill,minmax(190px,1fr));
   gap: 16px;
 }
 
 .card {
-  background: #171721;
-  border: 1px solid #292936;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 13px;
-  padding: 15px;
+  padding: 12px;
   cursor: pointer;
   transition: .2s;
+  min-width: 0;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  border-color: #a78bfa;
+  border-color: var(--purple);
 }
 
 .card.active {
-  border-color: #a78bfa;
-  background: #22202f;
+  border-color: var(--purple);
+  background: #242033;
+  box-shadow: 0 0 18px #a78bfa16;
 }
 
 .card-icon {
-  height: 95px;
-  background: linear-gradient(135deg,#30234d,#171725);
+  height: 112px;
+  background:
+    radial-gradient(circle at 50% 40%,#6843a0,#302044 65%,#171725);
   border-radius: 9px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 36px;
+  align-items: center;
+  font-size: 43px;
   margin-bottom: 13px;
+  position: relative;
+}
+
+.card-number {
+  position: absolute;
+  top: 8px;
+  left: 9px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #090910aa;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .card h3 {
-  font-size: 14px;
+  font-size: 13px;
   margin: 0 0 7px;
+  line-height: 1.5;
 }
 
 .card p {
-  color: #9292a4;
-  font-size: 12px;
+  color: var(--muted);
+  font-size: 11px;
   margin: 0;
+}
+
+.card .play-label {
+  color: var(--purple);
+  margin-top: 9px;
+  font-weight: 750;
 }
 
 .empty {
   display: none;
-  color: #9999aa;
-  padding: 20px 0;
+  color: var(--muted);
+  padding: 30px 0;
+  text-align: center;
 }
 
 footer {
+  padding: 30px 6%;
   text-align: center;
-  padding: 25px;
-  color: #777789;
-  border-top: 1px solid #252532;
+  color: #77778a;
+  border-top: 1px solid var(--border);
   font-size: 12px;
 }
 
+footer span {
+  color: var(--purple);
+  font-weight: 800;
+}
+
 @media(max-width:600px) {
-  header { padding: 17px 5%; }
-  .container,.hero { padding-left: 5%; padding-right: 5%; }
-  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
-  .card { padding: 11px; }
-  .card-icon { height: 75px; }
+  header {
+    height: 65px;
+    padding: 0 5%;
+  }
+
+  .logo { font-size: 23px; }
+  .header-right { font-size: 9px; }
+
+  .hero { padding: 45px 5% 35px; }
+  .container { padding: 24px 5% 45px; }
+
+  .grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 10px;
+  }
+
+  .card { padding: 9px; }
+  .card-icon { height: 82px; font-size: 34px; }
+  .section-heading h2 { font-size: 19px; }
+  .player-section { padding: 11px; }
 }
 </style>
 </head>
@@ -194,52 +353,74 @@ footer {
 
 <header>
   <div class="logo">FREE<span>FLIX</span></div>
-  <div class="header-label">PERSONAL MEDIA LIBRARY</div>
+  <div class="header-right">PERSONAL MEDIA LIBRARY</div>
 </header>
 
 <section class="hero">
+  <div class="hero-label">YOUR ENTERTAINMENT HUB</div>
   <h1>Welcome to FreeFlix.</h1>
-  <p>Your personal movie and episode library.</p>
+  <p>
+    Your personal library for movies and episodes.
+    Find something to watch and enjoy your collection.
+  </p>
+  <a href="#library" class="hero-button">Explore Library ↓</a>
 </section>
 
-<main class="container">
+<main class="container" id="library">
 
-<input
-  class="search"
-  id="search"
-  type="search"
-  placeholder="Search movies and episodes..."
->
-
-<section class="player-section">
-
-  <video id="player" controls playsinline></video>
-
-  <div class="now-playing">
-    <h2 id="playing-title">Nothing playing yet</h2>
-    <p id="status">Choose something from your library.</p>
-    <p id="credit"></p>
-
-    <div class="controls">
-      <button class="control-btn" id="previous">← Previous</button>
-      <button class="control-btn" id="next">Next →</button>
-    </div>
+  <div class="search-area">
+    <input
+      class="search"
+      id="search"
+      type="search"
+      placeholder="🔎 Search movies, episodes, or numbers..."
+      autocomplete="off"
+    >
+    <div class="library-count" id="library-count"></div>
   </div>
 
-</section>
+  <section class="player-section">
 
-<h2 class="section-title">🎬 Movies</h2>
-<div class="grid" id="movies-grid"></div>
+    <div class="player-heading">
+      <h2>▶ Now Playing</h2>
+      <span class="live-label">FREEFLIX PLAYER</span>
+    </div>
 
-<h2 class="section-title">✨ Little Witch Academia</h2>
-<div class="grid" id="episodes-grid"></div>
+    <video id="player" controls playsinline preload="metadata"></video>
 
-<p class="empty" id="empty">No results found.</p>
+    <div class="now-playing">
+      <h2 id="playing-title">Nothing playing yet</h2>
+      <p id="status">Choose a title from your library to get started.</p>
+      <p id="credit"></p>
+
+      <div class="controls">
+        <button class="control-btn" id="previous" disabled>← Previous</button>
+        <button class="control-btn" id="next" disabled>Next →</button>
+      </div>
+    </div>
+
+  </section>
+
+  <div class="section-heading">
+    <h2>🎬 Movies</h2>
+    <span>Movie collection</span>
+  </div>
+  <div class="grid" id="movies-grid"></div>
+
+  <div class="section-heading">
+    <h2>✨ Little Witch Academia</h2>
+    <span>25 Episodes</span>
+  </div>
+  <div class="grid" id="episodes-grid"></div>
+
+  <p class="empty" id="empty">
+    No results found. Try another title or episode number.
+  </p>
 
 </main>
 
 <footer>
-FREEFLIX · PERSONAL MEDIA LIBRARY
+  <span>FREEFLIX</span> · PERSONAL MEDIA LIBRARY
 </footer>
 
 <script>
@@ -249,70 +430,72 @@ FREEFLIX · PERSONAL MEDIA LIBRARY
 // ======================================
 
 const movies = [
-{
-  title: "Elephants Dream",
-  icon: "🐘",
-  credit: "Blender Foundation",
-  src: "https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"
-},
-{
-  title: "Big Buck Bunny",
-  icon: "🐰",
-  credit: "Blender Foundation",
-  src: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
-},
-{
-  title: "Sintel",
-  icon: "🐉",
-  credit: "Blender Foundation",
-  src: ""
-},
-{
-  title: "Tears of Steel",
-  icon: "🤖",
-  credit: "Blender Foundation",
-  src: ""
-}
+  {
+    title: "Elephants Dream",
+    icon: "🐘",
+    credit: "Blender Foundation",
+    src: "https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"
+  },
+  {
+    title: "Big Buck Bunny",
+    icon: "🐰",
+    credit: "Blender Foundation",
+    src: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+  },
+  {
+    title: "Sintel",
+    icon: "🐉",
+    credit: "Blender Foundation",
+    src: ""
+  },
+  {
+    title: "Tears of Steel",
+    icon: "🤖",
+    credit: "Blender Foundation",
+    src: ""
+  }
 ];
 
 // ======================================
-// LITTLE WITCH ACADEMIA EPISODES
-// Add authorized video URLs in src.
+// LITTLE WITCH ACADEMIA
+// Episode sources
 // ======================================
 
-const episodes = [
-["Starting Over","E01","✨"],
-["Papiliodia","E02","🦋"],
-["Don't Stop Me Now","E03","⭐"],
-["Night Fall","E04","🌙"],
-["Pact of the Dragon","E05","🐉"],
-["The Fountain","E06","⛲"],
-["Orange Submariner","E07","🚀"],
-["Akko's Adventure in Sucyworld","E08","🔮"],
-["Undead Travelogue","E09","👻"],
-["Bee Affection","E10","🐝"],
-["Blue Moon","E11","🌙"],
-["What You Will","E12","✨"],
-["Samhain Magic Festival","E13","🎃"],
-["New Age Magic","E14","🪄"],
-["Chariot of Fire","E15","🔥"],
-["Pohjola's Ordeal","E16","❄️"],
-["Amanda O'Neill and the Holy Grail","E17","🏆"],
-["Starship Take Off!","E18","🚀"],
-["Cavendish","E19","🌹"],
-["Intellect and Sensibility","E20","📚"],
-["Discipline","E21","📖"],
-["The Things We Said Today","E22","💫"],
-["Yesterday","E23","⏳"],
-["A Road to Arcturus","E24","🌌"],
-["Changing at the Edge of the World","E25","🌍"]
-].map(([name,number,icon]) => ({
+const episodeData = [
+  ["Starting Over","E01","✨","https://archive.org/download/little-witch-academia-english-sub/E01%20Starting%20Over.mp4"],
+  ["Papiliodia","E02","🦋","https://archive.org/download/little-witch-academia-english-sub/E02%20Papiliodia.mp4"],
+  ["Don't Stop Me Now","E03","⭐","https://archive.org/download/little-witch-academia-english-sub/E03%20Don%27t%20Stop%20Me%20Now.mp4"],
+  ["Night Fall","E04","🌙","https://archive.org/download/little-witch-academia-english-sub/E04%20Night%20Fall.mp4"],
+  ["Pact of the Dragon","E05","🐉","https://archive.org/download/little-witch-academia-english-sub/E05%20Pact%20of%20the%20Dragon.mp4"],
+  ["The Fountain","E06","⛲","https://archive.org/download/little-witch-academia-english-sub/E06%20The%20Fountain.mp4"],
+  ["Orange Submariner","E07","🚀","https://archive.org/download/little-witch-academia-english-sub/E07%20Orange%20Submariner.mp4"],
+  ["Akko's Adventure in Sucyworld","E08","🔮","https://archive.org/download/little-witch-academia-english-sub/E08%20Akko%27s%20Adventure%20in%20Sucyworld.mp4"],
+  ["Undead Travelogue","E09","👻","https://archive.org/download/little-witch-academia-english-sub/E09%20Undead%20Travelogue.mp4"],
+  ["Bee Affection","E10","🐝","https://archive.org/download/little-witch-academia-english-sub/E10%20Bee%20Affection.mp4"],
+  ["Blue Moon","E11","🌙","https://archive.org/download/little-witch-academia-english-sub/E11%20Blue%20Moon.mp4"],
+  ["What You Will","E12","✨","https://archive.org/download/little-witch-academia-english-sub/E12%20What%20You%20Will.mp4"],
+  ["Samhain Magic Festival","E13","🎃","https://archive.org/download/little-witch-academia-english-sub/E13%20Samhain%20Magic%20Festival.mp4"],
+  ["New Age Magic","E14","🪄","https://archive.org/download/little-witch-academia-english-sub/E14%20New%20Age%20Magic.mp4"],
+  ["Chariot of Fire","E15","🔥","https://archive.org/download/little-witch-academia-english-sub/E15%20Chariot%20of%20Fire.mp4"],
+  ["Pohjola's Ordeal","E16","❄️","https://archive.org/download/little-witch-academia-english-sub/E16%20Pohjola%27s%20Ordeal.mp4"],
+  ["Amanda O'Neill and the Holy Grail","E17","🏆","https://archive.org/download/little-witch-academia-english-sub/E17%20Amanda%20O%27Neill%20and%20the%20Holy%20Grail.mp4"],
+  ["Starship Take Off!","E18","🚀","https://archive.org/download/little-witch-academia-english-sub/E18%20Starship%20Take%20Off%21.mp4"],
+  ["Cavendish","E19","🌹","https://archive.org/download/little-witch-academia-english-sub/E19%20Cavendish.mp4"],
+  ["Intellect and Sensibility","E20","📚","https://archive.org/download/little-witch-academia-english-sub/E20%20Intellect%20and%20Sensibility.mp4"],
+  ["Discipline","E21","📖","https://archive.org/download/little-witch-academia-english-sub/E21%20Discipline.mp4"],
+  ["The Things We Said Today","E22","💫","https://archive.org/download/little-witch-academia-english-sub/E22%20The%20Things%20We%20Said%20Today.mp4"],
+  ["Yesterday","E23","⏳","https://archive.org/download/little-witch-academia-english-sub/E23%20Yesterday.mp4"],
+  ["A Road to Arcturus","E24","🌌","https://archive.org/download/little-witch-academia-english-sub/E24%20A%20Road%20to%20Arcturus.mp4"],
+  ["Changing at the Edge of the World","E25","🌍","https://archive.org/download/little-witch-academia-english-sub/E25%20Changing%20at%20the%20Edge%20of%20the%20World.mp4"]
+];
+
+const episodes = episodeData.map(([name,number,icon,src]) => ({
   title: number + " - " + name,
   number,
   icon,
-  category: "episode",
   credit: "Little Witch Academia",
-  src: ""
+  src,
+  category: "episode"
 }));
 
 // ======================================
@@ -323,25 +506,41 @@ const video = document.getElementById("player");
 const statusEl = document.getElementById("status");
 const titleEl = document.getElementById("playing-title");
 const creditEl = document.getElementById("credit");
-
-const allItems = [...movies,...episodes];
+const previousButton = document.getElementById("previous");
+const nextButton = document.getElementById("next");
 
 let currentIndex = -1;
 let currentCategory = null;
 
-function playItem(item,category) {
+function getCurrentList() {
+  return currentCategory === "movie" ? movies : episodes;
+}
 
+function updateControls() {
+  const list = getCurrentList();
+
+  previousButton.disabled = currentIndex <= 0;
+  nextButton.disabled =
+    currentIndex < 0 || currentIndex >= list.length - 1;
+}
+
+function updateActiveCard(item) {
+  document.querySelectorAll(".card").forEach(card => {
+    card.classList.toggle(
+      "active",
+      card.dataset.title === item.title.toLowerCase()
+    );
+  });
+}
+
+function playItem(item,category) {
   const list = category === "movie" ? movies : episodes;
 
   currentCategory = category;
   currentIndex = list.indexOf(item);
 
-  document.querySelectorAll(".card").forEach(card => {
-    card.classList.toggle(
-      "active",
-      card.dataset.title === item.title
-    );
-  });
+  updateActiveCard(item);
+  updateControls();
 
   video.pause();
   video.removeAttribute("src");
@@ -350,54 +549,71 @@ function playItem(item,category) {
   titleEl.textContent = item.title;
   creditEl.textContent = item.credit;
 
-  if(!item.src) {
+  if (!item.src) {
     statusEl.textContent =
-      "No authorized video URL has been added for this item yet.";
+      "No video source is available for this title yet.";
     return;
   }
 
-  statusEl.textContent = "Loading...";
+  statusEl.textContent = "Loading video...";
 
   video.src = item.src;
   video.load();
 
   video.play().then(() => {
     statusEl.textContent = "Now playing";
-  }).catch(error => {
+  }).catch(() => {
     statusEl.textContent =
-      "Playback error: " + error.message;
+      "Video is ready. Press Play to start, or check the video source.";
   });
 }
+
+// ======================================
+// VIDEO EVENTS
+// ======================================
+
+video.addEventListener("waiting", () => {
+  statusEl.textContent = "Buffering video...";
+});
+
+video.addEventListener("playing", () => {
+  statusEl.textContent = "Now playing";
+});
+
+video.addEventListener("ended", () => {
+  statusEl.textContent = "Playback finished.";
+});
+
+video.addEventListener("error", () => {
+  if (video.currentSrc) {
+    statusEl.textContent =
+      "Unable to play this video. The source may be unavailable or unsupported.";
+  }
+});
 
 // ======================================
 // NEXT / PREVIOUS
 // ======================================
 
 function navigate(direction) {
+  if (currentIndex < 0 || !currentCategory) return;
 
-  if(currentIndex < 0 || !currentCategory) return;
-
-  const list = currentCategory === "movie" ? movies : episodes;
-
+  const list = getCurrentList();
   const newIndex = currentIndex + direction;
 
-  if(newIndex < 0 || newIndex >= list.length) return;
+  if (newIndex < 0 || newIndex >= list.length) return;
 
   playItem(list[newIndex],currentCategory);
 }
 
-document.getElementById("previous").onclick =
-  () => navigate(-1);
-
-document.getElementById("next").onclick =
-  () => navigate(1);
+previousButton.addEventListener("click",() => navigate(-1));
+nextButton.addEventListener("click",() => navigate(1));
 
 // ======================================
 // CREATE CARDS
 // ======================================
 
 function createCard(item,container,category) {
-
   const card = document.createElement("div");
   card.className = "card";
   card.dataset.title = item.title.toLowerCase();
@@ -406,6 +622,13 @@ function createCard(item,container,category) {
   icon.className = "card-icon";
   icon.textContent = item.icon;
 
+  if (item.number) {
+    const number = document.createElement("span");
+    number.className = "card-number";
+    number.textContent = item.number;
+    icon.appendChild(number);
+  }
+
   const title = document.createElement("h3");
   title.textContent = item.title;
 
@@ -413,42 +636,60 @@ function createCard(item,container,category) {
   description.textContent =
     category === "movie" ? "Movie" : "Episode";
 
-  card.append(icon,title,description);
+  const playLabel = document.createElement("p");
+  playLabel.className = "play-label";
+  playLabel.textContent = "▶ Select title";
 
-  card.onclick = () => playItem(item,category);
+  card.append(icon,title,description,playLabel);
+
+  card.addEventListener("click",() => {
+    playItem(item,category);
+  });
 
   container.appendChild(card);
 }
 
-movies.forEach(item =>
-  createCard(item,document.getElementById("movies-grid"),"movie")
-);
+movies.forEach(item => {
+  createCard(item,document.getElementById("movies-grid"),"movie");
+});
 
-episodes.forEach(item =>
-  createCard(item,document.getElementById("episodes-grid"),"episode")
-);
+episodes.forEach(item => {
+  createCard(item,document.getElementById("episodes-grid"),"episode");
+});
 
 // ======================================
 // SEARCH
 // ======================================
 
-document.getElementById("search").addEventListener("input",event => {
+const searchInput = document.getElementById("search");
+const emptyMessage = document.getElementById("empty");
+const countLabel = document.getElementById("library-count");
+const allCards = [...document.querySelectorAll(".card")];
 
-  const query = event.target.value.toLowerCase();
+searchInput.addEventListener("input",() => {
+  const query = searchInput.value.trim().toLowerCase();
   let visible = 0;
 
-  document.querySelectorAll(".card").forEach(card => {
-
+  allCards.forEach(card => {
     const matches = card.dataset.title.includes(query);
 
     card.style.display = matches ? "" : "none";
 
-    if(matches) visible++;
+    if (matches) visible++;
   });
 
-  document.getElementById("empty").style.display =
+  emptyMessage.style.display =
     visible === 0 ? "block" : "none";
+
+  countLabel.textContent = visible + " matching titles";
 });
+
+// ======================================
+// INITIAL DISPLAY
+// ======================================
+
+countLabel.textContent =
+  allCards.length + " titles in your library";
 
 </script>
 
