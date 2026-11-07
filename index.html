@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,349 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#090910">
 <title>FreeFlix | Personal Media Library</title>
-
 <style>
-:root {
-  --bg: #090910;
-  --panel: #151520;
-  --panel2: #1d1d2b;
-  --purple: #a78bfa;
-  --muted: #9999ad;
-  --border: #2b2b3b;
-}
-
-* { box-sizing: border-box; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: #f7f7fb;
-  font-family: system-ui, sans-serif;
-}
-
-header {
-  height: 76px;
-  padding: 0 6%;
-  background: rgba(15,15,23,.94);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  backdrop-filter: blur(14px);
-}
-
-.logo {
-  font-size: 27px;
-  font-weight: 950;
-  letter-spacing: -1px;
-}
-
-.logo span { color: var(--purple); }
-
-.header-right {
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 1.5px;
-}
-
-.hero {
-  padding: 65px 6% 45px;
-  background:
-    radial-gradient(ellipse at 80% 10%, #39205e 0%, transparent 40%),
-    linear-gradient(120deg,#171323,#0c0c14 65%);
-  border-bottom: 1px solid var(--border);
-}
-
-.hero-label {
-  color: var(--purple);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 3px;
-}
-
-.hero h1 {
-  font-size: clamp(35px,6vw,58px);
-  margin: 12px 0;
-  letter-spacing: -2px;
-}
-
-.hero p {
-  color: #aaa8bb;
-  max-width: 540px;
-  line-height: 1.7;
-}
-
-.hero-button {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 12px 22px;
-  border-radius: 9px;
-  background: var(--purple);
-  color: #130d20;
-  text-decoration: none;
-  font-weight: 800;
-  transition: .2s;
-}
-
-.hero-button:hover {
-  background: white;
-  transform: translateY(-2px);
-}
-
-.container { padding: 30px 6% 65px; }
-
-.search-area {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  flex-wrap: wrap;
-  margin-bottom: 30px;
-}
-
-.search {
-  width: 100%;
-  max-width: 470px;
-  padding: 14px 17px;
-  border-radius: 11px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: white;
-  font-size: 15px;
-  outline: none;
-}
-
-.search:focus {
-  border-color: var(--purple);
-  box-shadow: 0 0 0 3px #a78bfa22;
-}
-
-.library-count {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.player-section {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 45px;
-  overflow: hidden;
-}
-
-.player-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.player-heading h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
-.live-label {
-  color: var(--purple);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-video {
-  width: 100%;
-  max-height: 540px;
-  aspect-ratio: 16/9;
-  display: block;
-  background: #000;
-  border-radius: 12px;
-}
-
-.now-playing { padding: 17px 4px 3px; }
-
-.now-playing h2 {
-  margin: 0 0 7px;
-  font-size: 21px;
-}
-
-#status {
-  color: var(--muted);
-  font-size: 13px;
-  min-height: 20px;
-}
-
-#credit {
-  color: #77778d;
-  font-size: 12px;
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-}
-
-.control-btn {
-  padding: 11px 17px;
-  border-radius: 9px;
-  border: 1px solid #39394b;
-  background: var(--panel2);
-  color: white;
-  cursor: pointer;
-  font-weight: 650;
-  transition: .2s;
-}
-
-.control-btn:hover:not(:disabled) {
-  background: #39304e;
-  border-color: var(--purple);
-}
-
-.control-btn:disabled {
-  opacity: .35;
-  cursor: not-allowed;
-}
-
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin: 38px 0 18px;
-}
-
-.section-heading h2 {
-  font-size: 23px;
-  margin: 0;
-}
-
-.section-heading span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(190px,1fr));
-  gap: 16px;
-}
-
-.card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  padding: 12px;
-  cursor: pointer;
-  transition: .2s;
-  min-width: 0;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--purple);
-}
-
-.card.active {
-  border-color: var(--purple);
-  background: #242033;
-  box-shadow: 0 0 18px #a78bfa16;
-}
-
-.card-icon {
-  height: 112px;
-  background:
-    radial-gradient(circle at 50% 40%,#6843a0,#302044 65%,#171725);
-  border-radius: 9px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 43px;
-  margin-bottom: 13px;
-  position: relative;
-}
-
-.card-number {
-  position: absolute;
-  top: 8px;
-  left: 9px;
-  padding: 4px 7px;
-  border-radius: 5px;
-  background: #090910aa;
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.card h3 {
-  font-size: 13px;
-  margin: 0 0 7px;
-  line-height: 1.5;
-}
-
-.card p {
-  color: var(--muted);
-  font-size: 11px;
-  margin: 0;
-}
-
-.card .play-label {
-  color: var(--purple);
-  margin-top: 9px;
-  font-weight: 750;
-}
-
-.empty {
-  display: none;
-  color: var(--muted);
-  padding: 30px 0;
-  text-align: center;
-}
-
-footer {
-  padding: 30px 6%;
-  text-align: center;
-  color: #77778a;
-  border-top: 1px solid var(--border);
-  font-size: 12px;
-}
-
-footer span {
-  color: var(--purple);
-  font-weight: 800;
-}
-
-@media(max-width:600px) {
-  header {
-    height: 65px;
-    padding: 0 5%;
-  }
-
-  .logo { font-size: 23px; }
-  .header-right { font-size: 9px; }
-
-  .hero { padding: 45px 5% 35px; }
-  .container { padding: 24px 5% 45px; }
-
-  .grid {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-    gap: 10px;
-  }
-
-  .card { padding: 9px; }
-  .card-icon { height: 82px; font-size: 34px; }
-  .section-heading h2 { font-size: 19px; }
-  .player-section { padding: 11px; }
-}
+:root{--bg:#090910;--panel:#151520;--panel2:#1d1d2b;--purple:#a78bfa;--muted:#9999ad;--border:#2b2b3b}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:#f7f7fb;font-family:system-ui,sans-serif}
+header{height:76px;padding:0 6%;background:rgba(15,15,23,.94);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;backdrop-filter:blur(14px)}
+.logo{font-size:27px;font-weight:950;letter-spacing:-1px}.logo span,footer span{color:var(--purple)}
+.header-right{color:var(--muted);font-size:11px;letter-spacing:1.5px}
+.hero{padding:65px 6% 45px;background:radial-gradient(ellipse at 80% 10%,#39205e 0%,transparent 40%),linear-gradient(120deg,#171323,#0c0c14 65%);border-bottom:1px solid var(--border)}
+.hero-label{color:var(--purple);font-size:12px;font-weight:800;letter-spacing:3px}
+.hero h1{font-size:clamp(35px,6vw,58px);margin:12px 0;letter-spacing:-2px}
+.hero p{color:#aaa8bb;max-width:540px;line-height:1.7}
+.hero-button,.primary-btn{display:inline-block;margin-top:15px;padding:12px 22px;border:0;border-radius:9px;background:var(--purple);color:#130d20;text-decoration:none;font-weight:800;cursor:pointer}
+.container{padding:30px 6% 65px}
+.search-area{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:25px}
+.search{width:100%;max-width:470px;padding:14px 17px;border-radius:11px;border:1px solid var(--border);background:var(--panel);color:white;font-size:15px;outline:none}
+.search:focus,input:focus,textarea:focus,select:focus{border-color:var(--purple);outline:2px solid #a78bfa33}
+.library-count{color:var(--muted);font-size:13px}
+.import-panel,.player-section{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:30px}
+.import-panel h2,.player-heading h2{font-size:18px;margin:0}
+.import-intro{color:var(--muted);font-size:13px;line-height:1.6;margin:7px 0 16px}
+.import-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.import-box{background:#101019;border:1px solid var(--border);border-radius:12px;padding:15px;min-width:0}
+.import-box h3{margin:0 0 10px;font-size:14px}
+.field{display:block;width:100%;padding:11px 12px;margin:8px 0;border-radius:8px;border:1px solid var(--border);background:#1b1b29;color:white;font:inherit}
+textarea.field{min-height:125px;resize:vertical;font-family:ui-monospace,monospace;font-size:12px}
+.file-input{width:100%;color:var(--muted);font-size:12px;margin:12px 0}
+.small-note{color:var(--muted);font-size:11px;line-height:1.5}
+.action-btn,.control-btn{padding:10px 14px;border-radius:9px;border:1px solid #39394b;background:var(--panel2);color:white;cursor:pointer;font-weight:650}
+.action-btn:hover,.control-btn:hover:not(:disabled){background:#39304e;border-color:var(--purple)}
+#import-status{color:var(--purple);font-size:13px;min-height:20px;margin-top:12px}
+.player-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}
+.live-label{color:var(--purple);font-size:10px;font-weight:800;letter-spacing:1.5px}
+video{width:100%;max-height:540px;aspect-ratio:16/9;display:block;background:#000;border-radius:12px}
+.now-playing{padding:17px 4px 3px}.now-playing h2{margin:0 0 7px;font-size:21px}
+#status{color:var(--muted);font-size:13px;min-height:20px}#credit{color:#77778d;font-size:12px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.control-btn:disabled{opacity:.35;cursor:not-allowed}
+.section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:38px 0 18px}
+.section-heading h2{font-size:23px;margin:0}.section-heading span{color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:12px;cursor:pointer;transition:.2s;min-width:0}
+.card:hover{transform:translateY(-4px);border-color:var(--purple)}.card.active{border-color:var(--purple);background:#242033;box-shadow:0 0 18px #a78bfa16}
+.card-icon{height:112px;background:radial-gradient(circle at 50% 40%,#6843a0,#302044 65%,#171725);border-radius:9px;display:flex;justify-content:center;align-items:center;font-size:43px;margin-bottom:13px;position:relative}
+.card-number{position:absolute;top:8px;left:9px;padding:4px 7px;border-radius:5px;background:#090910aa;font-size:10px;font-weight:800}
+.card h3{font-size:13px;margin:0 0 7px;line-height:1.5;overflow-wrap:anywhere}.card p{color:var(--muted);font-size:11px;margin:0}
+.card .play-label{color:var(--purple);margin-top:9px;font-weight:750}
+.empty{display:none;color:var(--muted);padding:30px 0;text-align:center}
+footer{padding:30px 6%;text-align:center;color:#77778a;border-top:1px solid var(--border);font-size:12px}
+footer span{font-weight:800}
+@media(max-width:700px){.import-grid{grid-template-columns:1fr}}
+@media(max-width:600px){header{height:65px;padding:0 5%}.logo{font-size:23px}.header-right{font-size:9px}.hero{padding:45px 5% 35px}.container{padding:24px 5% 45px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{padding:9px}.card-icon{height:82px;font-size:34px}.section-heading h2{font-size:19px}.player-section,.import-panel{padding:11px}}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -359,28 +67,42 @@ footer span {
 <section class="hero">
   <div class="hero-label">YOUR ENTERTAINMENT HUB</div>
   <h1>Welcome to FreeFlix.</h1>
-  <p>
-    Your personal library for movies and episodes.
-    Find something to watch and enjoy your collection.
-  </p>
+  <p>Your personal library for movies and episodes. Find something to watch and enjoy your collection.</p>
   <a href="#library" class="hero-button">Explore Library ↓</a>
 </section>
 
 <main class="container" id="library">
-
   <div class="search-area">
-    <input
-      class="search"
-      id="search"
-      type="search"
-      placeholder="🔎 Search movies, episodes, or numbers..."
-      autocomplete="off"
-    >
+    <input class="search" id="search" type="search" placeholder="🔎 Search movies, episodes, or numbers..." autocomplete="off">
     <div class="library-count" id="library-count"></div>
   </div>
 
-  <section class="player-section">
+  <section class="import-panel">
+    <h2>＋ Bulk Video Importer</h2>
+    <p class="import-intro">Add multiple video files from this device or paste a list of direct video URLs. Imported URL entries are remembered in this browser.</p>
 
+    <div class="import-grid">
+      <div class="import-box">
+        <h3>📁 Import video files</h3>
+        <input class="field" id="file-collection" type="text" placeholder="Collection name (e.g. My Videos)" value="My Videos">
+        <input class="file-input" id="video-files" type="file" accept="video/*,.mp4,.webm,.ogg,.mov,.m4v" multiple>
+        <button class="action-btn" id="import-files">Add selected files</button>
+        <p class="small-note">Files are stored in this browser's local database when supported. They do not automatically upload to the internet or transfer to another laptop.</p>
+      </div>
+
+      <div class="import-box">
+        <h3>🔗 Import multiple video URLs</h3>
+        <input class="field" id="url-collection" type="text" placeholder="Collection name (e.g. My Anime)" value="My Anime">
+        <textarea class="field" id="url-list" placeholder="Paste one direct video URL per line&#10;Optional format: Episode title | https://example.com/video.mp4"></textarea>
+        <button class="action-btn" id="import-urls">Import URL list</button>
+        <p class="small-note">Use direct video-file links (such as MP4 or WebM), not ordinary webpage links. Only add links you have permission to access and use.</p>
+      </div>
+    </div>
+
+    <div id="import-status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="player-section">
     <div class="player-heading">
       <h2>▶ Now Playing</h2>
       <span class="live-label">FREEFLIX PLAYER</span>
@@ -392,43 +114,29 @@ footer span {
       <h2 id="playing-title">Nothing playing yet</h2>
       <p id="status">Choose a title from your library to get started.</p>
       <p id="credit"></p>
-
       <div class="controls">
         <button class="control-btn" id="previous" disabled>← Previous</button>
         <button class="control-btn" id="next" disabled>Next →</button>
       </div>
     </div>
-
   </section>
 
-  <div class="section-heading">
-    <h2>🎬 Movies</h2>
-    <span>Movie collection</span>
-  </div>
+  <div class="section-heading"><h2>🎬 Movies</h2><span>Movie collection</span></div>
   <div class="grid" id="movies-grid"></div>
 
-  <div class="section-heading">
-    <h2>✨ Little Witch Academia</h2>
-    <span>25 Episodes</span>
-  </div>
-  <div class="grid" id="episodes-grid"></div>
+  <div class="section-heading"><h2>✨ Little Witch Academia</h2><span>25 Episodes</span></div>
+  <div class="grid" id="lwa-grid"></div>
 
-  <p class="empty" id="empty">
-    No results found. Try another title or episode number.
-  </p>
+  <div class="section-heading"><h2>⭐ Lucky Star</h2><span>24 Episodes</span></div>
+  <div class="grid" id="lucky-grid"></div>
 
+  <div id="custom-sections"></div>
+  <p class="empty" id="empty">No results found. Try another title or episode number.</p>
 </main>
 
-<footer>
-  <span>FREEFLIX</span> · PERSONAL MEDIA LIBRARY
-</footer>
+<footer><span>FREEFLIX</span> · PERSONAL MEDIA LIBRARY</footer>
 
 <script>
-
-// ======================================
-// MOVIES
-// ======================================
-
 const movies = [
   {
     title: "Elephants Dream",
@@ -455,11 +163,6 @@ const movies = [
     src: ""
   }
 ];
-
-// ======================================
-// LITTLE WITCH ACADEMIA
-// Episode sources
-// ======================================
 
 const episodeData = [
   ["Starting Over","E01","✨","https://archive.org/download/little-witch-academia-english-sub/E01%20Starting%20Over.mp4"],
@@ -490,208 +193,499 @@ const episodeData = [
 ];
 
 const episodes = episodeData.map(([name,number,icon,src]) => ({
-  title: number + " - " + name,
+  title:number+" - "+name,
   number,
   icon,
-  credit: "Little Witch Academia",
+  credit:"Little Witch Academia",
   src,
-  category: "episode"
+  category:"episode"
 }));
 
-// ======================================
-// PLAYER
-// ======================================
+const luckyData = [
+  ["The Girl Who Dashes Off","E01","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E01%20The%20Girl%20Who%20Dashes%20Off.mp4"],
+  ["Efforts and Results","E02","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E02%20Efforts%20and%20Results.mp4"],
+  ["Various People","E03","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E03%20Various%20People.mp4"],
+  ["A Question of Motivation","E04","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E04%20A%20Question%20of%20Motivation.mp4"],
+  ["The Famous Shooter","E05","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E05%20The%20Famous%20Shooter.mp4"],
+  ["Fixtures of Summer","E06","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E06%20Fixtures%20of%20Summer.mp4"],
+  ["Image","E07","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E07%20Image.mp4"],
+  ["Energy Despite Not Being Myself","E08","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E08%20Energy%20Despite%20Not%20Being%20Myself.mp4"],
+  ["That Feeling","E09","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E09%20That%20Feeling.mp4"],
+  ["Desires","E10","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E10%20Desires.mp4"],
+  ["Various Ways to Spend Christmas Eve","E11","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E11%20Various%20Ways%20to%20Spend%20Christmas%20Eve.mp4"],
+  ["Let's Go to the Festival","E12","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E12%20Let's%20Go%20to%20the%20Festival.mp4"],
+  ["Delicious Day","E13","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E13%20Delicious%20Day.mp4"],
+  ["Under One Roof","E14","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E14%20Under%20One%20Roof.mp4"],
+  ["I Can't Suddenly Change","E15","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E15%20I%20Can't%20Suddenly%20Change.mp4"],
+  ["Ring","E16","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E16%20Ring.mp4"],
+  ["Base of the Sun","E17","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E17%20Base%20of%20the%20Sun.mp4"],
+  ["To Each Her Own","E18","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E18%20To%20Each%20Her%20Own.mp4"],
+  ["There is Substance in 2D","E19","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E19%20There%20is%20Substance%20in%202D.mp4"],
+  ["Ways to Spend Summer","E20","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E20%20Ways%20to%20Spend%20Summer.mp4"],
+  ["Pandora's Box","E21","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E21%20Pandora%27s%20Box.mp4"],
+  ["The Yonder Here","E22","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E22%20The%20Yonder%20Here.mp4"],
+  ["Delicate Line","E23","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E23%20Delicate%20Line.mp4"],
+  ["To Be Announced","E24","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E24%20To%20Be%20Announced.mp4"]
+];
 
-const video = document.getElementById("player");
-const statusEl = document.getElementById("status");
-const titleEl = document.getElementById("playing-title");
-const creditEl = document.getElementById("credit");
-const previousButton = document.getElementById("previous");
-const nextButton = document.getElementById("next");
+const luckyEpisodes = luckyData.map(([name,number,src]) => ({
+  title:number+" - "+name,
+  number,
+  icon:"⭐",
+  credit:"Lucky Star",
+  src,
+  category:"episode"
+}));
 
-let currentIndex = -1;
-let currentCategory = null;
+const video=document.getElementById("player");
+const statusEl=document.getElementById("status");
+const titleEl=document.getElementById("playing-title");
+const creditEl=document.getElementById("credit");
+const previousButton=document.getElementById("previous");
+const nextButton=document.getElementById("next");
+const countLabel=document.getElementById("library-count");
+const searchInput=document.getElementById("search");
+const emptyMessage=document.getElementById("empty");
+const importStatus=document.getElementById("import-status");
 
-function getCurrentList() {
-  return currentCategory === "movie" ? movies : episodes;
-}
+let currentList=null,currentIndex=-1;
+const allItems=[...movies,...episodes,...luckyEpisodes];
+const customGroups=new Map();
+const objectUrls=new Map();
+let db=null;
 
-function updateControls() {
-  const list = getCurrentList();
-
-  previousButton.disabled = currentIndex <= 0;
-  nextButton.disabled =
-    currentIndex < 0 || currentIndex >= list.length - 1;
-}
-
-function updateActiveCard(item) {
-  document.querySelectorAll(".card").forEach(card => {
-    card.classList.toggle(
-      "active",
-      card.dataset.title === item.title.toLowerCase()
-    );
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    if(!("indexedDB" in window)){resolve(null);return;}
+    const request=indexedDB.open("FreeFlixMediaDB",1);
+    request.onupgradeneeded=()=>{
+      const d=request.result;
+      if(!d.objectStoreNames.contains("files")){
+        d.createObjectStore("files",{keyPath:"id"});
+      }
+    };
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>resolve(null);
   });
 }
 
-function playItem(item,category) {
-  const list = category === "movie" ? movies : episodes;
+function dbRequest(mode,action,value){
+  return new Promise((resolve,reject)=>{
+    if(!db){resolve(null);return;}
+    const tx=db.transaction("files",mode);
+    const store=tx.objectStore("files");
+    const req=action==="put"?store.put(value):store.getAll();
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>resolve(null);
+  });
+}
 
-  currentCategory = category;
-  currentIndex = list.indexOf(item);
+function safeNameFromUrl(url){
+  try{
+    const raw=new URL(url).pathname.split("/").pop()||"Video";
+    return decodeURIComponent(raw).replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||"Video";
+  }catch{
+    return "Imported video";
+  }
+}
 
-  updateActiveCard(item);
+function cleanTitle(s){
+  return (s||"").replace(/\.[^.]+$/,"").replace(/[_]+/g," ").trim()||"Untitled video";
+}
+
+function makeGroup(name,kind){
+  const key=name.trim()||"Imported Videos";
+
+  if(!customGroups.has(key)){
+    const group={name:key,kind,items:[],container:null};
+    customGroups.set(key,group);
+
+    const heading=document.createElement("div");
+    heading.className="section-heading";
+
+    const h=document.createElement("h2");
+    h.textContent=(kind==="movie"?"🎬 ":"✨ ")+key;
+
+    const count=document.createElement("span");
+    count.textContent="Imported collection";
+
+    heading.append(h,count);
+
+    const grid=document.createElement("div");
+    grid.className="grid";
+
+    document.getElementById("custom-sections").append(heading,grid);
+    group.container=grid;
+  }
+
+  return customGroups.get(key);
+}
+
+function getDuplicate(url){
+  return allItems.some(x=>x.src===url)||
+    [...customGroups.values()].some(g=>g.items.some(x=>x.src===url));
+}
+
+function refreshSearch(){
+  const q=searchInput.value.trim().toLowerCase();
+  let visible=0,total=0;
+
+  document.querySelectorAll(".card").forEach(card=>{
+    total++;
+    const match=card.dataset.title.includes(q);
+    card.style.display=match?"":"none";
+    if(match)visible++;
+  });
+
+  countLabel.textContent=q
+    ?`${visible} matching titles`
+    :`${total} titles in your library`;
+
+  emptyMessage.style.display=visible===0?"block":"none";
+}
+
+function updateControls(){
+  previousButton.disabled=!currentList||currentIndex<=0;
+  nextButton.disabled=!currentList||currentIndex>=currentList.length-1;
+}
+
+function playItem(item,list){
+  currentList=list;
+  currentIndex=list.indexOf(item);
+
+  document.querySelectorAll(".card").forEach(c=>
+    c.classList.toggle("active",c.dataset.itemId===item.id)
+  );
+
   updateControls();
 
   video.pause();
   video.removeAttribute("src");
   video.load();
 
-  titleEl.textContent = item.title;
-  creditEl.textContent = item.credit;
+  titleEl.textContent=item.title;
+  creditEl.textContent=item.credit||"";
 
-  if (!item.src) {
-    statusEl.textContent =
-      "No video source is available for this title yet.";
+  if(!item.src){
+    statusEl.textContent="No video source is available for this title yet.";
     return;
   }
 
-  statusEl.textContent = "Loading video...";
-
-  video.src = item.src;
+  statusEl.textContent="Loading video...";
+  video.src=item.src;
   video.load();
 
-  video.play().then(() => {
-    statusEl.textContent = "Now playing";
-  }).catch(() => {
-    statusEl.textContent =
-      "Video is ready. Press Play to start, or check the video source.";
+  video.play()
+    .then(()=>statusEl.textContent="Now playing")
+    .catch(()=>statusEl.textContent="Video is ready. Press Play to start, or check the video source.");
+}
+
+function createCard(item,container,list,kindLabel){
+  if(!item.id){
+    item.id="item-"+Math.random().toString(36).slice(2);
+  }
+
+  const card=document.createElement("div");
+  card.className="card";
+  card.dataset.title=item.title.toLowerCase();
+  card.dataset.itemId=item.id;
+
+  const icon=document.createElement("div");
+  icon.className="card-icon";
+  icon.textContent=item.icon||"🎞️";
+
+  if(item.number){
+    const n=document.createElement("span");
+    n.className="card-number";
+    n.textContent=item.number;
+    icon.append(n);
+  }
+
+  const title=document.createElement("h3");
+  title.textContent=item.title;
+
+  const desc=document.createElement("p");
+  desc.textContent=kindLabel;
+
+  const play=document.createElement("p");
+  play.className="play-label";
+  play.textContent="▶ Select title";
+
+  card.append(icon,title,desc,play);
+  card.addEventListener("click",()=>playItem(item,list));
+  container.append(card);
+
+  return card;
+}
+
+function renderBase(){
+  movies.forEach(x=>
+    createCard(x,document.getElementById("movies-grid"),movies,"Movie")
+  );
+
+  episodes.forEach(x=>
+    createCard(x,document.getElementById("lwa-grid"),episodes,"Little Witch Academia")
+  );
+
+  luckyEpisodes.forEach(x=>
+    createCard(x,document.getElementById("lucky-grid"),luckyEpisodes,"Lucky Star")
+  );
+}
+
+function addCustomItem(item,group){
+  group.items.push(item);
+  allItems.push(item);
+
+  createCard(
+    item,
+    group.container,
+    group.items,
+    group.kind==="movie"?"Movie":"Video"
+  );
+}
+
+function importUrls(){
+  const lines=document.getElementById("url-list").value
+    .split(/\r?\n/)
+    .map(x=>x.trim())
+    .filter(Boolean);
+
+  const groupName=document.getElementById("url-collection").value.trim()||"Imported Videos";
+  const group=makeGroup(groupName,"video");
+
+  let added=0,duplicates=0,invalid=0;
+
+  for(const line of lines){
+    let title="",url=line;
+
+    if(line.includes("|")){
+      const parts=line.split("|");
+      title=parts.shift().trim();
+      url=parts.join("|").trim();
+    }
+
+    try{
+      const parsed=new URL(url);
+      if(!["http:","https:"].includes(parsed.protocol)){
+        invalid++;
+        continue;
+      }
+    }catch{
+      invalid++;
+      continue;
+    }
+
+    if(getDuplicate(url)){
+      duplicates++;
+      continue;
+    }
+
+    const item={
+      id:"url-"+Date.now()+"-"+Math.random().toString(36).slice(2),
+      title:title||cleanTitle(safeNameFromUrl(url)),
+      icon:"🎞️",
+      credit:groupName,
+      src:url,
+      category:"custom"
+    };
+
+    addCustomItem(item,group);
+    added++;
+  }
+
+  saveCustomUrls();
+
+  importStatus.textContent=
+    `Added ${added} URL(s). ${duplicates} duplicate(s) skipped. ${invalid} invalid line(s) skipped.`;
+
+  refreshSearch();
+}
+
+function saveCustomUrls(){
+  const data=[];
+
+  for(const g of customGroups.values()){
+    for(const x of g.items){
+      if(x.storageType!=="file"){
+        data.push({
+          title:x.title,
+          icon:x.icon,
+          credit:x.credit,
+          src:x.src,
+          group:g.name,
+          kind:g.kind
+        });
+      }
+    }
+  }
+
+  try{
+    localStorage.setItem("freeflix-custom-urls-v1",JSON.stringify(data));
+  }catch{
+    importStatus.textContent+=" Browser storage is full; some imports may not persist.";
+  }
+}
+
+function loadCustomUrls(){
+  try{
+    const data=JSON.parse(localStorage.getItem("freeflix-custom-urls-v1")||"[]");
+
+    data.forEach(x=>{
+      if(!x.src||getDuplicate(x.src))return;
+
+      const g=makeGroup(x.group||"Imported Videos",x.kind||"video");
+
+      addCustomItem({
+        id:"saved-"+Math.random().toString(36).slice(2),
+        title:x.title,
+        icon:x.icon||"🎞️",
+        credit:x.credit||x.group,
+        src:x.src,
+        category:"custom"
+      },g);
+    });
+  }catch{}
+}
+
+async function importFiles(){
+  const input=document.getElementById("video-files");
+  const files=[...input.files];
+
+  if(!files.length){
+    importStatus.textContent="Choose one or more video files first.";
+    return;
+  }
+
+  const groupName=document.getElementById("file-collection").value.trim()||"My Videos";
+  const group=makeGroup(groupName,"video");
+
+  let added=0,failed=0;
+
+  for(const file of files){
+    if(!file.type.startsWith("video/")&&!/\.(mp4|webm|ogg|mov|m4v)$/i.test(file.name)){
+      failed++;
+      continue;
+    }
+
+    const id="file-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+
+    try{
+      if(db){
+        await dbRequest("readwrite","put",{
+          id,
+          name:file.name,
+          group:groupName,
+          type:file.type,
+          blob:file
+        });
+
+        const saved=await dbRequest("readonly","getAll");
+        const record=(saved||[]).find(x=>x.id===id);
+
+        if(!record)throw new Error("Could not save file");
+
+        const src=URL.createObjectURL(record.blob);
+        objectUrls.set(id,src);
+
+        addCustomItem({
+          id,
+          title:cleanTitle(file.name),
+          icon:"📁",
+          credit:groupName,
+          src,
+          category:"local",
+          storageType:"file"
+        },group);
+
+        added++;
+      }else{
+        const src=URL.createObjectURL(file);
+        objectUrls.set(id,src);
+
+        addCustomItem({
+          id,
+          title:cleanTitle(file.name),
+          icon:"📁",
+          credit:groupName,
+          src,
+          category:"local",
+          storageType:"file"
+        },group);
+
+        added++;
+      }
+    }catch{
+      failed++;
+    }
+  }
+
+  importStatus.textContent=
+    `Added ${added} local file(s). ${failed} file(s) could not be stored. Local files are available only in this browser/device.`;
+
+  input.value="";
+  refreshSearch();
+}
+
+async function restoreLocalFiles(){
+  if(!db)return;
+
+  const records=await dbRequest("readonly","getAll")||[];
+
+  records.forEach(record=>{
+    const group=makeGroup(record.group||"My Videos","video");
+    const src=URL.createObjectURL(record.blob);
+
+    objectUrls.set(record.id,src);
+
+    addCustomItem({
+      id:record.id,
+      title:cleanTitle(record.name),
+      icon:"📁",
+      credit:record.group||"My Videos",
+      src,
+      category:"local",
+      storageType:"file"
+    },group);
   });
 }
 
-// ======================================
-// VIDEO EVENTS
-// ======================================
-
-video.addEventListener("waiting", () => {
-  statusEl.textContent = "Buffering video...";
-});
-
-video.addEventListener("playing", () => {
-  statusEl.textContent = "Now playing";
-});
-
-video.addEventListener("ended", () => {
-  statusEl.textContent = "Playback finished.";
-});
-
-video.addEventListener("error", () => {
-  if (video.currentSrc) {
-    statusEl.textContent =
-      "Unable to play this video. The source may be unavailable or unsupported.";
+previousButton.addEventListener("click",()=>{
+  if(currentList&&currentIndex>0){
+    playItem(currentList[currentIndex-1],currentList);
   }
 });
 
-// ======================================
-// NEXT / PREVIOUS
-// ======================================
-
-function navigate(direction) {
-  if (currentIndex < 0 || !currentCategory) return;
-
-  const list = getCurrentList();
-  const newIndex = currentIndex + direction;
-
-  if (newIndex < 0 || newIndex >= list.length) return;
-
-  playItem(list[newIndex],currentCategory);
-}
-
-previousButton.addEventListener("click",() => navigate(-1));
-nextButton.addEventListener("click",() => navigate(1));
-
-// ======================================
-// CREATE CARDS
-// ======================================
-
-function createCard(item,container,category) {
-  const card = document.createElement("div");
-  card.className = "card";
-  card.dataset.title = item.title.toLowerCase();
-
-  const icon = document.createElement("div");
-  icon.className = "card-icon";
-  icon.textContent = item.icon;
-
-  if (item.number) {
-    const number = document.createElement("span");
-    number.className = "card-number";
-    number.textContent = item.number;
-    icon.appendChild(number);
+nextButton.addEventListener("click",()=>{
+  if(currentList&&currentIndex<currentList.length-1){
+    playItem(currentList[currentIndex+1],currentList);
   }
-
-  const title = document.createElement("h3");
-  title.textContent = item.title;
-
-  const description = document.createElement("p");
-  description.textContent =
-    category === "movie" ? "Movie" : "Episode";
-
-  const playLabel = document.createElement("p");
-  playLabel.className = "play-label";
-  playLabel.textContent = "▶ Select title";
-
-  card.append(icon,title,description,playLabel);
-
-  card.addEventListener("click",() => {
-    playItem(item,category);
-  });
-
-  container.appendChild(card);
-}
-
-movies.forEach(item => {
-  createCard(item,document.getElementById("movies-grid"),"movie");
 });
 
-episodes.forEach(item => {
-  createCard(item,document.getElementById("episodes-grid"),"episode");
+video.addEventListener("waiting",()=>statusEl.textContent="Buffering video...");
+video.addEventListener("playing",()=>statusEl.textContent="Now playing");
+video.addEventListener("ended",()=>statusEl.textContent="Playback finished.");
+
+video.addEventListener("error",()=>{
+  if(video.currentSrc){
+    statusEl.textContent="Unable to play this video. The source may be unavailable or unsupported.";
+  }
 });
 
-// ======================================
-// SEARCH
-// ======================================
+searchInput.addEventListener("input",refreshSearch);
+document.getElementById("import-urls").addEventListener("click",importUrls);
+document.getElementById("import-files").addEventListener("click",importFiles);
 
-const searchInput = document.getElementById("search");
-const emptyMessage = document.getElementById("empty");
-const countLabel = document.getElementById("library-count");
-const allCards = [...document.querySelectorAll(".card")];
+(async function init(){
+  db=await openDB();
+  renderBase();
+  loadCustomUrls();
+  await restoreLocalFiles();
+  refreshSearch();
 
-searchInput.addEventListener("input",() => {
-  const query = searchInput.value.trim().toLowerCase();
-  let visible = 0;
-
-  allCards.forEach(card => {
-    const matches = card.dataset.title.includes(query);
-
-    card.style.display = matches ? "" : "none";
-
-    if (matches) visible++;
-  });
-
-  emptyMessage.style.display =
-    visible === 0 ? "block" : "none";
-
-  countLabel.textContent = visible + " matching titles";
-});
-
-// ======================================
-// INITIAL DISPLAY
-// ======================================
-
-countLabel.textContent =
-  allCards.length + " titles in your library";
-
+  if(!db){
+    importStatus.textContent="URL importer is ready. This browser does not support local file persistence; selected files will only last until this page is closed.";
+  }
+})();
 </script>
-
 </body>
 </html>
