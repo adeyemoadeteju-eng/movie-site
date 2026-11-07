@@ -54,8 +54,7 @@ const movies = [
     credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)",
     sources: [
       { type: "torrent", src: "https://webtorrent.io/torrents/sintel.torrent" },
-      { type: "torrent", src: "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel"
-      }
+      { type: "torrent", src: "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel" }
     ]
   },
   {
@@ -107,6 +106,7 @@ movies.forEach(m => {
 function cleanup() {
   clearTimeout(timer);
   onVideoFail = null;
+
   if (current) {
     try { current.destroy(); } catch (e) {}
     current = null;
@@ -115,6 +115,10 @@ function cleanup() {
 
 function play(m) {
   cleanup();
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+
   creditEl.textContent = m.credit;
   tryMovie(m, 0, ++token, []);
 }
@@ -128,6 +132,7 @@ function tryMovie(m, i, myToken, failures) {
   }
 
   cleanup();
+
   const s = m.sources[i];
   const label = "source " + (i + 1) + " of " + m.sources.length;
 
@@ -139,10 +144,19 @@ function tryMovie(m, i, myToken, failures) {
 
   if (s.type === "mp4") {
     statusEl.textContent = "Loading (" + label + ")...";
+
     onVideoFail = (code) => next("video error " + code);
+
     video.src = s.src;
+    video.type = "video/mp4";
     video.load();
-    video.play().catch(() => {});
+
+    video.play().catch(err => {
+      if (myToken === token) {
+        statusEl.textContent = "Playback error: " + err.message;
+      }
+    });
+
     return;
   }
 
@@ -158,6 +172,7 @@ function tryMovie(m, i, myToken, failures) {
     if (myToken !== token) return;
 
     const file = torrent.files.find(f => f.name.toLowerCase().endsWith(".mp4"));
+
     if (!file) {
       next("no mp4 inside torrent");
       return;
@@ -165,16 +180,19 @@ function tryMovie(m, i, myToken, failures) {
 
     started = true;
     clearTimeout(timer);
+
     file.streamTo(video);
     video.play().catch(() => {});
 
     torrent.on("download", () => {
       statusEl.textContent = (torrent.progress * 100).toFixed(1) + "% | " +
-        (torrent.downloadSpeed / 1024).toFixed(0) + " KB/s | " + torrent.numPeers + " peers";
+        (torrent.downloadSpeed / 1024).toFixed(0) + " KB/s | " +
+        torrent.numPeers + " peers";
     });
   });
 
   current = t;
+
   t.on("error", err => {
     if (!started) next("torrent error");
   });
