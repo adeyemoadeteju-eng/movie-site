@@ -4,80 +4,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Free Movies | Stream</title>
+<title>FreeFlix</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   background: #0b0b10;
   color: #f5f5f7;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 header {
   padding: 22px 6%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   background: #111119;
-  border-bottom: 1px solid #252532;
+  border-bottom: 1px solid #292936;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .logo {
-  font-size: 25px;
+  font-size: 26px;
   font-weight: 900;
-  letter-spacing: -1px;
 }
 
-.logo span {
-  color: #a78bfa;
-}
+.logo span { color: #a78bfa; }
 
 .header-label {
   color: #9999aa;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .hero {
-  padding: 45px 6% 25px;
+  padding: 42px 6% 25px;
 }
 
 .hero h1 {
   font-size: clamp(28px, 5vw, 42px);
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
-.hero p {
-  color: #9999aa;
-  margin: 0;
-}
+.hero p { color: #9999aa; }
 
-.container {
-  padding: 15px 6% 60px;
-}
+.container { padding: 15px 6% 60px; }
 
 .search {
   width: 100%;
-  max-width: 500px;
-  background: #171721;
-  border: 1px solid #30303e;
-  color: white;
-  padding: 14px 17px;
+  max-width: 550px;
+  padding: 15px;
   border-radius: 12px;
+  border: 1px solid #30303e;
+  background: #171721;
+  color: white;
   font-size: 15px;
-  outline: none;
-  margin-bottom: 30px;
-}
-
-.search:focus {
-  border-color: #a78bfa;
+  margin-bottom: 28px;
 }
 
 .player-section {
@@ -85,125 +70,122 @@ header {
   border: 1px solid #292936;
   padding: 18px;
   border-radius: 16px;
-  margin-bottom: 40px;
+  margin-bottom: 35px;
 }
 
 video {
   width: 100%;
   max-height: 540px;
-  display: block;
-  background: #000;
+  background: black;
   border-radius: 10px;
+  display: block;
 }
 
-.now-playing {
-  padding: 15px 4px 2px;
-}
+.now-playing { padding: 15px 4px 5px; }
 
 .now-playing h2 {
   margin: 0 0 6px;
-  font-size: 20px;
+  font-size: 21px;
 }
 
-#status {
-  color: #aaaabd;
+#status, #credit {
+  color: #9999aa;
   font-size: 13px;
 }
 
-#credit {
-  color: #777789;
-  font-size: 12px;
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.control-btn {
+  border: 1px solid #383847;
+  background: #242432;
+  color: white;
+  padding: 11px 17px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.control-btn:hover {
+  background: #39334e;
+  border-color: #a78bfa;
 }
 
 .section-title {
-  font-size: 22px;
+  font-size: 23px;
   margin: 35px 0 17px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 17px;
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  gap: 16px;
 }
 
 .card {
   background: #171721;
   border: 1px solid #292936;
   border-radius: 13px;
-  padding: 17px;
+  padding: 15px;
   cursor: pointer;
-  transition: 0.2s;
-  min-width: 0;
+  transition: .2s;
 }
 
 .card:hover {
   transform: translateY(-4px);
   border-color: #a78bfa;
-  background: #20202d;
-}
-
-.card-icon {
-  height: 95px;
-  background: linear-gradient(135deg, #30234d, #171725);
-  border-radius: 9px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 37px;
-  margin-bottom: 13px;
-}
-
-.card h3 {
-  margin: 0 0 7px;
-  font-size: 15px;
-}
-
-.card p {
-  margin: 0;
-  color: #9292a4;
-  font-size: 12px;
 }
 
 .card.active {
   border-color: #a78bfa;
+  background: #22202f;
+}
+
+.card-icon {
+  height: 95px;
+  background: linear-gradient(135deg,#30234d,#171725);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 13px;
+}
+
+.card h3 {
+  font-size: 14px;
+  margin: 0 0 7px;
+}
+
+.card p {
+  color: #9292a4;
+  font-size: 12px;
+  margin: 0;
+}
+
+.empty {
+  display: none;
+  color: #9999aa;
+  padding: 20px 0;
 }
 
 footer {
   text-align: center;
   padding: 25px;
   color: #777789;
-  font-size: 12px;
   border-top: 1px solid #252532;
+  font-size: 12px;
 }
 
-.empty {
-  color: #888899;
-  padding: 20px 0;
-  display: none;
-}
-
-@media(max-width: 600px) {
-  header {
-    padding: 17px 5%;
-  }
-
-  .container, .hero {
-    padding-left: 5%;
-    padding-right: 5%;
-  }
-
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .card {
-    padding: 11px;
-  }
-
-  .card-icon {
-    height: 75px;
-  }
+@media(max-width:600px) {
+  header { padding: 17px 5%; }
+  .container,.hero { padding-left: 5%; padding-right: 5%; }
+  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .card { padding: 11px; }
+  .card-icon { height: 75px; }
 }
 </style>
 </head>
@@ -212,7 +194,7 @@ footer {
 
 <header>
   <div class="logo">FREE<span>FLIX</span></div>
-  <div class="header-label">YOUR PERSONAL LIBRARY</div>
+  <div class="header-label">PERSONAL MEDIA LIBRARY</div>
 </header>
 
 <section class="hero">
@@ -222,173 +204,144 @@ footer {
 
 <main class="container">
 
-  <input
-    class="search"
-    id="search"
-    type="search"
-    placeholder="Search movies and episodes..."
-  >
+<input
+  class="search"
+  id="search"
+  type="search"
+  placeholder="Search movies and episodes..."
+>
 
-  <section class="player-section">
-    <video id="player" controls playsinline preload="metadata"></video>
+<section class="player-section">
 
-    <div class="now-playing">
-      <h2 id="playing-title">Nothing playing yet</h2>
-      <p id="status">Choose something from your library to start watching.</p>
-      <p id="credit"></p>
+  <video id="player" controls playsinline></video>
+
+  <div class="now-playing">
+    <h2 id="playing-title">Nothing playing yet</h2>
+    <p id="status">Choose something from your library.</p>
+    <p id="credit"></p>
+
+    <div class="controls">
+      <button class="control-btn" id="previous">← Previous</button>
+      <button class="control-btn" id="next">Next →</button>
     </div>
-  </section>
+  </div>
 
-  <h2 class="section-title">Movies</h2>
-  <div class="grid" id="movies-grid"></div>
+</section>
 
-  <h2 class="section-title">Little Witch Academia</h2>
-  <div class="grid" id="anime-grid"></div>
+<h2 class="section-title">🎬 Movies</h2>
+<div class="grid" id="movies-grid"></div>
 
-  <p class="empty" id="empty">No results found.</p>
+<h2 class="section-title">✨ Little Witch Academia</h2>
+<div class="grid" id="episodes-grid"></div>
+
+<p class="empty" id="empty">No results found.</p>
 
 </main>
 
 <footer>
-  FREEFLIX · PERSONAL MEDIA LIBRARY
+FREEFLIX · PERSONAL MEDIA LIBRARY
 </footer>
 
-<script type="module">
-import WebTorrent from "https://cdn.jsdelivr.net/npm/webtorrent@latest/dist/webtorrent.min.js";
+<script>
 
-const announce = [
-  "wss://tracker.openwebtorrent.com",
-  "wss://tracker.btorrent.io",
-  "wss://tracker.fastcast.nz"
-];
+// ======================================
+// MOVIES
+// ======================================
 
 const movies = [
-  {
-    title: "Elephants Dream",
-    category: "movie",
-    icon: "🐘",
-    credit: "Elephants Dream © Blender Foundation / Netherlands Media Art Institute | CC BY",
-    sources: [
-      {type:"mp4",src:"https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"},
-      {type:"mp4",src:"https://natuurbeelden.openbeelden.nl/files/92/104103.ed_hd.mp4"}
-    ]
-  },
-  {
-    title: "Big Buck Bunny",
-    category: "movie",
-    icon: "🐰",
-    credit: "Big Buck Bunny © Blender Foundation | CC BY 3.0",
-    sources: [
-      {type:"mp4",src:"https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"},
-      {type:"torrent",src:"https://webtorrent.io/torrents/big-buck-bunny.torrent"}
-    ]
-  },
-  {
-    title: "Sintel",
-    category: "movie",
-    icon: "🐉",
-    credit: "Sintel © Blender Foundation | CC BY 3.0",
-    sources: [
-      {type:"torrent",src:"https://webtorrent.io/torrents/sintel.torrent"},
-      {type:"torrent",src:"magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel"}
-    ]
-  },
-  {
-    title: "Tears of Steel",
-    category: "movie",
-    icon: "🤖",
-    credit: "Tears of Steel © Blender Foundation | CC BY 3.0",
-    sources: [
-      {type:"torrent",src:"https://webtorrent.io/torrents/tears-of-steel.torrent"}
-    ]
-  }
+{
+  title: "Elephants Dream",
+  icon: "🐘",
+  credit: "Blender Foundation",
+  src: "https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"
+},
+{
+  title: "Big Buck Bunny",
+  icon: "🐰",
+  credit: "Blender Foundation",
+  src: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+},
+{
+  title: "Sintel",
+  icon: "🐉",
+  credit: "Blender Foundation",
+  src: ""
+},
+{
+  title: "Tears of Steel",
+  icon: "🤖",
+  credit: "Blender Foundation",
+  src: ""
+}
 ];
 
-const anime = [
-  {
-    title: "Episode 1 - Starting Over",
-    category: "anime",
-    icon: "✨",
-    credit: "Little Witch Academia",
-    sources: [
-      {type:"mp4",src:"https://archive.org/download/little-witch-academia-english-sub/E01%20Starting%20Over.mp4"}
-    ]
-  },
-  {
-    title: "Episode 2 - Papiliodia",
-    category: "anime",
-    icon: "🦋",
-    credit: "Little Witch Academia",
-    sources: [
-      {type:"mp4",src:"https://archive.org/download/little-witch-academia-english-sub/E02%20Papiliodia.mp4"}
-    ]
-  },
-  {
-    title: "Episode 3 - Don't Stop Me Now",
-    category: "anime",
-    icon: "⭐",
-    credit: "Little Witch Academia",
-    sources: [
-      {type:"mp4",src:"https://archive.org/download/little-witch-academia-english-sub/E03%20Don%27t%20Stop%20Me%20Now.mp4"}
-    ]
-  },
-  {
-    title: "Episode 4 - Night Fall",
-    category: "anime",
-    icon: "🌙",
-    credit: "Little Witch Academia",
-    sources: [
-      {type:"mp4",src:"https://archive.org/download/little-witch-academia-english-sub/E04%20Night%20Fall.mp4"}
-    ]
-  }
-];
+// ======================================
+// LITTLE WITCH ACADEMIA EPISODES
+// Add authorized video URLs in src.
+// ======================================
 
-const allItems = [...movies,...anime];
+const episodes = [
+["Starting Over","E01","✨"],
+["Papiliodia","E02","🦋"],
+["Don't Stop Me Now","E03","⭐"],
+["Night Fall","E04","🌙"],
+["Pact of the Dragon","E05","🐉"],
+["The Fountain","E06","⛲"],
+["Orange Submariner","E07","🚀"],
+["Akko's Adventure in Sucyworld","E08","🔮"],
+["Undead Travelogue","E09","👻"],
+["Bee Affection","E10","🐝"],
+["Blue Moon","E11","🌙"],
+["What You Will","E12","✨"],
+["Samhain Magic Festival","E13","🎃"],
+["New Age Magic","E14","🪄"],
+["Chariot of Fire","E15","🔥"],
+["Pohjola's Ordeal","E16","❄️"],
+["Amanda O'Neill and the Holy Grail","E17","🏆"],
+["Starship Take Off!","E18","🚀"],
+["Cavendish","E19","🌹"],
+["Intellect and Sensibility","E20","📚"],
+["Discipline","E21","📖"],
+["The Things We Said Today","E22","💫"],
+["Yesterday","E23","⏳"],
+["A Road to Arcturus","E24","🌌"],
+["Changing at the Edge of the World","E25","🌍"]
+].map(([name,number,icon]) => ({
+  title: number + " - " + name,
+  number,
+  icon,
+  category: "episode",
+  credit: "Little Witch Academia",
+  src: ""
+}));
+
+// ======================================
+// PLAYER
+// ======================================
 
 const video = document.getElementById("player");
 const statusEl = document.getElementById("status");
-const creditEl = document.getElementById("credit");
 const titleEl = document.getElementById("playing-title");
+const creditEl = document.getElementById("credit");
 
-const client = new WebTorrent();
+const allItems = [...movies,...episodes];
 
-let current = null;
-let token = 0;
-let onVideoFail = null;
-let timer = null;
+let currentIndex = -1;
+let currentCategory = null;
 
-client.on("error", err => {
-  console.error("WebTorrent error:",err);
-});
+function playItem(item,category) {
 
-video.addEventListener("error", () => {
-  if(onVideoFail) {
-    onVideoFail(video.error ? video.error.code : "unknown");
-  }
-});
+  const list = category === "movie" ? movies : episodes;
 
-video.addEventListener("playing", () => {
-  statusEl.textContent = "Now playing";
-});
+  currentCategory = category;
+  currentIndex = list.indexOf(item);
 
-video.addEventListener("waiting", () => {
-  statusEl.textContent = "Buffering...";
-});
-
-function cleanup() {
-  clearTimeout(timer);
-  onVideoFail = null;
-
-  if(current) {
-    try { current.destroy(); } catch(e) {}
-    current = null;
-  }
-}
-
-function play(item) {
-  cleanup();
-
-  const myToken = ++token;
+  document.querySelectorAll(".card").forEach(card => {
+    card.classList.toggle(
+      "active",
+      card.dataset.title === item.title
+    );
+  });
 
   video.pause();
   video.removeAttribute("src");
@@ -397,93 +350,54 @@ function play(item) {
   titleEl.textContent = item.title;
   creditEl.textContent = item.credit;
 
-  document.querySelectorAll(".card").forEach(c => {
-    c.classList.toggle("active",c.dataset.title === item.title);
-  });
-
-  tryMovie(item,0,myToken,[]);
-}
-
-function tryMovie(item,index,myToken,failures) {
-  if(myToken !== token) return;
-
-  if(index >= item.sources.length) {
-    statusEl.textContent = "Unable to play: " + failures.join(" | ");
+  if(!item.src) {
+    statusEl.textContent =
+      "No authorized video URL has been added for this item yet.";
     return;
   }
 
-  cleanup();
+  statusEl.textContent = "Loading...";
 
-  const source = item.sources[index];
-  const label = "Source " + (index+1) + " of " + item.sources.length;
+  video.src = item.src;
+  video.load();
 
-  const next = reason => {
-    if(myToken !== token) return;
-    cleanup();
-    failures.push(label + ": " + reason);
-    tryMovie(item,index+1,myToken,failures);
-  };
-
-  if(source.type === "mp4") {
-    statusEl.textContent = "Loading " + label + "...";
-
-    onVideoFail = code => next("Video error " + code);
-
-    video.src = source.src;
-    video.type = "video/mp4";
-    video.load();
-
-    video.play().catch(err => {
-      if(myToken === token) {
-        statusEl.textContent = "Playback needs your attention: " + err.message;
-      }
-    });
-
-    return;
-  }
-
-  statusEl.textContent = "Connecting to peers...";
-
-  let started = false;
-
-  timer = setTimeout(() => {
-    if(!started) next("No peers after 25 seconds");
-  },25000);
-
-  const torrent = client.add(source.src,{announce},t => {
-    if(myToken !== token) return;
-
-    const file = t.files.find(f =>
-      f.name.toLowerCase().endsWith(".mp4")
-    );
-
-    if(!file) {
-      next("No MP4 found");
-      return;
-    }
-
-    started = true;
-    clearTimeout(timer);
-
-    file.streamTo(video);
-    video.play().catch(() => {});
-
-    t.on("download",() => {
-      statusEl.textContent =
-        (t.progress*100).toFixed(1) + "% downloaded | " +
-        (t.downloadSpeed/1024).toFixed(0) + " KB/s | " +
-        t.numPeers + " peers";
-    });
-  });
-
-  current = torrent;
-
-  torrent.on("error",err => {
-    if(!started) next("Torrent error");
+  video.play().then(() => {
+    statusEl.textContent = "Now playing";
+  }).catch(error => {
+    statusEl.textContent =
+      "Playback error: " + error.message;
   });
 }
 
-function createCard(item,container) {
+// ======================================
+// NEXT / PREVIOUS
+// ======================================
+
+function navigate(direction) {
+
+  if(currentIndex < 0 || !currentCategory) return;
+
+  const list = currentCategory === "movie" ? movies : episodes;
+
+  const newIndex = currentIndex + direction;
+
+  if(newIndex < 0 || newIndex >= list.length) return;
+
+  playItem(list[newIndex],currentCategory);
+}
+
+document.getElementById("previous").onclick =
+  () => navigate(-1);
+
+document.getElementById("next").onclick =
+  () => navigate(1);
+
+// ======================================
+// CREATE CARDS
+// ======================================
+
+function createCard(item,container,category) {
+
   const card = document.createElement("div");
   card.className = "card";
   card.dataset.title = item.title.toLowerCase();
@@ -497,33 +411,45 @@ function createCard(item,container) {
 
   const description = document.createElement("p");
   description.textContent =
-    item.category === "anime" ? "Little Witch Academia" : "Movie";
+    category === "movie" ? "Movie" : "Episode";
 
   card.append(icon,title,description);
-  card.onclick = () => play(item);
+
+  card.onclick = () => playItem(item,category);
 
   container.appendChild(card);
 }
 
-const movieGrid = document.getElementById("movies-grid");
-const animeGrid = document.getElementById("anime-grid");
+movies.forEach(item =>
+  createCard(item,document.getElementById("movies-grid"),"movie")
+);
 
-movies.forEach(item => createCard(item,movieGrid));
-anime.forEach(item => createCard(item,animeGrid));
+episodes.forEach(item =>
+  createCard(item,document.getElementById("episodes-grid"),"episode")
+);
 
-document.getElementById("search").addEventListener("input",e => {
-  const query = e.target.value.toLowerCase();
+// ======================================
+// SEARCH
+// ======================================
+
+document.getElementById("search").addEventListener("input",event => {
+
+  const query = event.target.value.toLowerCase();
   let visible = 0;
 
   document.querySelectorAll(".card").forEach(card => {
-    const show = card.dataset.title.includes(query);
-    card.style.display = show ? "" : "none";
-    if(show) visible++;
+
+    const matches = card.dataset.title.includes(query);
+
+    card.style.display = matches ? "" : "none";
+
+    if(matches) visible++;
   });
 
   document.getElementById("empty").style.display =
     visible === 0 ? "block" : "none";
 });
+
 </script>
 
 </body>
