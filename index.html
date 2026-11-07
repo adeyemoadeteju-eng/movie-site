@@ -282,6 +282,7 @@ video{
     right:8px;
     display:flex;
     gap:5px;
+    z-index:2;
 }
 .card-action{
     width:30px;
@@ -383,6 +384,8 @@ button:focus-visible,a:focus-visible{
 <a class="logo" href="#">FREE<span>FLIX</span></a>
 <nav>
 <a href="#movies-grid">Movies</a>
+<a href="#beastars-s1-grid">Beastars</a>
+<a href="#eva-grid">Evangelion</a>
 <a href="#lwa-grid">TV Shows</a>
 <a href="#continue-grid">Continue Watching</a>
 <a href="#custom-sections">My Collections</a>
@@ -470,13 +473,13 @@ accept="video/*,.mp4,.webm,.ogg,.mov,.m4v,.mkv" multiple>
 <button class="action-btn" id="import-files">Add selected files</button>
 <p class="small-note">
 Supports MP4, WebM, OGG, MOV, M4V and MKV imports.
-MKV playback depends on browser codec support.
+MKV and HEVC/H.265 playback depends on browser and device codec support.
 </p>
 </div>
 
 <div class="import-box">
 <h3>🔗 Import multiple video URLs</h3>
-<input class="field" id="url-collection" value="BEASTARS" placeholder="Collection name">
+<input class="field" id="url-collection" value="My Videos" placeholder="Collection name">
 <textarea class="field" id="url-list"
 placeholder="One direct video URL per line&#10;Optional: Episode title | URL"></textarea>
 <button class="action-btn" id="import-urls">Import URL list</button>
@@ -491,6 +494,24 @@ placeholder="One direct video URL per line&#10;Optional: Episode title | URL"></
 <span>Movie collection</span>
 </div>
 <div class="grid" id="movies-grid"></div>
+
+<div class="section-heading">
+<h2>🐺 BEASTARS – Season 1</h2>
+<span>12 Episodes · English Dub</span>
+</div>
+<div class="grid" id="beastars-s1-grid"></div>
+
+<div class="section-heading">
+<h2>🐺 BEASTARS – Season 2</h2>
+<span>12 Episodes · English Dub</span>
+</div>
+<div class="grid" id="beastars-s2-grid"></div>
+
+<div class="section-heading">
+<h2>🌌 Neon Genesis Evangelion</h2>
+<span>27 Episodes · Includes Episode 22 Director's Cut</span>
+</div>
+<div class="grid" id="eva-grid"></div>
 
 <div class="section-heading">
 <h2>✨ Little Witch Academia</h2>
@@ -518,11 +539,102 @@ placeholder="One direct video URL per line&#10;Optional: Episode title | URL"></
 <script>
 /* MOVIES */
 const movies=[
-{title:"Elephants Dream",icon:"🐘",credit:"Blender Foundation",src:"https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"},
-{title:"Big Buck Bunny",icon:"🐰",credit:"Blender Foundation",src:"https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"},
-{title:"Sintel",icon:"🐉",credit:"Blender Foundation",src:""},
-{title:"Tears of Steel",icon:"🤖",credit:"Blender Foundation",src:""}
+{
+    title:"Elephants Dream",
+    icon:"🐘",
+    credit:"Blender Foundation",
+    src:"https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4"
+},
+{
+    title:"Big Buck Bunny",
+    icon:"🐰",
+    credit:"Blender Foundation",
+    src:"https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+},
+{
+    title:"Sintel",
+    icon:"🐉",
+    credit:"Blender Foundation",
+    src:""
+},
+{
+    title:"Tears of Steel",
+    icon:"🤖",
+    credit:"Blender Foundation",
+    src:""
+},
+{
+    title:"Evangelion: 3.33 You Can (Not) Redo",
+    icon:"🎬",
+    credit:"Neon Genesis Evangelion · Movie",
+    src:"https://archive.org/download/evadubbed/eva3.33.mp4"
+}
 ];
+
+/* BEASTARS SEASON 2 */
+const beastarsS2Data=[
+["001","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20001%20-%20English%20Dub.mp4"],
+["002","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20002%20-%20English%20Dub.mp4"],
+["003","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20003%20-%20English%20Dub.mp4"],
+["004","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20004%20-%20English%20Dub.mp4"],
+["005","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20005%20-%20English%20Dub.mp4"],
+["006","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20006%20-%20English%20Dub.mp4"],
+["007","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20007%20-%20English%20Dub.mp4"],
+["008","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20008%20-%20English%20Dub.mp4"],
+["009","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20009%20-%20English%20Dub.mp4"],
+["010","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20010%20-%20English%20Dub.mp4"],
+["011","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20011%20-%20English%20Dub.mp4"],
+["012","https://archive.org/download/BEASTARS-DUBBED-EPISODES-SEASON-2/BEASTARS%20Season%202%20-%20Episode%20012%20-%20English%20Dub.mp4"]
+];
+
+const beastarsS2=beastarsS2Data.map(([number,src])=>({
+    title:"Episode "+number,
+    number:"Episode "+number,
+    icon:"🐺",
+    coverName:"BEASTARS",
+    credit:"BEASTARS · Season 2 · English Dub",
+    src
+}));
+
+/* NEON GENESIS EVANGELION */
+const evaData=[
+["01","Angel Attack","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x01%20-%20Angel%20Attack%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["02","The Beast","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x02%20-%20The%20Beast%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["03","A Transfer","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x03%20-%20A%20Transfer%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["04","Hedgehog's Dilemma","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x04%20-%20Hedgehog%27s%20Dilemma%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["05","Rei I","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x05%20-%20Rei%20I%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["06","Rei II","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x06%20-%20Rei%20II%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["07","A Human Work","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x07%20-%20A%20Human%20Work%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["08","Asuka Strikes!","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x08%20-%20Asuka%20Strikes%21%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["09","Both of You, Dance Like You Want to Win!","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x09%20-%20Both%20of%20You%2C%20Dance%20Like%20You%20Want%20to%20Win%21%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["10","Magma Diver","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x10%20-%20Magma%20Diver%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["11","The Day Tokyo-3 Stood Still","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x11%20-%20The%20Day%20Tokyo-3%20Stood%20Still%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["12","She Said, Don't Make Others Suffer for Your Personal Hatred.","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x12%20-%20She%20said%2C%20Don%27t%20make%20others%20suffer%20for%20your%20personal%20hatred.%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["13","Lilliputian Hitcher","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x13%20-%20Lilliputian%20Hitcher%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["14","Weaving a Story","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x14%20-%20Weaving%20a%20Story%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["15","Those Women Longed for the Touch of Others' Lips, and Thus Invited Their Kisses","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x15%20-%20Those%20Women%20Longed%20For%20the%20Touch%20of%20Others%27%20Lips%2C%20and%20Thus%20Invited%20Their%20Kisses%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["16","Splitting of the Breast","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x16%20-%20Splitting%20of%20the%20Breast%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["17","Fourth CHILD","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x17%20-%20Fourth%20CHILD%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["18","Ambivalence","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x18%20-%20Ambivalence%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["19","Introjection","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x19%20-%20Introjection%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["20","Weaving a Story 2: Oral Stage","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x20%20-%20Weaving%20a%20Story%202%20Oral%20Stage%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["21","He Was Aware That He Still Was a Child","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x21%20-%20He%20Was%20Aware%20That%20He%20Still%20Was%20a%20Child%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["22","Don't Be","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x22%20-%20Don%27t%20Be%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["22 DC","Don't Be (Director's Cut)","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x22%20DC-%20Don%27t%20Be%20%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["23","Rei III","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x23%20-%20Rei%20III%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["24","The Beginning and the End, or Knockin' on Heaven's Door","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x24%20-%20The%20Beginning%20and%20the%20End%2C%20or%20Knockin%27%20on%20Heaven%27s%20Door%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["25","Do You Love Me","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x25%20-%20Do%20You%20Love%20Me%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"],
+["26","Take Care of Yourself","https://archive.org/download/evadubbed/Neon%20Genesis%20Evangelion%20-%201x26%20-%20Take%20Care%20of%20Yourself%20%5B1080p%5D%5Bx265%5D%5Bbk%5D.mp4"]
+];
+
+const evaEpisodes=evaData.map(([number,name,src])=>({
+    title:"Episode "+number+" - "+name,
+    number,
+    icon:"🌌",
+    coverName:"Neon Genesis Evangelion",
+    credit:"Neon Genesis Evangelion · English Dub",
+    src
+}));
 
 /* LITTLE WITCH ACADEMIA */
 const episodeData=[
@@ -552,8 +664,13 @@ const episodeData=[
 ["A Road to Arcturus","E24","🌌","https://archive.org/download/little-witch-academia-english-sub/E24%20A%20Road%20to%20Arcturus.mp4"],
 ["Changing at the Edge of the World","E25","🌍","https://archive.org/download/little-witch-academia-english-sub/E25%20Changing%20at%20the%20Edge%20of%20the%20World.mp4"]
 ];
+
 const episodes=episodeData.map(([name,number,icon,src])=>({
-title:number+" - "+name,number,icon,credit:"Little Witch Academia",src
+    title:number+" - "+name,
+    number,
+    icon,
+    credit:"Little Witch Academia",
+    src
 }));
 
 /* LUCKY STAR */
@@ -575,16 +692,21 @@ const luckyData=[
 ["I Can't Suddenly Change","E15","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E15%20I%20Can't%20Suddenly%20Change.mp4"],
 ["Ring","E16","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E16%20Ring.mp4"],
 ["Base of the Sun","E17","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E17%20Base%20of%20the%20Sun.mp4"],
-["To Each Her Own","E18","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E18%20To Each Her Own.mp4"],
-["There is Substance in 2D","E19","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E19%20There is Substance in 2D.mp4"],
-["Ways to Spend Summer","E20","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E20%20Ways to Spend Summer.mp4"],
+["To Each Her Own","E18","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E18%20To%20Each%20Her%20Own.mp4"],
+["There is Substance in 2D","E19","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E19%20There%20is%20Substance%20in%202D.mp4"],
+["Ways to Spend Summer","E20","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E20%20Ways%20to%20Spend%20Summer.mp4"],
 ["Pandora's Box","E21","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E21%20Pandora%27s%20Box.mp4"],
 ["The Yonder Here","E22","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E22%20The%20Yonder%20Here.mp4"],
 ["Delicate Line","E23","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E23%20Delicate%20Line.mp4"],
 ["To Be Announced","E24","https://archive.org/download/lucky-star-english-sub/Lucky%20Star%20E24%20To%20Be%20Announced.mp4"]
 ];
+
 const luckyEpisodes=luckyData.map(([name,number,src])=>({
-title:number+" - "+name,number,icon:"⭐",credit:"Lucky Star",src
+    title:number+" - "+name,
+    number,
+    icon:"⭐",
+    credit:"Lucky Star",
+    src
 }));
 
 /* PLAYER AND APP STATE */
@@ -606,11 +728,49 @@ let currentItem=null;
 let db=null;
 let progressSaveTimer=null;
 
-const allItems=[...movies,...episodes,...luckyEpisodes];
+const allItems=[
+    ...movies,
+    ...beastarsS2,
+    ...evaEpisodes,
+    ...episodes,
+    ...luckyEpisodes
+];
+
 const customGroups=new Map();
 const objectUrls=new Map();
 const progressData=readStorage("freeflix-progress-v1",{});
 const favorites=new Set(readStorage("freeflix-favorites-v1",[]));
+
+/* REMOVE OLD DEATH NOTE ENTRIES */
+function removeOldDeathNoteData(){
+    const isDeathNote=value=>
+        String(value||"").toLowerCase().includes("death-note")||
+        String(value||"").toLowerCase().includes("death note");
+
+    try{
+        const stored=JSON.parse(localStorage.getItem("freeflix-custom-urls-v1")||"[]");
+        const cleaned=stored.filter(item=>
+            !isDeathNote(item.src)&&
+            !isDeathNote(item.title)&&
+            !isDeathNote(item.group)
+        );
+        localStorage.setItem("freeflix-custom-urls-v1",JSON.stringify(cleaned));
+    }catch(error){
+        console.log("Could not clean old collection data:",error);
+    }
+
+    Object.keys(progressData).forEach(key=>{
+        if(isDeathNote(key)||isDeathNote(progressData[key]?.title)){
+            delete progressData[key];
+        }
+    });
+    saveStorage("freeflix-progress-v1",progressData);
+
+    [...favorites].forEach(key=>{
+        if(isDeathNote(key))favorites.delete(key);
+    });
+    saveStorage("freeflix-favorites-v1",[...favorites]);
+}
 
 function readStorage(key,fallback){
     try{
@@ -618,24 +778,34 @@ function readStorage(key,fallback){
         return value??fallback;
     }catch{return fallback}
 }
+
 function saveStorage(key,value){
-    try{localStorage.setItem(key,JSON.stringify(value))}
-    catch{importStatus.textContent="Browser storage is full. Some preferences could not be saved."}
+    try{
+        localStorage.setItem(key,JSON.stringify(value));
+    }catch{
+        importStatus.textContent="Browser storage is full. Some preferences could not be saved.";
+    }
 }
+
 function progressKey(item){
     return item.storageType==="file"?"file:"+item.id:"url:"+item.src;
 }
+
 function getProgress(item){
     return progressData[progressKey(item)]||null;
 }
+
 function saveProgress(item,time,duration){
     if(!item||!Number.isFinite(time)||!Number.isFinite(duration)||duration<=0)return;
+
     const key=progressKey(item);
+
     if(time/duration>.95){
         delete progressData[key];
     }else if(time>2){
         progressData[key]={
-            time,duration,
+            time,
+            duration,
             title:item.title,
             credit:item.credit||"",
             src:item.src,
@@ -644,8 +814,10 @@ function saveProgress(item,time,duration){
             updated:Date.now()
         };
     }
+
     saveStorage("freeflix-progress-v1",progressData);
 }
+
 function formatTime(seconds){
     if(!Number.isFinite(seconds))return "0:00";
     const mins=Math.floor(seconds/60);
@@ -655,119 +827,205 @@ function formatTime(seconds){
 
 /* AUTOMATIC ONLINE ANIME COVERS */
 const animeCoverCache={};
+
 const animeNames={
     "beastars":"BEASTARS",
     "little witch academia":"Little Witch Academia",
-    "lucky star":"Lucky Star"
+    "lucky star":"Lucky Star",
+    "neon genesis evangelion":"Neon Genesis Evangelion"
 };
+
 const fallbackCovers={
     "beastars":"https://placehold.co/500x750/172638/ffffff?text=BEASTARS",
     "little witch academia":"https://placehold.co/500x750/35275a/ffffff?text=LITTLE+WITCH+ACADEMIA",
-    "lucky star":"https://placehold.co/500x750/49345f/ffffff?text=LUCKY+STAR"
+    "lucky star":"https://placehold.co/500x750/49345f/ffffff?text=LUCKY+STAR",
+    "neon genesis evangelion":"https://placehold.co/500x750/172638/ffffff?text=NEON+GENESIS+EVANGELION"
 };
+
 async function coverFor(name){
     const key=(name||"").toLowerCase().trim();
+
     if(animeCoverCache[key])return animeCoverCache[key];
+
     const query=animeNames[key];
     if(!query)return "";
+
     try{
-        const response=await fetch("https://api.jikan.moe/v4/anime?q="+encodeURIComponent(query)+"&limit=5");
+        const response=await fetch(
+            "https://api.jikan.moe/v4/anime?q="+encodeURIComponent(query)+"&limit=5"
+        );
+
         if(!response.ok)throw Error("Cover lookup failed");
+
         const result=await response.json();
+
         const match=result.data.find(anime=>
             anime.title.toLowerCase()===query.toLowerCase()||
             anime.title_english?.toLowerCase()===query.toLowerCase()
         );
-        const image=match?.images?.webp?.large_image_url||match?.images?.jpg?.large_image_url;
-        if(image){animeCoverCache[key]=image;return image}
-    }catch(error){console.log("Cover lookup failed:",name)}
+
+        const image=
+            match?.images?.webp?.large_image_url||
+            match?.images?.jpg?.large_image_url;
+
+        if(image){
+            animeCoverCache[key]=image;
+            return image;
+        }
+    }catch(error){
+        console.log("Cover lookup failed:",name);
+    }
+
     return fallbackCovers[key]||"";
 }
 
 /* DATABASE */
 function openDB(){
     return new Promise(resolve=>{
-        if(!("indexedDB" in window)){resolve(null);return}
+        if(!("indexedDB" in window)){
+            resolve(null);
+            return;
+        }
+
         const request=indexedDB.open("FreeFlixMediaDB",1);
+
         request.onupgradeneeded=()=>{
             const d=request.result;
-            if(!d.objectStoreNames.contains("files"))d.createObjectStore("files",{keyPath:"id"});
+            if(!d.objectStoreNames.contains("files")){
+                d.createObjectStore("files",{keyPath:"id"});
+            }
         };
+
         request.onsuccess=()=>resolve(request.result);
         request.onerror=()=>resolve(null);
     });
 }
+
 function dbRequest(mode,action,value){
     return new Promise(resolve=>{
-        if(!db){resolve(null);return}
+        if(!db){
+            resolve(null);
+            return;
+        }
+
         const tx=db.transaction("files",mode);
         const store=tx.objectStore("files");
         const req=action==="put"?store.put(value):store.getAll();
+
         req.onsuccess=()=>resolve(req.result);
         req.onerror=()=>resolve(null);
     });
 }
+
 function cleanTitle(s){
     return(s||"").replace(/\.[^.]+$/,"").replace(/[_]+/g," ").trim()||"Untitled video";
 }
+
 function safeNameFromUrl(url){
     try{
         const raw=new URL(url).pathname.split("/").pop()||"Video";
-        return decodeURIComponent(raw).replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim()||"Video";
-    }catch{return"Imported video"}
+        return decodeURIComponent(raw)
+            .replace(/\.[^.]+$/,"")
+            .replace(/[_-]+/g," ")
+            .trim()||"Video";
+    }catch{
+        return"Imported video";
+    }
 }
 
 /* COLLECTIONS */
 function makeGroup(name,kind){
     const key=name.trim()||"Imported Videos";
+
     if(!customGroups.has(key)){
-        const group={name:key,kind,items:[],container:null,heading:null,titleElement:null};
+        const group={
+            name:key,
+            kind,
+            items:[],
+            container:null,
+            heading:null,
+            titleElement:null
+        };
+
         customGroups.set(key,group);
+
         const heading=document.createElement("div");
         heading.className="section-heading";
+
         const h=document.createElement("h2");
         h.textContent=(kind==="movie"?"🎬 ":"✨ ")+key;
+
         const count=document.createElement("span");
         count.textContent="Imported collection";
+
         const actions=document.createElement("div");
         actions.style.display="flex";
         actions.style.alignItems="center";
         actions.style.gap="10px";
+
         const rename=document.createElement("button");
         rename.className="rename-btn";
         rename.type="button";
         rename.textContent="✎ Rename";
-        rename.addEventListener("click",()=>renameGroup(key));
+        rename.dataset.groupName=key;
+        rename.addEventListener("click",()=>{
+            renameGroup(rename.dataset.groupName);
+        });
+
         actions.append(count,rename);
         heading.append(h,actions);
+
         const grid=document.createElement("div");
         grid.className="grid";
+
         document.getElementById("custom-sections").append(heading,grid);
+
         group.container=grid;
         group.heading=heading;
         group.titleElement=h;
     }
+
     return customGroups.get(key);
 }
+
 async function renameGroup(oldName){
     const group=customGroups.get(oldName);
     if(!group)return;
+
     const entered=prompt("Rename collection:",group.name);
     if(entered===null)return;
+
     const newName=entered.trim();
-    if(!newName){alert("Enter a collection name.");return}
+
+    if(!newName){
+        alert("Enter a collection name.");
+        return;
+    }
+
     if(newName===oldName)return;
-    if(customGroups.has(newName)){alert("That collection already exists.");return}
+
+    if(customGroups.has(newName)){
+        alert("That collection already exists.");
+        return;
+    }
+
     customGroups.delete(oldName);
     group.name=newName;
     customGroups.set(newName,group);
-    group.titleElement.textContent=(group.kind==="movie"?"🎬 ":"✨ ")+newName;
+
+    group.titleElement.textContent=
+        (group.kind==="movie"?"🎬 ":"✨ ")+newName;
+
     group.items.forEach(item=>item.credit=newName);
+
     const button=group.heading.querySelector(".rename-btn");
-    button.onclick=()=>renameGroup(newName);
+    button.dataset.groupName=newName;
+
     saveCustomUrls();
+
     if(db){
         const records=await dbRequest("readonly","getAll")||[];
+
         for(const record of records){
             if(record.group===oldName){
                 record.group=newName;
@@ -775,80 +1033,120 @@ async function renameGroup(oldName){
             }
         }
     }
-    importStatus.textContent=`Collection renamed to "${newName}". Your videos were kept.`;
+
+    importStatus.textContent=
+        `Collection renamed to "${newName}". Your videos were kept.`;
 }
 
 /* DUPLICATES AND SEARCH */
 function getDuplicate(url){
     return allItems.some(x=>x.src===url)||
-        [...customGroups.values()].some(g=>g.items.some(x=>x.src===url));
+        [...customGroups.values()].some(g=>
+            g.items.some(x=>x.src===url)
+        );
 }
+
 function refreshSearch(){
     const q=searchInput.value.trim().toLowerCase();
-    let visible=0,total=0;
+    let visible=0;
+    let total=0;
+
     document.querySelectorAll(".main-card").forEach(card=>{
         total++;
+
         const match=card.dataset.title.includes(q);
         card.style.display=match?"":"none";
+
         if(match)visible++;
     });
-    countLabel.textContent=q?`${visible} matching titles`:`${total} titles in your library`;
+
+    countLabel.textContent=q
+        ?`${visible} matching titles`
+        :`${total} titles in your library`;
+
     emptyMessage.style.display=visible===0?"block":"none";
 }
 
 /* FAVORITES AND CARD CREATION */
 function toggleFavorite(item){
     const key=progressKey(item);
+
     if(favorites.has(key))favorites.delete(key);
     else favorites.add(key);
+
     saveStorage("freeflix-favorites-v1",[...favorites]);
     renderSpecialRows();
-    document.querySelectorAll(`[data-favorite-key="${CSS.escape(key)}"]`).forEach(btn=>{
+
+    document.querySelectorAll(
+        `[data-favorite-key="${CSS.escape(key)}"]`
+    ).forEach(btn=>{
         btn.classList.toggle("saved",favorites.has(key));
         btn.textContent=favorites.has(key)?"★":"☆";
     });
+
     updateFavoriteButton();
 }
+
 function updateFavoriteButton(){
     const button=document.getElementById("favorite-current");
-    if(!currentItem){button.textContent="☆ Favorite";return}
+
+    if(!currentItem){
+        button.textContent="☆ Favorite";
+        return;
+    }
+
     const saved=favorites.has(progressKey(currentItem));
     button.textContent=saved?"★ Favorited":"☆ Favorite";
 }
+
 function createCard(item,container,list,kindLabel,seriesName,options={}){
     if(!item.id){
         item.id="item-"+Math.random().toString(36).slice(2);
     }
+
     const card=document.createElement("div");
     card.className="card"+(options.main?" main-card":"");
     card.dataset.title=item.title.toLowerCase();
     card.dataset.itemId=item.id;
 
     const key=progressKey(item);
+
     const topActions=document.createElement("div");
     topActions.className="card-top-actions";
+
     const favoriteBtn=document.createElement("button");
-    favoriteBtn.className="card-action"+(favorites.has(key)?" saved":"");
+    favoriteBtn.className=
+        "card-action"+(favorites.has(key)?" saved":"");
     favoriteBtn.textContent=favorites.has(key)?"★":"☆";
     favoriteBtn.title="Toggle favorite";
     favoriteBtn.dataset.favoriteKey=key;
+
     favoriteBtn.addEventListener("click",event=>{
         event.stopPropagation();
         toggleFavorite(item);
     });
+
     topActions.append(favoriteBtn);
     card.append(topActions);
 
     const coverName=item.coverName||seriesName||"";
+
     if(coverName){
         const img=document.createElement("img");
         img.className="card-cover";
         img.loading="lazy";
         img.alt=coverName+" cover";
-        img.src=fallbackCovers[coverName.toLowerCase()]||
-            "https://placehold.co/500x750/172638/ffffff?text="+encodeURIComponent(coverName);
+
+        img.src=
+            fallbackCovers[coverName.toLowerCase()]||
+            "https://placehold.co/500x750/172638/ffffff?text="+
+            encodeURIComponent(coverName);
+
         card.append(img);
-        coverFor(coverName).then(url=>{if(url)img.src=url}).catch(()=>{});
+
+        coverFor(coverName).then(url=>{
+            if(url)img.src=url;
+        }).catch(()=>{});
     }else{
         const icon=document.createElement("div");
         icon.className="card-icon";
@@ -858,25 +1156,37 @@ function createCard(item,container,list,kindLabel,seriesName,options={}){
 
     const title=document.createElement("h3");
     title.textContent=item.title;
+
     const desc=document.createElement("p");
     desc.textContent=kindLabel;
+
     const play=document.createElement("p");
     play.className="play-label";
     play.textContent="▶ Select title";
+
     card.append(title,desc,play);
 
     const progress=getProgress(item);
+
     if(progress&&progress.duration){
-        const percent=Math.min(100,Math.max(0,progress.time/progress.duration*100));
+        const percent=Math.min(
+            100,
+            Math.max(0,progress.time/progress.duration*100)
+        );
+
         const track=document.createElement("div");
         track.className="progress-track";
+
         const fill=document.createElement("div");
         fill.className="progress-fill";
         fill.style.width=percent+"%";
+
         track.append(fill);
+
         const label=document.createElement("p");
         label.className="card-progress-label";
         label.textContent="Continue · "+Math.round(percent)+"% watched";
+
         card.append(track,label);
     }
 
@@ -886,67 +1196,162 @@ function createCard(item,container,list,kindLabel,seriesName,options={}){
 
 /* BASE COLLECTIONS */
 function renderBase(){
-    movies.forEach(x=>createCard(x,document.getElementById("movies-grid"),movies,"Movie","",{main:true}));
-    episodes.forEach(x=>createCard(x,document.getElementById("lwa-grid"),episodes,"Little Witch Academia","Little Witch Academia",{main:true}));
-    luckyEpisodes.forEach(x=>createCard(x,document.getElementById("lucky-grid"),luckyEpisodes,"Lucky Star","Lucky Star",{main:true}));
+    movies.forEach(item=>
+        createCard(
+            item,
+            document.getElementById("movies-grid"),
+            movies,
+            "Movie",
+            "",
+            {main:true}
+        )
+    );
+
+    beastarsS2.forEach(item=>
+        createCard(
+            item,
+            document.getElementById("beastars-s2-grid"),
+            beastarsS2,
+            "BEASTARS · Season 2",
+            "BEASTARS",
+            {main:true}
+        )
+    );
+
+    evaEpisodes.forEach(item=>
+        createCard(
+            item,
+            document.getElementById("eva-grid"),
+            evaEpisodes,
+            "Neon Genesis Evangelion",
+            "Neon Genesis Evangelion",
+            {main:true}
+        )
+    );
+
+    episodes.forEach(item=>
+        createCard(
+            item,
+            document.getElementById("lwa-grid"),
+            episodes,
+            "Little Witch Academia",
+            "Little Witch Academia",
+            {main:true}
+        )
+    );
+
+    luckyEpisodes.forEach(item=>
+        createCard(
+            item,
+            document.getElementById("lucky-grid"),
+            luckyEpisodes,
+            "Lucky Star",
+            "Lucky Star",
+            {main:true}
+        )
+    );
 }
+
 function addCustomItem(item,group){
     group.items.push(item);
     allItems.push(item);
-    createCard(item,group.container,group.items,group.kind==="movie"?"Movie":"Video",group.name,{main:true});
+
+    createCard(
+        item,
+        group.container,
+        group.items,
+        group.kind==="movie"?"Movie":"Video",
+        item.coverName||group.name,
+        {main:true}
+    );
 }
 
 /* SPECIAL ROWS */
 function renderSpecialRows(){
     const continueGrid=document.getElementById("continue-grid");
     const favoriteGrid=document.getElementById("favorites-grid");
+
     continueGrid.innerHTML="";
     favoriteGrid.innerHTML="";
 
     const progressItems=allItems
         .filter(item=>getProgress(item))
-        .sort((a,b)=>(getProgress(b)?.updated||0)-(getProgress(a)?.updated||0))
+        .sort((a,b)=>
+            (getProgress(b)?.updated||0)-
+            (getProgress(a)?.updated||0)
+        )
         .slice(0,20);
 
     progressItems.forEach(item=>{
         const list=findListForItem(item);
-        createCard(item,continueGrid,list,"Continue Watching",item.coverName||"");
+
+        createCard(
+            item,
+            continueGrid,
+            list,
+            "Continue Watching",
+            item.coverName||""
+        );
     });
 
-    const favoriteItems=allItems.filter(item=>favorites.has(progressKey(item)));
+    const favoriteItems=allItems.filter(item=>
+        favorites.has(progressKey(item))
+    );
+
     favoriteItems.forEach(item=>{
-        createCard(item,favoriteGrid,findListForItem(item),"Favorite",item.coverName||"");
+        createCard(
+            item,
+            favoriteGrid,
+            findListForItem(item),
+            "Favorite",
+            item.coverName||""
+        );
     });
 
-    document.getElementById("continue-section").style.display=progressItems.length?"":"none";
-    document.getElementById("favorites-section").style.display=favoriteItems.length?"":"none";
+    document.getElementById("continue-section").style.display=
+        progressItems.length?"":"none";
+
+    document.getElementById("favorites-section").style.display=
+        favoriteItems.length?"":"none";
 }
+
 function findListForItem(item){
     if(movies.includes(item))return movies;
+    if(beastarsS2.includes(item))return beastarsS2;
+    if(evaEpisodes.includes(item))return evaEpisodes;
     if(episodes.includes(item))return episodes;
     if(luckyEpisodes.includes(item))return luckyEpisodes;
+
     for(const group of customGroups.values()){
         if(group.items.includes(item))return group.items;
     }
+
     return [item];
 }
 
 /* PLAYBACK */
 function updateControls(){
     previousButton.disabled=!currentList||currentIndex<=0;
-    nextButton.disabled=!currentList||currentIndex>=currentList.length-1;
+    nextButton.disabled=
+        !currentList||currentIndex>=currentList.length-1;
 }
+
 function playItem(item,list,resume=true){
     if(currentItem&&video.duration){
         saveProgress(currentItem,video.currentTime,video.duration);
     }
+
     currentList=list;
     currentIndex=list.indexOf(item);
     currentItem=item;
 
-    document.querySelectorAll(".card").forEach(c=>
-        c.classList.toggle("active",c.dataset.itemId===item.id)
+    document.querySelectorAll(".card").forEach(card=>
+        card.classList.toggle(
+            "active",
+            card.dataset.itemId===item.id
+        )
     );
+
     updateControls();
     updateFavoriteButton();
 
@@ -958,7 +1363,8 @@ function playItem(item,list,resume=true){
     creditEl.textContent=item.credit||"";
 
     if(!item.src){
-        statusEl.textContent="No video source is available for this title yet.";
+        statusEl.textContent=
+            "No video source is available for this title yet.";
         return;
     }
 
@@ -968,48 +1374,85 @@ function playItem(item,list,resume=true){
 
     video.addEventListener("loadedmetadata",function restorePosition(){
         video.removeEventListener("loadedmetadata",restorePosition);
+
         const saved=resume?getProgress(item):null;
+
         if(saved&&saved.time>5&&saved.time<video.duration-5){
             video.currentTime=saved.time;
-            statusEl.textContent="Resuming from "+formatTime(saved.time);
+            statusEl.textContent=
+                "Resuming from "+formatTime(saved.time);
         }
     });
 
     video.play().then(()=>{
         statusEl.textContent="Now playing";
     }).catch(()=>{
-        statusEl.textContent="Video is ready. Press Play to start, or check the video source.";
+        statusEl.textContent=
+            "Video is ready. Press Play to start, or check the video source.";
     });
 }
 
 /* URL IMPORTER */
 function importUrls(){
-    const lines=document.getElementById("url-list").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-    const groupName=document.getElementById("url-collection").value.trim()||"Imported Videos";
+    const lines=document.getElementById("url-list")
+        .value.split(/\r?\n/)
+        .map(x=>x.trim())
+        .filter(Boolean);
+
+    const groupName=
+        document.getElementById("url-collection").value.trim()||
+        "Imported Videos";
+
     const group=makeGroup(groupName,"video");
-    let added=0,duplicates=0,invalid=0;
+
+    let added=0;
+    let duplicates=0;
+    let invalid=0;
 
     for(const line of lines){
-        let title="",url=line;
+        let title="";
+        let url=line;
+
         if(line.includes("|")){
             const parts=line.split("|");
             title=parts.shift().trim();
             url=parts.join("|").trim();
         }
+
         try{
             const parsed=new URL(url);
-            if(!["http:","https:"].includes(parsed.protocol)){invalid++;continue}
-        }catch{invalid++;continue}
-        if(getDuplicate(url)){duplicates++;continue}
+
+            if(!["http:","https:"].includes(parsed.protocol)){
+                invalid++;
+                continue;
+            }
+        }catch{
+            invalid++;
+            continue;
+        }
+
+        if(getDuplicate(url)){
+            duplicates++;
+            continue;
+        }
+
         addCustomItem({
             id:"url-"+Date.now()+"-"+Math.random().toString(36).slice(2),
             title:title||cleanTitle(safeNameFromUrl(url)),
-            icon:"🎞️",credit:groupName,src:url,category:"custom"
+            icon:"🎞️",
+            credit:groupName,
+            src:url,
+            category:"custom"
         },group);
+
         added++;
     }
+
     saveCustomUrls();
-    importStatus.textContent=`Added ${added} URL(s). ${duplicates} duplicates skipped. ${invalid} invalid lines skipped.`;
+
+    importStatus.textContent=
+        `Added ${added} URL(s). ${duplicates} duplicates skipped. ${invalid} invalid lines skipped.`;
+
     refreshSearch();
     renderSpecialRows();
 }
@@ -1017,77 +1460,176 @@ function importUrls(){
 /* SAVE AND RESTORE URL COLLECTIONS */
 function saveCustomUrls(){
     const data=[];
-    for(const g of customGroups.values()){
-        for(const x of g.items){
-            if(x.storageType!=="file"){
-                data.push({title:x.title,icon:x.icon,credit:x.credit,src:x.src,group:g.name,kind:g.kind});
+
+    for(const group of customGroups.values()){
+        for(const item of group.items){
+            if(item.storageType!=="file"){
+                data.push({
+                    title:item.title,
+                    icon:item.icon,
+                    credit:item.credit,
+                    src:item.src,
+                    group:group.name,
+                    kind:group.kind
+                });
             }
         }
     }
-    try{localStorage.setItem("freeflix-custom-urls-v1",JSON.stringify(data))}
-    catch{importStatus.textContent+=" Browser storage is full."}
+
+    try{
+        localStorage.setItem(
+            "freeflix-custom-urls-v1",
+            JSON.stringify(data)
+        );
+    }catch{
+        importStatus.textContent+=" Browser storage is full.";
+    }
 }
+
 function loadCustomUrls(){
     try{
-        const data=JSON.parse(localStorage.getItem("freeflix-custom-urls-v1")||"[]");
-        data.forEach(x=>{
-            if(!x.src||getDuplicate(x.src))return;
-            const isBeastars=x.src.toLowerCase().includes("beastars-dubbed-episodes");
-            const groupName=isBeastars?"BEASTARS":(x.group||"Imported Videos");
-            const g=makeGroup(groupName,x.kind||"video");
+        const data=JSON.parse(
+            localStorage.getItem("freeflix-custom-urls-v1")||"[]"
+        );
+
+        data.forEach(item=>{
+            if(!item.src)return;
+
+            const lowerUrl=item.src.toLowerCase();
+
+            /* Death Note is intentionally excluded */
+            if(
+                lowerUrl.includes("death-note")||
+                (item.title||"").toLowerCase().includes("death note")||
+                (item.group||"").toLowerCase().includes("death note")
+            ){
+                return;
+            }
+
+            if(getDuplicate(item.src))return;
+
+            const isBeastarsS2=
+                lowerUrl.includes("beastars-dubbed-episodes-season-2");
+
+            const isBeastarsS1=
+                lowerUrl.includes("beastars-dubbed-episodes");
+
+            let groupName=item.group||"Imported Videos";
+            let coverName="";
+
+            if(isBeastarsS2){
+                groupName="BEASTARS - Season 2";
+                coverName="BEASTARS";
+            }else if(isBeastarsS1){
+                groupName="BEASTARS - Season 1";
+                coverName="BEASTARS";
+            }
+
+            const group=makeGroup(groupName,item.kind||"video");
+
             addCustomItem({
                 id:"saved-"+Math.random().toString(36).slice(2),
-                title:x.title,icon:x.icon||"🎞️",credit:groupName,
-                src:x.src,category:"custom"
-            },g);
+                title:item.title,
+                icon:item.icon||"🎞️",
+                credit:groupName,
+                coverName,
+                src:item.src,
+                category:"custom"
+            },group);
         });
-        if(data.some(x=>
-            x.src?.toLowerCase().includes("beastars-dubbed-episodes")&&x.group!=="BEASTARS"
-        ))saveCustomUrls();
-    }catch(error){console.log("Could not restore URL collections:",error)}
+
+        /* Rewrite saved data without any old Death Note links */
+        saveCustomUrls();
+
+    }catch(error){
+        console.log("Could not restore URL collections:",error);
+    }
 }
 
 /* LOCAL FILE IMPORTER */
 async function importFiles(){
     const input=document.getElementById("video-files");
     const files=[...input.files];
-    if(!files.length){importStatus.textContent="Choose one or more video files first.";return}
-    const groupName=document.getElementById("file-collection").value.trim()||"My Videos";
+
+    if(!files.length){
+        importStatus.textContent=
+            "Choose one or more video files first.";
+        return;
+    }
+
+    const groupName=
+        document.getElementById("file-collection").value.trim()||
+        "My Videos";
+
     const group=makeGroup(groupName,"video");
-    let added=0,failed=0;
+
+    let added=0;
+    let failed=0;
 
     for(const file of files){
-        if(!file.type.startsWith("video/")&&!/\.(mp4|webm|ogg|mov|m4v|mkv)$/i.test(file.name)){
-            failed++;continue;
+        if(
+            !file.type.startsWith("video/")&&
+            !/\.(mp4|webm|ogg|mov|m4v|mkv)$/i.test(file.name)
+        ){
+            failed++;
+            continue;
         }
+
         const id="file-"+Date.now()+"-"+Math.random().toString(36).slice(2);
+
         try{
             if(db){
                 await dbRequest("readwrite","put",{
-                    id,name:file.name,group:groupName,type:file.type,blob:file
+                    id,
+                    name:file.name,
+                    group:groupName,
+                    type:file.type,
+                    blob:file
                 });
+
                 const saved=await dbRequest("readonly","getAll");
                 const record=(saved||[]).find(x=>x.id===id);
+
                 if(!record)throw Error("Save failed");
+
                 const src=URL.createObjectURL(record.blob);
                 objectUrls.set(id,src);
+
                 addCustomItem({
-                    id,title:cleanTitle(file.name),icon:"📁",credit:groupName,
-                    src,category:"local",storageType:"file"
+                    id,
+                    title:cleanTitle(file.name),
+                    icon:"📁",
+                    credit:groupName,
+                    src,
+                    category:"local",
+                    storageType:"file"
                 },group);
+
                 added++;
             }else{
                 const src=URL.createObjectURL(file);
                 objectUrls.set(id,src);
+
                 addCustomItem({
-                    id,title:cleanTitle(file.name),icon:"📁",credit:groupName,
-                    src,category:"local",storageType:"file"
+                    id,
+                    title:cleanTitle(file.name),
+                    icon:"📁",
+                    credit:groupName,
+                    src,
+                    category:"local",
+                    storageType:"file"
                 },group);
+
                 added++;
             }
-        }catch(error){failed++}
+        }catch(error){
+            failed++;
+        }
     }
-    importStatus.textContent=`Added ${added} files. ${failed} could not be stored. Local files stay on this device.`;
+
+    importStatus.textContent=
+        `Added ${added} files. ${failed} could not be stored. Local files stay on this device.`;
+
     input.value="";
     refreshSearch();
     renderSpecialRows();
@@ -1096,73 +1638,145 @@ async function importFiles(){
 /* RESTORE LOCAL FILES */
 async function restoreLocalFiles(){
     if(!db)return;
+
     const records=await dbRequest("readonly","getAll")||[];
+
     for(const record of records){
         const groupName=record.group||"My Videos";
         const group=makeGroup(groupName,"video");
         const src=URL.createObjectURL(record.blob);
+
         objectUrls.set(record.id,src);
+
         addCustomItem({
-            id:record.id,title:cleanTitle(record.name),icon:"📁",
-            credit:groupName,src,category:"local",storageType:"file"
+            id:record.id,
+            title:cleanTitle(record.name),
+            icon:"📁",
+            credit:groupName,
+            src,
+            category:"local",
+            storageType:"file"
         },group);
     }
 }
 
 /* PLAYER CONTROLS */
 previousButton.addEventListener("click",()=>{
-    if(currentList&&currentIndex>0)playItem(currentList[currentIndex-1],currentList);
+    if(currentList&&currentIndex>0){
+        playItem(currentList[currentIndex-1],currentList);
+    }
 });
+
 nextButton.addEventListener("click",()=>{
-    if(currentList&&currentIndex<currentList.length-1)playItem(currentList[currentIndex+1],currentList);
+    if(currentList&&currentIndex<currentList.length-1){
+        playItem(currentList[currentIndex+1],currentList);
+    }
 });
+
 document.getElementById("favorite-current").addEventListener("click",()=>{
     if(currentItem)toggleFavorite(currentItem);
 });
 
 /* PLAYBACK PROGRESS */
 video.addEventListener("timeupdate",()=>{
-    if(!currentItem||!Number.isFinite(video.duration)||video.duration<=0)return;
+    if(
+        !currentItem||
+        !Number.isFinite(video.duration)||
+        video.duration<=0
+    )return;
+
     clearTimeout(progressSaveTimer);
+
     progressSaveTimer=setTimeout(()=>{
-        saveProgress(currentItem,video.currentTime,video.duration);
+        saveProgress(
+            currentItem,
+            video.currentTime,
+            video.duration
+        );
         renderSpecialRows();
     },1500);
 });
+
 video.addEventListener("pause",()=>{
-    if(currentItem&&video.duration)saveProgress(currentItem,video.currentTime,video.duration);
+    if(currentItem&&video.duration){
+        saveProgress(
+            currentItem,
+            video.currentTime,
+            video.duration
+        );
+    }
 });
+
 video.addEventListener("ended",()=>{
-    if(currentItem&&video.duration)saveProgress(currentItem,video.duration,video.duration);
+    if(currentItem&&video.duration){
+        saveProgress(
+            currentItem,
+            video.duration,
+            video.duration
+        );
+    }
+
     statusEl.textContent="Playback finished.";
     renderSpecialRows();
+
     if(currentList&&currentIndex<currentList.length-1){
-        statusEl.textContent="Episode finished. Loading next episode...";
+        statusEl.textContent=
+            "Episode finished. Loading next episode...";
+
         setTimeout(()=>{
-            if(currentItem&&video.ended&&currentList&&currentIndex<currentList.length-1){
-                playItem(currentList[currentIndex+1],currentList,false);
+            if(
+                currentItem&&
+                video.ended&&
+                currentList&&
+                currentIndex<currentList.length-1
+            ){
+                playItem(
+                    currentList[currentIndex+1],
+                    currentList,
+                    false
+                );
             }
         },1200);
     }
 });
-video.addEventListener("waiting",()=>statusEl.textContent="Buffering video...");
-video.addEventListener("playing",()=>statusEl.textContent="Now playing");
+
+video.addEventListener("waiting",()=>{
+    statusEl.textContent="Buffering video...";
+});
+
+video.addEventListener("playing",()=>{
+    statusEl.textContent="Now playing";
+});
+
 video.addEventListener("error",()=>{
     if(video.currentSrc){
-        statusEl.textContent="Unable to play this video. The source may be unavailable or unsupported.";
+        if(video.error?.code===4){
+            statusEl.textContent=
+                "This video format or codec is not supported by your browser. Try an MP4 encoded with H.264 video and AAC audio.";
+        }else{
+            statusEl.textContent=
+                "Unable to play this video. The source may be unavailable or unsupported.";
+        }
     }
 });
 
 /* SPEED AND VOLUME MEMORY */
 const savedSpeed=localStorage.getItem("freeflix-speed")||"1";
+
 speedSelect.value=savedSpeed;
 video.playbackRate=Number(savedSpeed);
+
 speedSelect.addEventListener("change",()=>{
     video.playbackRate=Number(speedSelect.value);
     localStorage.setItem("freeflix-speed",speedSelect.value);
 });
+
 const savedVolume=localStorage.getItem("freeflix-volume");
-if(savedVolume!==null)video.volume=Math.max(0,Math.min(1,Number(savedVolume)));
+
+if(savedVolume!==null){
+    video.volume=Math.max(0,Math.min(1,Number(savedVolume)));
+}
+
 video.addEventListener("volumechange",()=>{
     localStorage.setItem("freeflix-volume",video.volume);
 });
@@ -1170,51 +1784,87 @@ video.addEventListener("volumechange",()=>{
 /* KEYBOARD SHORTCUTS */
 document.addEventListener("keydown",event=>{
     const tag=document.activeElement?.tagName?.toLowerCase();
-    if(["input","textarea","select"].includes(tag)||event.ctrlKey||event.altKey)return;
+
+    if(
+        ["input","textarea","select"].includes(tag)||
+        event.ctrlKey||
+        event.altKey
+    )return;
 
     if(event.code==="Space"){
         event.preventDefault();
+
         if(video.paused)video.play().catch(()=>{});
         else video.pause();
     }
+
     if(event.key==="ArrowLeft"&&video.duration){
         video.currentTime=Math.max(0,video.currentTime-10);
     }
+
     if(event.key==="ArrowRight"&&video.duration){
-        video.currentTime=Math.min(video.duration,video.currentTime+10);
+        video.currentTime=Math.min(
+            video.duration,
+            video.currentTime+10
+        );
     }
-    if(event.key.toLowerCase()==="m")video.muted=!video.muted;
+
+    if(event.key.toLowerCase()==="m"){
+        video.muted=!video.muted;
+    }
+
     if(event.key.toLowerCase()==="f"){
-        if(document.fullscreenElement)document.exitFullscreen?.();
-        else video.requestFullscreen?.();
+        if(document.fullscreenElement){
+            document.exitFullscreen?.();
+        }else{
+            video.requestFullscreen?.();
+        }
     }
 });
 
 /* SEARCH AND BUTTON EVENTS */
 searchInput.addEventListener("input",refreshSearch);
-document.getElementById("import-urls").addEventListener("click",importUrls);
-document.getElementById("import-files").addEventListener("click",importFiles);
+
+document.getElementById("import-urls")
+    .addEventListener("click",importUrls);
+
+document.getElementById("import-files")
+    .addEventListener("click",importFiles);
 
 /* BACK TO TOP */
 const backToTop=document.getElementById("back-to-top");
+
 window.addEventListener("scroll",()=>{
-    backToTop.classList.toggle("visible",window.scrollY>500);
+    backToTop.classList.toggle(
+        "visible",
+        window.scrollY>500
+    );
 },{passive:true});
+
 backToTop.addEventListener("click",()=>{
-    window.scrollTo({top:0,behavior:"smooth"});
+    window.scrollTo({
+        top:0,
+        behavior:"smooth"
+    });
 });
 
 /* STARTUP */
 (async function init(){
+    removeOldDeathNoteData();
+
     db=await openDB();
+
     renderBase();
     loadCustomUrls();
+
     await restoreLocalFiles();
+
     renderSpecialRows();
     refreshSearch();
 
     if(!db){
-        importStatus.textContent="URL importer ready. Local file persistence is unavailable in this browser.";
+        importStatus.textContent=
+            "URL importer ready. Local file persistence is unavailable in this browser.";
     }
 })();
 </script>
