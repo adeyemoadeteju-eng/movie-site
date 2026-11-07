@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +16,7 @@
 </style>
 </head>
 <body>
+
 <h1>Free Movies</h1>
 <div class="grid" id="grid"></div>
 <video id="player" controls playsinline></video>
@@ -30,9 +32,6 @@ const announce = [
   "wss://tracker.fastcast.nz"
 ];
 
-// Each movie has a list of sources, tried in order until one works.
-// type "mp4"     -> direct video link
-// type "torrent" -> magnet link or .torrent file link
 const movies = [
   {
     title: "Elephants Dream",
@@ -55,7 +54,8 @@ const movies = [
     credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)",
     sources: [
       { type: "torrent", src: "https://webtorrent.io/torrents/sintel.torrent" },
-      { type: "torrent", src: "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel" }
+      { type: "torrent", src: "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel"
+      }
     ]
   },
   {
@@ -63,6 +63,16 @@ const movies = [
     credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)",
     sources: [
       { type: "torrent", src: "https://webtorrent.io/torrents/tears-of-steel.torrent" }
+    ]
+  },
+  {
+    title: "Little Witch Academia - E01 Starting Over",
+    credit: "Provided by you",
+    sources: [
+      {
+        type: "mp4",
+        src: "https://archive.org/download/little-witch-academia-english-sub/E01%20Starting%20Over.mp4"
+      }
     ]
   }
 ];
@@ -72,9 +82,9 @@ const video = document.getElementById("player");
 const statusEl = document.getElementById("status");
 const creditEl = document.getElementById("credit");
 
-let current = null;       // active torrent
-let token = 0;            // identifies the current attempt, so old ones are ignored
-let onVideoFail = null;   // what to do if the direct video fails
+let current = null;
+let token = 0;
+let onVideoFail = null;
 let timer = null;
 
 video.addEventListener("error", () => {
@@ -97,7 +107,10 @@ movies.forEach(m => {
 function cleanup() {
   clearTimeout(timer);
   onVideoFail = null;
-  if (current) { try { current.destroy(); } catch (e) {} current = null; }
+  if (current) {
+    try { current.destroy(); } catch (e) {}
+    current = null;
+  }
 }
 
 function play(m) {
@@ -117,6 +130,7 @@ function tryMovie(m, i, myToken, failures) {
   cleanup();
   const s = m.sources[i];
   const label = "source " + (i + 1) + " of " + m.sources.length;
+
   const next = (why) => {
     if (myToken !== token) return;
     failures.push(label + ": " + why);
@@ -132,7 +146,6 @@ function tryMovie(m, i, myToken, failures) {
     return;
   }
 
-  // torrent
   statusEl.textContent = "Connecting to peers (" + label + ")...";
   video.removeAttribute("src");
   let started = false;
@@ -143,19 +156,28 @@ function tryMovie(m, i, myToken, failures) {
 
   const t = client.add(s.src, { announce }, torrent => {
     if (myToken !== token) return;
+
     const file = torrent.files.find(f => f.name.toLowerCase().endsWith(".mp4"));
-    if (!file) { next("no mp4 inside torrent"); return; }
+    if (!file) {
+      next("no mp4 inside torrent");
+      return;
+    }
+
     started = true;
     clearTimeout(timer);
     file.streamTo(video);
     video.play().catch(() => {});
+
     torrent.on("download", () => {
       statusEl.textContent = (torrent.progress * 100).toFixed(1) + "% | " +
         (torrent.downloadSpeed / 1024).toFixed(0) + " KB/s | " + torrent.numPeers + " peers";
     });
   });
+
   current = t;
-  t.on("error", err => { if (!started) next("torrent error"); });
+  t.on("error", err => {
+    if (!started) next("torrent error");
+  });
 }
 </script>
 </body>
