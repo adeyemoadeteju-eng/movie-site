@@ -27,10 +27,10 @@ import WebTorrent from "https://cdn.jsdelivr.net/npm/webtorrent@latest/dist/webt
 const trackers = "&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.btorrent.io&tr=wss%3A%2F%2Ftracker.fastcast.nz&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F";
 
 const movies = [
-  { title: "JoJos.Bizarre.Adventure", hash: "3F0E1FD1CB4193712AAA775DE29516900A9E4F9D", credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)" },
-  { title: "Big Buck Bunny", hash: "dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c", credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)" },
-  { title: "Tears of Steel", hash: "209c8226b299b308beaf2b9cd3fb49212dbd13ec", credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)" },
-  { title: "Elephants Dream", hash: "6a9759bffd5c0af65319979fb7832189f4f3c35d", credit: "Elephants Dream © Blender Foundation | orange.blender.org (CC BY 2.5)" }
+  { title: "Big Buck Bunny", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)" },
+  { title: "Sintel", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)" },
+  { title: "Tears of Steel", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)" },
+  { title: "Elephants Dream", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", credit: "Elephants Dream © Blender Foundation | orange.blender.org (CC BY 2.5)" }
 ];
 
 const client = new WebTorrent();
@@ -48,10 +48,17 @@ movies.forEach(m => {
 
 function play(m) {
   if (current) { current.destroy(); current = null; }
-  video.removeAttribute("src");
-  statusEl.textContent = "Connecting to peers...";
   creditEl.textContent = m.credit;
 
+  if (m.url) {
+    statusEl.textContent = "Playing directly";
+    video.src = m.url;
+    video.play().catch(() => {});
+    return;
+  }
+
+  video.removeAttribute("src");
+  statusEl.textContent = "Connecting to peers...";
   const magnet = `magnet:?xt=urn:btih:${m.hash}&dn=${encodeURIComponent(m.title)}${trackers}`;
   client.add(magnet, torrent => {
     current = torrent;
