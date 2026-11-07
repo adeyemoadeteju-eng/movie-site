@@ -17,7 +17,7 @@
 <body>
 <h1>Free Movies</h1>
 <div class="grid" id="grid"></div>
-<video id="player" controls></video>
+<video id="player" controls playsinline></video>
 <p id="status">Pick a movie to start.</p>
 <p id="credit"></p>
 
@@ -26,11 +26,29 @@ import WebTorrent from "https://cdn.jsdelivr.net/npm/webtorrent@latest/dist/webt
 
 const trackers = "&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.btorrent.io&tr=wss%3A%2F%2Ftracker.fastcast.nz&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F";
 
+// Each movie can have: url (direct MP4), backup (second MP4 link), or hash (torrent).
 const movies = [
-  { title: "Big Buck Bunny", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)" },
-  { title: "Sintel", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4", credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)" },
-  { title: "Tears of Steel", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4", credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)" },
-  { title: "Elephants Dream", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", credit: "Elephants Dream © Blender Foundation | orange.blender.org (CC BY 2.5)" }
+  {
+    title: "Big Buck Bunny",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    backup: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4",
+    credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)"
+  },
+  {
+    title: "Sintel",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)"
+  },
+  {
+    title: "Tears of Steel",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)"
+  },
+  {
+    title: "Elephants Dream",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    credit: "Elephants Dream © Blender Foundation | orange.blender.org (CC BY 2.5)"
+  }
 ];
 
 const client = new WebTorrent();
@@ -38,6 +56,25 @@ const video = document.getElementById("player");
 const statusEl = document.getElementById("status");
 const creditEl = document.getElementById("credit");
 let current = null;
+let currentMovie = null;
+let triedBackup = false;
+
+video.addEventListener("error", () => {
+  if (currentMovie && currentMovie.backup && !triedBackup) {
+    triedBackup = true;
+    statusEl.textContent = "First link failed, trying backup...";
+    video.src = currentMovie.backup;
+    video.load();
+    video.play().catch(() => {});
+    return;
+  }
+  const code = video.error ? video.error.code : "unknown";
+  statusEl.textContent = "Video failed to load (error code " + code + "). The link may have moved or been blocked.";
+});
+
+video.addEventListener("playing", () => {
+  if (currentMovie && currentMovie.url) statusEl.textContent = "Playing";
+});
 
 movies.forEach(m => {
   const b = document.createElement("button");
@@ -48,11 +85,14 @@ movies.forEach(m => {
 
 function play(m) {
   if (current) { current.destroy(); current = null; }
+  currentMovie = m;
+  triedBackup = false;
   creditEl.textContent = m.credit;
 
   if (m.url) {
-    statusEl.textContent = "Playing directly";
+    statusEl.textContent = "Loading...";
     video.src = m.url;
+    video.load();
     video.play().catch(() => {});
     return;
   }
