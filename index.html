@@ -24,30 +24,46 @@
 <script type="module">
 import WebTorrent from "https://cdn.jsdelivr.net/npm/webtorrent@latest/dist/webtorrent.min.js";
 
-const trackers = "&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&tr=wss%3A%2F%2Ftracker.btorrent.io&tr=wss%3A%2F%2Ftracker.fastcast.nz&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F";
+const announce = [
+  "wss://tracker.openwebtorrent.com",
+  "wss://tracker.btorrent.io",
+  "wss://tracker.fastcast.nz"
+];
 
-// Each movie can have: url (direct MP4), backup (second MP4 link), or hash (torrent).
+// Each movie has a list of sources, tried in order until one works.
+// type "mp4"     -> direct video link
+// type "torrent" -> magnet link or .torrent file link
 const movies = [
   {
+    title: "Elephants Dream",
+    credit: "Elephants Dream © Blender Foundation / Netherlands Media Art Institute | orange.blender.org (CC BY) | hosted by Open Beelden",
+    sources: [
+      { type: "mp4", src: "https://natuurbeelden.openbeelden.nl/files/92/104101.ed_hd.mp4" },
+      { type: "mp4", src: "https://natuurbeelden.openbeelden.nl/files/92/104103.ed_hd.mp4" }
+    ]
+  },
+  {
     title: "Big Buck Bunny",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    backup: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4",
-    credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)"
+    credit: "Big Buck Bunny © Blender Foundation | peach.blender.org (CC BY 3.0)",
+    sources: [
+      { type: "mp4", src: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4" },
+      { type: "torrent", src: "https://webtorrent.io/torrents/big-buck-bunny.torrent" }
+    ]
   },
   {
     title: "Sintel",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-    credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)"
+    credit: "Sintel © Blender Foundation | durian.blender.org (CC BY 3.0)",
+    sources: [
+      { type: "torrent", src: "https://webtorrent.io/torrents/sintel.torrent" },
+      { type: "torrent", src: "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel" }
+    ]
   },
   {
     title: "Tears of Steel",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-    credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)"
-  },
-  {
-    title: "Elephants Dream",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    credit: "Elephants Dream © Blender Foundation | orange.blender.org (CC BY 2.5)"
+    credit: "Tears of Steel © Blender Foundation | mango.blender.org (CC BY 3.0)",
+    sources: [
+      { type: "torrent", src: "https://webtorrent.io/torrents/tears-of-steel.torrent" }
+    ]
   }
 ];
 
@@ -55,26 +71,21 @@ const client = new WebTorrent();
 const video = document.getElementById("player");
 const statusEl = document.getElementById("status");
 const creditEl = document.getElementById("credit");
-let current = null;
-let currentMovie = null;
-let triedBackup = false;
+
+let current = null;       // active torrent
+let token = 0;            // identifies the current attempt, so old ones are ignored
+let onVideoFail = null;   // what to do if the direct video fails
+let timer = null;
 
 video.addEventListener("error", () => {
-  if (currentMovie && currentMovie.backup && !triedBackup) {
-    triedBackup = true;
-    statusEl.textContent = "First link failed, trying backup...";
-    video.src = currentMovie.backup;
-    video.load();
-    video.play().catch(() => {});
-    return;
-  }
-  const code = video.error ? video.error.code : "unknown";
-  statusEl.textContent = "Video failed to load (error code " + code + "). The link may have moved or been blocked.";
+  if (onVideoFail) onVideoFail(video.error ? video.error.code : "unknown");
 });
 
 video.addEventListener("playing", () => {
-  if (currentMovie && currentMovie.url) statusEl.textContent = "Playing";
+  if (onVideoFail) statusEl.textContent = "Playing";
 });
+
+client.on("error", () => {});
 
 movies.forEach(m => {
   const b = document.createElement("button");
@@ -83,32 +94,68 @@ movies.forEach(m => {
   document.getElementById("grid").appendChild(b);
 });
 
-function play(m) {
-  if (current) { current.destroy(); current = null; }
-  currentMovie = m;
-  triedBackup = false;
-  creditEl.textContent = m.credit;
+function cleanup() {
+  clearTimeout(timer);
+  onVideoFail = null;
+  if (current) { try { current.destroy(); } catch (e) {} current = null; }
+}
 
-  if (m.url) {
-    statusEl.textContent = "Loading...";
-    video.src = m.url;
+function play(m) {
+  cleanup();
+  creditEl.textContent = m.credit;
+  tryMovie(m, 0, ++token, []);
+}
+
+function tryMovie(m, i, myToken, failures) {
+  if (myToken !== token) return;
+
+  if (i >= m.sources.length) {
+    statusEl.textContent = "None of the sources worked. Details: " + failures.join(" | ");
+    return;
+  }
+
+  cleanup();
+  const s = m.sources[i];
+  const label = "source " + (i + 1) + " of " + m.sources.length;
+  const next = (why) => {
+    if (myToken !== token) return;
+    failures.push(label + ": " + why);
+    tryMovie(m, i + 1, myToken, failures);
+  };
+
+  if (s.type === "mp4") {
+    statusEl.textContent = "Loading (" + label + ")...";
+    onVideoFail = (code) => next("video error " + code);
+    video.src = s.src;
     video.load();
     video.play().catch(() => {});
     return;
   }
 
+  // torrent
+  statusEl.textContent = "Connecting to peers (" + label + ")...";
   video.removeAttribute("src");
-  statusEl.textContent = "Connecting to peers...";
-  const magnet = `magnet:?xt=urn:btih:${m.hash}&dn=${encodeURIComponent(m.title)}${trackers}`;
-  client.add(magnet, torrent => {
-    current = torrent;
-    const file = torrent.files.find(f => f.name.endsWith(".mp4"));
+  let started = false;
+
+  timer = setTimeout(() => {
+    if (!started) next("no peers after 25s");
+  }, 25000);
+
+  const t = client.add(s.src, { announce }, torrent => {
+    if (myToken !== token) return;
+    const file = torrent.files.find(f => f.name.toLowerCase().endsWith(".mp4"));
+    if (!file) { next("no mp4 inside torrent"); return; }
+    started = true;
+    clearTimeout(timer);
     file.streamTo(video);
     video.play().catch(() => {});
     torrent.on("download", () => {
-      statusEl.textContent = `${(torrent.progress * 100).toFixed(1)}% | ${(torrent.downloadSpeed / 1024).toFixed(0)} KB/s | ${torrent.numPeers} peers`;
+      statusEl.textContent = (torrent.progress * 100).toFixed(1) + "% | " +
+        (torrent.downloadSpeed / 1024).toFixed(0) + " KB/s | " + torrent.numPeers + " peers";
     });
   });
+  current = t;
+  t.on("error", err => { if (!started) next("torrent error"); });
 }
 </script>
 </body>
