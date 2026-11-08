@@ -28,7 +28,6 @@ function useCatalog() {
     if(cached){try{const c=JSON.parse(cached); if(Date.now()-c.time<12*60*1000) setData({...c.value,loading:true});}catch{}}
     (async()=>{
       try{
-        await fetch(API+'/',{signal:AbortSignal.timeout(90000)}).catch(()=>null);
         const [t,p]=await Promise.all([
           anilist(LIST_QUERY,{sort:['TRENDING_DESC'],page:1}),
           anilist(LIST_QUERY,{sort:['POPULARITY_DESC'],page:1})
@@ -92,31 +91,53 @@ function AnimeDetails(){
  const [episodeErr,setEpisodeErr]=useState('');
  useEffect(()=>{
    let alive=true;
-   setLoading(true);setEpisodeLoading(true);setErr('');setEpisodeErr('');
-   (async()=>{
-     try {
-       const detailPromise=anilist(DETAILS_QUERY,{id:Number(id)});
-       const episodePromise=(async()=>{
-         // A cold Render instance can take a while to wake. Touch the API root first.
-         await fetch(API+'/',{signal:AbortSignal.timeout(90000)}).catch(()=>null);
-         const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{signal:AbortSignal.timeout(90000),headers:{Accept:'application/json'}});
-         if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
-         return response.json();
-       })();
-       const [detail,payload]=await Promise.all([detailPromise,episodePromise]);
+   setAnime(null);
+   setLoading(true);
+   setErr('');
+   anilist(DETAILS_QUERY,{id:Number(id)})
+     .then(detail=>{
        if(!alive)return;
        if(!detail?.Media) throw new Error('AniList could not find this anime.');
        setAnime(detail.Media);
+       setLoading(false);
+     })
+     .catch(e=>{
+       if(alive){
+         setErr(e?.message||'Anime could not be loaded.');
+         setLoading(false);
+       }
+     });
+   return()=>{alive=false};
+ },[id]);
+
+ useEffect(()=>{
+   let alive=true;
+   setEpisodeData(null);
+   setEpisodes([]);
+   setProvider('');
+   setEpisodeLoading(true);
+   setEpisodeErr('');
+   (async()=>{
+     try{
+       const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{
+         signal:AbortSignal.timeout(60000),
+         headers:{Accept:'application/json'}
+       });
+       if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
+       const payload=await response.json();
+       if(!alive)return;
        const parsed=readEpisodePayload(payload,'sub');
        setEpisodeData(parsed);
        const first=parsed.names[0]||'';
        setProvider(first);
-       const list=first ? parsed.getList(parsed.providers[first], 'sub') : parsed.getList(parsed.root, 'sub');
+       const list=first ? parsed.getList(parsed.providers[first],'sub') : parsed.getList(parsed.root,'sub');
        setEpisodes(list);
        if(!list.length) setEpisodeErr('The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
-     } catch(e) {
-       if(alive) { setErr(e?.message||'Anime could not be loaded.'); setEpisodeErr(e?.message||'Could not load episodes.'); }
-     } finally { if(alive){setLoading(false);setEpisodeLoading(false);} }
+     }catch(e){
+       if(alive) setEpisodeErr(e?.message||'Could not load episodes.');
+     }finally{
+       if(alive)setEpisodeLoading(false);
+     }
    })();
    return()=>{alive=false};
  },[id]);
