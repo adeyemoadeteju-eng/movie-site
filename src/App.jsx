@@ -69,10 +69,10 @@ function readEpisodePayload(payload, audio) {
     ? Object.fromEntries(rawProviders.map((p, i) => [p.name || p.id || ('provider-' + i), p]))
     : rawProviders;
   const names = Object.keys(providers || {});
-  const getList = value => {
+  const getList = (value, audioKey = audio) => {
     if (Array.isArray(value)) return value;
     if (!value || typeof value !== 'object') return [];
-    const candidate = value[audio] ?? value[audio.toUpperCase()] ?? value.episodes?.[audio] ?? value.episodes?.[audio.toUpperCase()] ?? value.episodes;
+    const candidate = value[audioKey] ?? value[audioKey.toUpperCase()] ?? value.episodes?.[audioKey] ?? value.episodes?.[audioKey.toUpperCase()] ?? value.episodes;
     if (Array.isArray(candidate)) return candidate;
     if (candidate && typeof candidate === 'object') return Object.values(candidate).filter(x => x && typeof x === 'object');
     return [];
@@ -111,7 +111,7 @@ function AnimeDetails(){
        setEpisodeData(parsed);
        const first=parsed.names[0]||'';
        setProvider(first);
-       const list=first ? parsed.getList(parsed.providers[first]) : parsed.getList(parsed.root);
+       const list=first ? parsed.getList(parsed.providers[first], 'sub') : parsed.getList(parsed.root, 'sub');
        setEpisodes(list);
        if(!list.length) setEpisodeErr('The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
      } catch(e) {
@@ -123,7 +123,7 @@ function AnimeDetails(){
  useEffect(()=>{
    if(!episodeData || !provider)return;
    const value=episodeData.providers[provider];
-   const list=episodeData.getList(value);
+   const list=episodeData.getList(value,audio);
    setEpisodes(list);
    setEpisodeErr(list.length?'':'No '+audio+' episodes were returned by '+provider+'. Try another provider or audio option.');
  },[provider,audio,episodeData]);
