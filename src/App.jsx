@@ -62,11 +62,95 @@ function Home(){
  {popular.length>0&&<Shelf id="popular" title="MOST POPULAR" items={popular}/>}
  <footer>© ZoroClone · Discover anime powered by AniList</footer></main></>
 }
+function readEpisodePayload(payload, audio) {
+  const root = payload?.data?.data || payload?.data || payload?.result || payload || {};
+  const rawProviders = root.providers || root.sources || {};
+  const providers = Array.isArray(rawProviders)
+    ? Object.fromEntries(rawProviders.map((p, i) => [p.name || p.id || ('provider-' + i), p]))
+    : rawProviders;
+  const names = Object.keys(providers || {});
+  const getList = value => {
+    if (Array.isArray(value)) return value;
+    if (!value || typeof value !== 'object') return [];
+    const candidate = value[audio] ?? value[audio.toUpperCase()] ?? value.episodes?.[audio] ?? value.episodes?.[audio.toUpperCase()] ?? value.episodes;
+    if (Array.isArray(candidate)) return candidate;
+    if (candidate && typeof candidate === 'object') return Object.values(candidate).filter(x => x && typeof x === 'object');
+    return [];
+  };
+  return { providers, names, getList, root };
+}
 function AnimeDetails(){
- const {id}=useParams(); const [anime,setAnime]=useState(null); const [episodes,setEpisodes]=useState([]); const [provider,setProvider]=useState(''); const [providerNames,setProviderNames]=useState([]); const [audio,setAudio]=useState('sub'); const [loading,setLoading]=useState(true); const [err,setErr]=useState('');
- useEffect(()=>{let alive=true;setLoading(true);Promise.all([anilist(DETAILS_QUERY,{id:Number(id)}),fetch(API+'/anime/episodes/'+id,{signal:AbortSignal.timeout(90000)}).then(r=>{if(!r.ok)throw Error('Episode API returned '+r.status);return r.json()})]).then(([d,e])=>{if(!alive)return;setAnime(d.Media);const providers=e.providers||{};const names=Object.keys(providers);setProviderNames(names);setProvider(names[0]||'');setEpisodes(providers[names[0]]?.episodes?.sub||[]);}).catch(e=>alive&&setErr(e.message)).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[id]);
- useEffect(()=>{if(!provider)return;fetch(API+'/anime/episodes/'+id).then(r=>r.json()).then(d=>setEpisodes(d.providers?.[provider]?.episodes?.[audio]||[])).catch(()=>{})},[provider,audio,id]);
- return <><Header/><main className="detail-page">{loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<><div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}><img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div></div></div><section className="episodes"><div className="section-title"><h2>EPISODES</h2><div className="controls"><select value={provider} onChange={e=>setProvider(e.target.value)}>{providerNames.map(p=><option key={p} value={p}>{p}</option>)}</select><select value={audio} onChange={e=>setAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select></div></div>{episodes.length?episodes.map(ep=><Link key={ep.id} className="episode" to={'/watch/'+id+'/'+ep.number+'/'+audio+'/'+provider}><img src={ep.image} onError={e=>e.currentTarget.style.visibility='hidden'}/><span>EP {ep.number}</span><b>{ep.title||'Episode '+ep.number}</b><small>▶ WATCH</small></Link>):<p className="muted">No {audio} episodes found for this provider yet. Try another provider or audio option.</p>}</section></>:<div className="notice">{err||'Anime could not be loaded.'}</div>}</main></>
+ const {id}=useParams();
+ const [anime,setAnime]=useState(null);
+ const [episodeData,setEpisodeData]=useState(null);
+ const [episodes,setEpisodes]=useState([]);
+ const [provider,setProvider]=useState('');
+ const [audio,setAudio]=useState('sub');
+ const [loading,setLoading]=useState(true);
+ const [episodeLoading,setEpisodeLoading]=useState(true);
+ const [err,setErr]=useState('');
+ const [episodeErr,setEpisodeErr]=useState('');
+ useEffect(()=>{
+   let alive=true;
+   setLoading(true);setEpisodeLoading(true);setErr('');setEpisodeErr('');
+   (async()=>{
+     try {
+       const detailPromise=anilist(DETAILS_QUERY,{id:Number(id)});
+       const episodePromise=(async()=>{
+         // A cold Render instance can take a while to wake. Touch the API root first.
+         await fetch(API+'/',{signal:AbortSignal.timeout(90000)}).catch(()=>null);
+         const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{signal:AbortSignal.timeout(90000),headers:{Accept:'application/json'}});
+         if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
+         return response.json();
+       })();
+       const [detail,payload]=await Promise.all([detailPromise,episodePromise]);
+       if(!alive)return;
+       if(!detail?.Media) throw new Error('AniList could not find this anime.');
+       setAnime(detail.Media);
+       const parsed=readEpisodePayload(payload,'sub');
+       setEpisodeData(parsed);
+       const first=parsed.names[0]||'';
+       setProvider(first);
+       const list=first ? parsed.getList(parsed.providers[first]) : parsed.getList(parsed.root);
+       setEpisodes(list);
+       if(!list.length) setEpisodeErr('The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
+     } catch(e) {
+       if(alive) { setErr(e?.message||'Anime could not be loaded.'); setEpisodeErr(e?.message||'Could not load episodes.'); }
+     } finally { if(alive){setLoading(false);setEpisodeLoading(false);} }
+   })();
+   return()=>{alive=false};
+ },[id]);
+ useEffect(()=>{
+   if(!episodeData || !provider)return;
+   const value=episodeData.providers[provider];
+   const list=episodeData.getList(value);
+   setEpisodes(list);
+   setEpisodeErr(list.length?'':'No '+audio+' episodes were returned by '+provider+'. Try another provider or audio option.');
+ },[provider,audio,episodeData]);
+ return <><Header/><main className="detail-page">
+   {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
+     <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
+       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div></div>
+     </div>
+     <section className="episodes">
+       <div className="section-title"><h2>EPISODES</h2><div className="controls">
+         <select value={provider} onChange={e=>setProvider(e.target.value)} disabled={!episodeData?.names?.length}>
+           {episodeData?.names?.length ? episodeData.names.map(p=><option key={p} value={p}>{p}</option>) : <option value="">No providers</option>}
+         </select>
+         <select value={audio} onChange={e=>setAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select>
+       </div></div>
+       {episodeLoading?<div className="loading"><div className="spinner"/>Fetching episode list…</div>:episodes.length?episodes.map((ep,i)=>{
+         const number=ep.number ?? ep.episodeNumber ?? ep.sourceNumber ?? (i+1);
+         const routeProvider=provider||'';
+         return <Link key={ep.id||number||i} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/'+encodeURIComponent(routeProvider)}>
+           <img src={ep.image||ep.thumbnail||ep.snapshot||''} onError={e=>e.currentTarget.style.visibility='hidden'}/>
+           <span>EP {number}</span><b>{ep.title||ep.name||'Episode '+number}</b><small>▶ WATCH</small>
+         </Link>;
+       }):<div className="notice">{episodeErr||'No episodes are available for this selection.'}</div>}
+       {err&&<div className="notice">Anime details warning: {err}</div>}
+     </section>
+   </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
+ </main></>
 }
 function Watch(){
  const {id,episode,audio,provider}=useParams(); const [streams,setStreams]=useState([]);const [selected,setSelected]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
