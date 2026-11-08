@@ -24,6 +24,8 @@ function useCatalog() {
   const [data,setData] = useState({trending:[],popular:[],loading:true,error:''});
   useEffect(() => {
     let alive=true;
+    // Wake the free Render service in the background while the user browses.
+    fetch(API+'/',{signal:AbortSignal.timeout(15000)}).catch(()=>{});
     const cached=localStorage.getItem('zoro-catalog');
     if(cached){try{const c=JSON.parse(cached); if(Date.now()-c.time<12*60*1000) setData({...c.value,loading:true});}catch{}}
     (async()=>{
@@ -112,11 +114,26 @@ function AnimeDetails(){
 
  useEffect(()=>{
    let alive=true;
+   const cacheKey='zoro-episodes-'+id;
+   let hasCached=false;
    setEpisodeData(null);
    setEpisodes([]);
    setProvider('');
    setEpisodeLoading(true);
    setEpisodeErr('');
+   // Show a previously loaded episode list immediately while refreshing it.
+   try{
+     const saved=JSON.parse(localStorage.getItem(cacheKey)||'null');
+     if(saved?.payload && Date.now()-saved.time<12*60*60*1000){
+       const parsed=readEpisodePayload(saved.payload,'sub');
+       const first=parsed.names[0]||'';
+       setEpisodeData(parsed);
+       setProvider(first);
+       setEpisodes(first?parsed.getList(parsed.providers[first],'sub'):parsed.getList(parsed.root,'sub'));
+       setEpisodeLoading(false);
+       hasCached=true;
+     }
+   }catch{}
    (async()=>{
      try{
        const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{
@@ -126,17 +143,18 @@ function AnimeDetails(){
        if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
        const payload=await response.json();
        if(!alive)return;
+       try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),payload}));}catch{}
        const parsed=readEpisodePayload(payload,'sub');
        setEpisodeData(parsed);
        const first=parsed.names[0]||'';
        setProvider(first);
        const list=first ? parsed.getList(parsed.providers[first],'sub') : parsed.getList(parsed.root,'sub');
        setEpisodes(list);
-       if(!list.length) setEpisodeErr('The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
+       setEpisodeErr(list.length?'':'The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
      }catch(e){
-       if(alive) setEpisodeErr(e?.message||'Could not load episodes.');
+       if(alive && !hasCached) setEpisodeErr(e?.message||'Could not load episodes.');
      }finally{
-       if(alive)setEpisodeLoading(false);
+       if(alive && !hasCached)setEpisodeLoading(false);
      }
    })();
    return()=>{alive=false};
