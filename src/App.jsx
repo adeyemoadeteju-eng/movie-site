@@ -3,6 +3,7 @@ import { HashRouter, Link, Route, Routes, useNavigate, useParams } from 'react-r
 
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
 const GRAPHQL = 'https://graphql.anilist.co';
+const JIKAN = 'https://api.jikan.moe/v4';
 const TMDB_API_KEY = '0d7d64fb0d37c316134f390928a55d6f';
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
@@ -40,12 +41,26 @@ async function findTmdbIds(media) {
 const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
 
+function useKeepWarm() {
+  useEffect(() => {
+    let stopped = false;
+    const ping = () => {
+      if (!stopped && document.visibilityState === 'visible') {
+        fetch(API+'/', { method:'GET', cache:'no-store', signal:AbortSignal.timeout(12000) }).catch(()=>{});
+      }
+    };
+    ping();
+    const interval = setInterval(ping, 10 * 60 * 1000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') ping(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stopped = true; clearInterval(interval); document.removeEventListener('visibilitychange', onVisibility); };
+  }, []);
+}
+
 function useCatalog() {
   const [data,setData] = useState({trending:[],popular:[],loading:true,error:''});
   useEffect(() => {
     let alive=true;
-    // Wake the free Render service in the background while the user browses.
-    fetch(API+'/',{signal:AbortSignal.timeout(15000)}).catch(()=>{});
     const cached=localStorage.getItem('zoro-catalog');
     if(cached){try{const c=JSON.parse(cached); if(Date.now()-c.time<12*60*1000) setData({...c.value,loading:true});}catch{}}
     (async()=>{
@@ -104,6 +119,7 @@ function AnimeDetails(){
  const {id}=useParams();
  const [anime,setAnime]=useState(null);
  const [externalIds,setExternalIds]=useState(null);
+ const [malData,setMalData]=useState(null);
  const [idLookupError,setIdLookupError]=useState('');
  const [episodeData,setEpisodeData]=useState(null);
  const [episodes,setEpisodes]=useState([]);
@@ -117,6 +133,7 @@ function AnimeDetails(){
    let alive=true;
    setAnime(null);
    setExternalIds(null);
+   setMalData(null);
    setIdLookupError('');
    setLoading(true);
    setErr('');
@@ -136,6 +153,25 @@ function AnimeDetails(){
    return()=>{alive=false};
  },[id]);
 
+ useEffect(()=>{
+   if(!anime?.idMal) return;
+   let alive=true;
+   const key='zoro-jikan-'+anime.idMal;
+   const load=async()=>{
+     try{
+       const saved=JSON.parse(localStorage.getItem(key)||'null');
+       if(saved?.data && Date.now()-saved.time<24*60*60*1000){ setMalData(saved.data); return; }
+     }catch{}
+     const response=await fetch(JIKAN+'/anime/'+encodeURIComponent(anime.idMal)+'/full',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10000)});
+     if(!response.ok) throw new Error('Jikan returned HTTP '+response.status);
+     const json=await response.json();
+     if(!json?.data) throw new Error('Jikan returned no anime details');
+     try{localStorage.setItem(key,JSON.stringify({time:Date.now(),data:json.data}));}catch{}
+     if(alive)setMalData(json.data);
+   };
+   load().catch(()=>{});
+   return()=>{alive=false};
+ },[anime?.idMal]);
  useEffect(()=>{
    if(!anime) return;
    let alive=true;
@@ -201,7 +237,7 @@ function AnimeDetails(){
  return <><Header/><main className="detail-page">
    {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
      <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
-       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>TMDB: {externalIds?.tmdbId||'Looking up…'}</span><span>IMDb: {externalIds?.imdbId||'Not listed'}</span>{idLookupError&&<small>{idLookupError}</small>}</div></div>
+       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>TMDB: {externalIds?.tmdbId||'Looking up…'}</span><span>IMDb: {externalIds?.imdbId||'Not listed'}</span><span>MAL score: {malData?.score??'Loading…'}</span><span>MAL rank: {malData?.rank?'#'+malData.rank:'—'}</span><span>MAL popularity: {malData?.popularity?'#'+malData.popularity:'—'}</span>{idLookupError&&<small>{idLookupError}</small>}</div></div>
      </div>
      <section className="episodes">
        <div className="section-title"><h2>EPISODES</h2><div className="controls">
@@ -262,5 +298,5 @@ function Watch(){
  const stream=streams[selected];
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to provider… Render may need a moment to wake up.</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Anime player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:stream.type==='hls'?<video controls autoPlay src={stream.url} />:<video controls autoPlay src={stream.url}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div></>:<div className="notice">{error}<p>Try returning to the episode list and selecting another provider.</p></div>}</main></>
 }
-function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
+function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
