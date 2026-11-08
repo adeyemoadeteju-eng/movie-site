@@ -3,6 +3,7 @@ import { HashRouter, Link, Route, Routes, useNavigate, useParams } from 'react-r
 
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
 const GRAPHQL = 'https://graphql.anilist.co';
+const TMDB_API_KEY = '0d7d64fb0d37c316134f390928a55d6f';
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
 
@@ -17,6 +18,25 @@ const mediaFields = 'id idMal externalLinks { site url } title { romaji english 
 const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:24){ media(type:ANIME,sort:$sort,isAdult:false){ ${mediaFields} } } }`;
 const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
 const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
+
+async function findTmdbIds(media) {
+  const title = media?.title?.english || media?.title?.romaji;
+  if (!title) return null;
+  const params = new URLSearchParams({ api_key: TMDB_API_KEY, query: title, include_adult: 'false' });
+  if (media?.seasonYear) params.set('first_air_date_year', String(media.seasonYear));
+  const response = await fetch('https://api.themoviedb.org/3/search/tv?' + params.toString());
+  if (!response.ok) throw new Error('TMDB lookup failed (' + response.status + ')');
+  const data = await response.json();
+  const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const wanted = normalize(title);
+  const results = data.results || [];
+  const match = results.find(item => normalize(item.name) === wanted || normalize(item.original_name) === wanted) || results[0];
+  if (!match?.id) return null;
+  const idsResponse = await fetch('https://api.themoviedb.org/3/tv/' + match.id + '/external_ids?api_key=' + encodeURIComponent(TMDB_API_KEY));
+  if (!idsResponse.ok) throw new Error('TMDB external ID lookup failed (' + idsResponse.status + ')');
+  const ids = await idsResponse.json();
+  return { tmdbId: match.id, imdbId: ids.imdb_id || null, tmdbName: match.name || match.original_name || title };
+}
 const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
 
@@ -83,6 +103,8 @@ function readEpisodePayload(payload, audio) {
 function AnimeDetails(){
  const {id}=useParams();
  const [anime,setAnime]=useState(null);
+ const [externalIds,setExternalIds]=useState(null);
+ const [idLookupError,setIdLookupError]=useState('');
  const [episodeData,setEpisodeData]=useState(null);
  const [episodes,setEpisodes]=useState([]);
  const [provider,setProvider]=useState('');
@@ -94,6 +116,8 @@ function AnimeDetails(){
  useEffect(()=>{
    let alive=true;
    setAnime(null);
+   setExternalIds(null);
+   setIdLookupError('');
    setLoading(true);
    setErr('');
    anilist(DETAILS_QUERY,{id:Number(id)})
@@ -112,6 +136,14 @@ function AnimeDetails(){
    return()=>{alive=false};
  },[id]);
 
+ useEffect(()=>{
+   if(!anime) return;
+   let alive=true;
+   findTmdbIds(anime)
+     .then(ids=>{if(alive)setExternalIds(ids);})
+     .catch(e=>{if(alive)setIdLookupError(e?.message||'TMDB ID lookup unavailable.');});
+   return()=>{alive=false};
+ },[anime]);
  useEffect(()=>{
    let alive=true;
    const cacheKey='zoro-episodes-'+id;
@@ -169,7 +201,7 @@ function AnimeDetails(){
  return <><Header/><main className="detail-page">
    {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
      <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
-       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div></div>
+       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>TMDB: {externalIds?.tmdbId||'Looking up…'}</span><span>IMDb: {externalIds?.imdbId||'Not listed'}</span>{idLookupError&&<small>{idLookupError}</small>}</div></div>
      </div>
      <section className="episodes">
        <div className="section-title"><h2>EPISODES</h2><div className="controls">
