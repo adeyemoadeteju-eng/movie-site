@@ -13,7 +13,7 @@ async function anilist(query, variables = {}) {
   if (json.errors) throw new Error(json.errors[0]?.message || 'AniList error');
   return json.data;
 }
-const mediaFields = 'id title { romaji english } description(asHtml:false) coverImage { extraLarge large } bannerImage averageScore episodes seasonYear format genres status';
+const mediaFields = 'id idMal externalLinks { site url } title { romaji english } description(asHtml:false) coverImage { extraLarge large } bannerImage averageScore episodes seasonYear format genres status';
 const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:24){ media(type:ANIME,sort:$sort,isAdult:false){ ${mediaFields} } } }`;
 const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
 const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
@@ -192,9 +192,43 @@ function AnimeDetails(){
  </main></>
 }
 function Watch(){
- const {id,episode,audio,provider}=useParams(); const [streams,setStreams]=useState([]);const [selected,setSelected]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
- useEffect(()=>{let alive=true;setLoading(true);setError('');fetch(API+'/anime/extract/'+id+'?e='+episode+'&type='+audio+'&provider='+encodeURIComponent(provider||''),{signal:AbortSignal.timeout(90000)}).then(r=>{if(!r.ok)throw Error('Stream extraction failed ('+r.status+')');return r.json()}).then(d=>{if(!alive)return;setStreams(d.streams||[]);setSelected(Math.max(0,(d.streams||[]).findIndex(s=>s.isActive)));if(!(d.streams||[]).length)setError('No playable sources were returned.');}).catch(e=>alive&&setError(e.message)).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[id,episode,audio,provider]);
- const stream=streams[selected];return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to provider… Render may need a moment to wake up.</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Anime player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:stream.type==='hls'?<video controls autoPlay src={stream.url} />:<video controls autoPlay src={stream.url}/>}</div><div className="server-list"><b>SERVER</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div></>:<div className="notice">{error}<p>Try returning to the episode list and selecting another provider.</p></div>}</main></>
+ const {id,episode,audio,provider}=useParams();
+ const [streams,setStreams]=useState([]);
+ const [selected,setSelected]=useState(0);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState('');
+ useEffect(()=>{
+   let alive=true;
+   setLoading(true);
+   setError('');
+   setStreams([]);
+   (async()=>{
+     const results=await Promise.allSettled([
+       fetch(API+'/anime/extract/'+id+'?e='+episode+'&type='+audio+'&provider='+encodeURIComponent(provider||''),{signal:AbortSignal.timeout(90000)}).then(r=>{if(!r.ok)throw Error('Stream extraction failed ('+r.status+')');return r.json()}),
+       anilist(DETAILS_QUERY,{id:Number(id)})
+     ]);
+     if(!alive)return;
+     const extracted=results[0].status==='fulfilled'?(results[0].value.streams||[]):[];
+     const media=results[1].status==='fulfilled'?results[1].value?.Media:null;
+     const malId=media?.idMal;
+     const extra=[];
+     // VidSrc.me's anime route is MAL-ID based; only offer it when AniList supplies a MAL mapping.
+     if(malId){
+       extra.push({server:'VidSrc.me',type:'embed',embed:'https://vidsrcme.ru/'+encodeURIComponent(malId)+'/'+encodeURIComponent(episode)+'/'+(audio==='dub'?'dub':'sub')});
+     }
+     const combined=[...extracted,...extra];
+     setStreams(combined);
+     setSelected(Math.max(0,extracted.findIndex(s=>s.isActive)));
+     if(!combined.length){
+       const apiError=results[0].status==='rejected'?results[0].reason?.message:'';
+       setError(apiError||'No playable sources or MAL mapping were returned.');
+     }
+     setLoading(false);
+   })().catch(e=>{if(alive){setError(e?.message||'Could not load playback sources.');setLoading(false)}});
+   return()=>{alive=false};
+ },[id,episode,audio,provider]);
+ const stream=streams[selected];
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to provider… Render may need a moment to wake up.</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Anime player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:stream.type==='hls'?<video controls autoPlay src={stream.url} />:<video controls autoPlay src={stream.url}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div></>:<div className="notice">{error}<p>Try returning to the episode list and selecting another provider.</p></div>}</main></>
 }
 function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
