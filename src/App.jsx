@@ -22,19 +22,14 @@ const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:
 const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
 const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
 
-function buildEmbedFallback(malId, episode, audio) {
-  if (!EMBED_TEMPLATE || !malId) return null;
-  const raw = EMBED_TEMPLATE
-    .replaceAll('{malId}', encodeURIComponent(String(malId)))
-    .replaceAll('{episode}', encodeURIComponent(String(episode)))
-    .replaceAll('{audio}', audio === 'dub' ? 'dub' : 'sub');
-  try {
-    const url = new URL(raw);
-    if (url.protocol !== 'https:') return null;
-    return { server: EMBED_NAME, type: 'embed', embed: url.toString() };
-  } catch {
-    return null;
-  }
+function buildEmbedFallback(anilistId, episode) {
+  if (!anilistId || !episode) return null;
+  const url = new URL(
+    `https://www.vidy.st/anime/${encodeURIComponent(String(anilistId))}/${encodeURIComponent(String(episode))}`
+  );
+  url.searchParams.set('color', 'DC2626');
+  url.searchParams.set('autoplay', 'true');
+  return { server: 'Vidy', type: 'embed', embed: url.toString() };
 }
 const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
@@ -252,9 +247,8 @@ function Watch(){
      .finally(()=>{if(alive)setLoading(false);});
    return()=>{alive=false};
  },[id]);
- const malId=anime?.idMal;
- const embed=buildEmbedFallback(malId,episode,audio);
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>Set VITE_EMBED_TEMPLATE in the frontend deployment settings to an authorized HTTPS embed URL containing {'{malId}'}, {'{episode}'}, and optionally {'{audio}'}.</p></div>}</main></>;
+ const embed=buildEmbedFallback(id,episode);
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>The Vidy embed could not be loaded. Check that the player host is available and try again.</p></div>}</main></>;
 }
 function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
