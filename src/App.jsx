@@ -5,7 +5,8 @@ import { HashRouter, Link, Route, Routes, useNavigate, useParams } from 'react-r
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
 const GRAPHQL = 'https://graphql.anilist.co';
 const JIKAN = 'https://api.jikan.moe/v4';
-const TMDB_API_KEY = '0d7d64fb0d37c316134f390928a55d6f';
+const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
+const EMBED_NAME = import.meta.env.VITE_EMBED_NAME || import.meta.env.VITE_FALLBACK_EMBED_NAME || 'Embed player';
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
 
@@ -116,14 +117,10 @@ function AnimeDetails(){
  const {id}=useParams();
  const [anime,setAnime]=useState(null);
  const [malData,setMalData]=useState(null);
- const [episodeData,setEpisodeData]=useState(null);
  const [episodes,setEpisodes]=useState([]);
- const [provider,setProvider]=useState('');
  const [audio,setAudio]=useState('sub');
  const [loading,setLoading]=useState(true);
- const [episodeLoading,setEpisodeLoading]=useState(true);
  const [err,setErr]=useState('');
- const [episodeErr,setEpisodeErr]=useState('');
  useEffect(()=>{
    let alive=true;
    setAnime(null);
@@ -166,59 +163,10 @@ function AnimeDetails(){
    return()=>{alive=false};
  },[anime?.idMal]);
  useEffect(()=>{
-   let alive=true;
-   const cacheKey='zoro-episodes-'+id;
-   let hasCached=false;
-   setEpisodeData(null);
-   setEpisodes([]);
-   setProvider('');
-   setEpisodeLoading(true);
-   setEpisodeErr('');
-   // Show a previously loaded episode list immediately while refreshing it.
-   try{
-     const saved=JSON.parse(localStorage.getItem(cacheKey)||'null');
-     if(saved?.payload && Date.now()-saved.time<12*60*60*1000){
-       const parsed=readEpisodePayload(saved.payload,'sub');
-       const first=parsed.names[0]||'';
-       setEpisodeData(parsed);
-       setProvider(first);
-       setEpisodes(first?parsed.getList(parsed.providers[first],'sub'):parsed.getList(parsed.root,'sub'));
-       setEpisodeLoading(false);
-       hasCached=true;
-     }
-   }catch{}
-   (async()=>{
-     try{
-       const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{
-         signal:AbortSignal.timeout(30000),
-         headers:{Accept:'application/json'}
-       });
-       if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
-       const payload=await response.json();
-       if(!alive)return;
-       try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),payload}));}catch{}
-       const parsed=readEpisodePayload(payload,'sub');
-       setEpisodeData(parsed);
-       const first=parsed.names[0]||'';
-       setProvider(first);
-       const list=first ? parsed.getList(parsed.providers[first],'sub') : parsed.getList(parsed.root,'sub');
-       setEpisodes(list);
-       setEpisodeErr(list.length?'':'The episode API responded, but no sub episodes were found. Try Dub or another provider. Providers returned: '+(parsed.names.join(', ')||'none')+'.');
-     }catch(e){
-       if(alive && !hasCached) setEpisodeErr(e?.message||'Could not load episodes.');
-     }finally{
-       if(alive && !hasCached)setEpisodeLoading(false);
-     }
-   })();
-   return()=>{alive=false};
- },[id]);
- useEffect(()=>{
-   if(!episodeData || !provider)return;
-   const value=episodeData.providers[provider];
-   const list=episodeData.getList(value,audio);
-   setEpisodes(list);
-   setEpisodeErr(list.length?'':'No '+audio+' episodes were returned by '+provider+'. Try another provider or audio option.');
- },[provider,audio,episodeData]);
+   if(!anime) { setEpisodes([]); return; }
+   const count=Number(anime.episodes)||0;
+   setEpisodes(Array.from({length:Math.min(count,500)},(_,i)=>({number:i+1,title:'Episode '+(i+1)})));
+ },[anime?.id,anime?.episodes]);
  return <><Header/><main className="detail-page">
    {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
      <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
@@ -226,19 +174,14 @@ function AnimeDetails(){
      </div>
      <section className="episodes">
        <div className="section-title"><h2>EPISODES</h2><div className="controls">
-         <select value={provider} onChange={e=>setProvider(e.target.value)} disabled={!episodeData?.names?.length}>
-           {episodeData?.names?.length ? episodeData.names.map(p=><option key={p} value={p}>{p}</option>) : <option value="">No providers</option>}
-         </select>
          <select value={audio} onChange={e=>setAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select>
        </div></div>
-       {episodeLoading?<div className="loading"><div className="spinner"/>Fetching episode list…</div>:episodes.length?episodes.map((ep,i)=>{
-         const number=ep.number ?? ep.episodeNumber ?? ep.sourceNumber ?? (i+1);
-         const routeProvider=provider||'';
-         return <Link key={ep.id||number||i} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/'+encodeURIComponent(routeProvider)}>
-           <img src={ep.image||ep.thumbnail||ep.snapshot||''} onError={e=>e.currentTarget.style.visibility='hidden'}/>
-           <span>EP {number}</span><b>{ep.title||ep.name||'Episode '+number}</b><small>▶ WATCH</small>
+       {episodes.length?episodes.map((ep,i)=>{
+         const number=ep.number;
+         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')}>
+           <span>EP {number}</span><b>Episode {number}</b><small>▶ OPEN EMBED</small>
          </Link>;
-       }):<div className="notice">{episodeErr||'No episodes are available for this selection.'}</div>}
+       }):<div className="notice">AniList has not provided an episode count for this title.</div>}
        {err&&<div className="notice">Anime details warning: {err}</div>}
      </section>
    </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
@@ -295,62 +238,23 @@ function StreamPlayer({stream,onError}) {
 }
 
 function Watch(){
- const {id,episode,audio,provider}=useParams();
- const [streams,setStreams]=useState([]);
- const [selected,setSelected]=useState(0);
+ const {id,episode,audio}=useParams();
+ const [anime,setAnime]=useState(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
- const [usingFallback,setUsingFallback]=useState(false);
-
- async function resolveEmbedFallback() {
-   if (!EMBED_TEMPLATE) return null;
-   try {
-     const detail=await anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(8000));
-     return buildEmbedFallback(detail?.Media?.idMal,episode,audio);
-   } catch { return null; }
- }
-
+ const [failed,setFailed]=useState(false);
  useEffect(()=>{
    let alive=true;
-   setLoading(true); setError(''); setStreams([]); setSelected(0); setUsingFallback(false);
-   (async()=>{
-     try {
-       const response=await fetch(API+'/anime/extract/'+encodeURIComponent(id)+'?e='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)+'&provider='+encodeURIComponent(provider||''),{
-         signal:AbortSignal.timeout(35000), headers:{Accept:'application/json'}
-       });
-       if(!response.ok) throw new Error('Stream service returned HTTP '+response.status);
-       const payload=await response.json();
-       const extracted=Array.isArray(payload?.streams)?payload.streams:[];
-       if(!alive)return;
-       if(extracted.length) {
-         setStreams(extracted);
-         const active=extracted.findIndex(s=>s?.isActive);
-         setSelected(active>=0?active:0);
-         return;
-       }
-       const fallback=await resolveEmbedFallback();
-       if(!alive)return;
-       if(fallback) { setStreams([fallback]); setUsingFallback(true); }
-       else setError('No playable source was returned. '+(EMBED_TEMPLATE?'The configured backup embed could not be resolved.':'No backup embed is configured.'));
-     } catch(e) {
-       if(!alive)return;
-       const fallback=await resolveEmbedFallback();
-       if(!alive)return;
-       if(fallback) { setStreams([fallback]); setUsingFallback(true); }
-       else setError(e?.name==='TimeoutError'?'Stream request timed out. No backup embed is configured or available.':(e?.message||'Could not load playback sources.'));
-     } finally { if(alive)setLoading(false); }
-   })();
+   setLoading(true);setError('');setFailed(false);
+   anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
+     .then(data=>{if(alive)setAnime(data?.Media||null);})
+     .catch(e=>{if(alive)setError(e?.message||'Could not load anime details.');})
+     .finally(()=>{if(alive)setLoading(false);});
    return()=>{alive=false};
- },[id,episode,audio,provider]);
-
- const stream=streams[selected];
- const onPlayerError=async()=>{
-   if(usingFallback)return;
-   const fallback=await resolveEmbedFallback();
-   if(fallback) { setStreams([fallback]); setSelected(0); setUsingFallback(true); setError(''); }
-   else setError('This video source could not play. Try another available source.');
- };
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to playback source…</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Video player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:<StreamPlayer stream={stream} onError={onPlayerError}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div>{usingFallback&&<p className="muted">Using your configured backup embed.</p>}</>:<div className="notice">{error}<p>Try returning to the episode list and selecting another available source.</p></div>}</main></>
+ },[id]);
+ const malId=anime?.idMal;
+ const embed=buildEmbedFallback(malId,episode,audio);
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>Set VITE_EMBED_TEMPLATE in the frontend deployment settings to an authorized HTTPS embed URL containing {'{malId}'}, {'{episode}'}, and optionally {'{audio}'}.</p></div>}</main></>;
 }
 function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
