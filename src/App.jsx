@@ -31,7 +31,7 @@ function buildEmbedFallback(malId, episode, audio) {
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:') return null;
-    return { server: EMBED_NAME, type: 'embed', embed: url.toString() };
+    return { name: EMBED_NAME, type: 'embed', url: url.toString() };
   } catch {
     return null;
   }
@@ -239,7 +239,7 @@ function Watch(){
    setSources(ownEmbed?[ownEmbed]:[]);setActive(0);setError('');setLoading(!ownEmbed);setMatchCandidates([]);setTitle(titleFromUrl);
    (async()=>{
      try{
-       const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(45000)});
+       const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(60000)});
        const payload=await response.json().catch(()=>({}));
        if(!response.ok){
          const detail=payload?.detail;
@@ -270,7 +270,7 @@ function Watch(){
  };
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><div className="section-title"><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1><div className="controls"><label htmlFor="watch-audio">AUDIO</label><select id="watch-audio" value={audio==='dub'?'dub':'sub'} onChange={e=>changeAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select></div></div>
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
- :source?<><div className="player"><iframe key={playerUrl} title={source.name||'Episode player'} src={playerUrl} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'} · Audio preference: {audio==='dub'?'Dub':'Sub'}. If the source supports this preference, it will use the selected audio mode; otherwise use the player's own audio controls.</div></>
+ :source?<><div className="player"><iframe key={playerUrl} title={source.name||'Episode player'} src={playerUrl} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'}. The configured backup embed receives the selected Sub/Dub setting; other providers may require changing audio in their own player controls.</div></>
  :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<><p>TMDB candidates to verify:</p><ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul></>}</div>}
  </main></>;
 }
