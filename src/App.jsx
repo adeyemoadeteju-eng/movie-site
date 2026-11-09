@@ -238,18 +238,18 @@ function Watch(){
       const anime=data?.Media;
       if(!anime) throw new Error('Anime details could not be found.');
       if(alive)setTitle(titleOf(anime));
-      const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(18000)});
+      const response=await fetch(`${API_BASE}/anime/extract/${encodeURIComponent(id)}?e=${encodeURIComponent(episode)}&type=${encodeURIComponent(audio)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(45000)});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok){
         const detail=payload?.detail;
-        if(response.status===409 && detail && typeof detail==='object'){
-          if(alive)setMatchCandidates(detail.candidates||[]);
-          throw new Error(detail.message||'TMDB match needs confirmation.');
-        }
-        throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
+        throw new Error(typeof detail==='string'?detail:'No playable source was returned for this episode.');
       }
-      const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
-      if(!available.length)throw new Error('No embed sources were returned.');
+      const available=(payload.streams||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url)).map((s,i)=>({
+        ...s,
+        name:s.server||s.provider||payload.provider||('Source '+(i+1)),
+        url:s.embed||s.url
+      }));
+      if(!available.length)throw new Error('The anime API found no playable stream for this episode.');
       if(alive)setSources(available);
     })
     .catch(e=>{if(alive)setError(e?.message||'Playback could not be loaded.');})
@@ -265,7 +265,7 @@ function Watch(){
  const source=sources[active];
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1>
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
- :source?<><div className="player"><iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="notice">Playing with {source.name||'embed source'}. If it does not start, the player will try another source automatically.</div></>
+ :source?<><div className="player">{source.type==='embed'?<iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />:<StreamPlayer key={source.url} stream={source} onError={e=>setError(e?.message||'The selected stream could not be played.')} />}</div><div className="notice">Playing with {source.name||'anime provider'}. If playback does not start, try another available episode or provider.</div></>
  :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul>}</div>}
  </main></>;
 }
