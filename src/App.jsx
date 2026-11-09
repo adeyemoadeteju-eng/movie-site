@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
@@ -243,6 +244,56 @@ function AnimeDetails(){
    </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
  </main></>
 }
+function StreamPlayer({stream,onError}) {
+ const videoRef=useRef(null);
+ useEffect(()=>{
+   const video=videoRef.current;
+   if(!video || !stream?.url)return;
+   const isHls=stream.type==='hls'||/\\.m3u8(?:$|[?#])/i.test(stream.url);
+   let hls=null;
+   let recoveredNetwork=false;
+   let recoveredMedia=false;
+   if(isHls && Hls.isSupported()) {
+     hls=new Hls({
+       enableWorker:true,
+       lowLatencyMode:false,
+       backBufferLength:60,
+       maxBufferLength:30,
+       maxMaxBufferLength:60,
+       manifestLoadingTimeOut:15000,
+       fragLoadingTimeOut:20000,
+       manifestLoadingMaxRetry:2,
+       fragLoadingMaxRetry:2
+     });
+     hls.attachMedia(video);
+     hls.on(Hls.Events.MEDIA_ATTACHED,()=>hls.loadSource(stream.url));
+     hls.on(Hls.Events.ERROR,(_,data)=>{
+       if(!data.fatal)return;
+       if(data.type===Hls.ErrorTypes.NETWORK_ERROR && !recoveredNetwork) {
+         recoveredNetwork=true;
+         hls.startLoad();
+       } else if(data.type===Hls.ErrorTypes.MEDIA_ERROR && !recoveredMedia) {
+         recoveredMedia=true;
+         hls.recoverMediaError();
+       } else {
+         onError?.(data);
+       }
+     });
+   } else {
+     video.src=stream.url;
+     if(isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+       onError?.(new Error('This browser cannot play HLS streams.'));
+     }
+   }
+   return()=>{
+     if(hls)hls.destroy();
+     video.removeAttribute('src');
+     video.load();
+   };
+ },[stream?.url,stream?.type]);
+ return <video ref={videoRef} controls autoPlay playsInline onError={onError}/>;
+}
+
 function Watch(){
  const {id,episode,audio,provider}=useParams();
  const [streams,setStreams]=useState([]);
@@ -299,7 +350,7 @@ function Watch(){
    if(fallback) { setStreams([fallback]); setSelected(0); setUsingFallback(true); setError(''); }
    else setError('This video source could not play. Try another available source.');
  };
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to playback source…</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Video player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:<video controls autoPlay src={stream.url} onError={onPlayerError}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div>{usingFallback&&<p className="muted">Using your configured backup embed.</p>}</>:<div className="notice">{error}<p>Try returning to the episode list and selecting another available source.</p></div>}</main></>
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to playback source…</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Video player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:<StreamPlayer stream={stream} onError={onPlayerError}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div>{usingFallback&&<p className="muted">Using your configured backup embed.</p>}</>:<div className="notice">{error}<p>Try returning to the episode list and selecting another available source.</p></div>}</main></>
 }
 function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
