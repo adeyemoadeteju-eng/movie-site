@@ -223,6 +223,7 @@ function StreamPlayer({stream,onError}) {
 
 function Watch(){
  const {id,episode,audio}=useParams();
+ const navigate=useNavigate();
  const [sources,setSources]=useState([]);
  const [active,setActive]=useState(0);
  const [loading,setLoading]=useState(true);
@@ -256,9 +257,21 @@ function Watch(){
    return()=>{alive=false;};
  },[id,episode]);
  const source=sources[active];
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1>
+ const playerUrl=useMemo(()=>{
+   if(!source?.url)return '';
+   try{
+     const url=new URL(source.url);
+     url.searchParams.set('audio',audio==='dub'?'dub':'sub');
+     return url.toString();
+   }catch{return source.url;}
+ },[source?.url,audio]);
+ const changeAudio=next=>{
+   if(next===audio)return;
+   navigate('/watch/'+encodeURIComponent(id)+'/'+encodeURIComponent(episode)+'/'+next+'/embed',{replace:true});
+ };
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><div className="section-title"><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1><div className="controls"><label htmlFor="watch-audio">AUDIO</label><select id="watch-audio" value={audio==='dub'?'dub':'sub'} onChange={e=>changeAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select></div></div>
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
- :source?<><div className="player"><iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'}. If it does not load, choose another source above.</div></>
+ :source?<><div className="player"><iframe key={playerUrl} title={source.name||'Episode player'} src={playerUrl} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'} · Audio preference: {audio==='dub'?'Dub':'Sub'}. If the source supports this preference, it will use the selected audio mode; otherwise use the player's own audio controls.</div></>
  :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<><p>TMDB candidates to verify:</p><ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul></>}</div>}
  </main></>;
 }
