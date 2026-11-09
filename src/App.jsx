@@ -9,6 +9,11 @@ const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || '';
 const EMBED_NAME = import.meta.env.VITE_EMBED_NAME || 'Embed player';
 const FALLBACK_EMBED_TEMPLATE = import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
 const FALLBACK_EMBED_NAME = import.meta.env.VITE_FALLBACK_EMBED_NAME || 'Backup player';
+const SUPEREMBED_TEMPLATE = import.meta.env.VITE_SUPEREMBED_TEMPLATE || '';
+const SUPEREMBED_NAME = import.meta.env.VITE_SUPEREMBED_NAME || 'SuperEmbed';
+const ARCHIVE_TEMPLATE = import.meta.env.VITE_ARCHIVE_TEMPLATE || '';
+const ARCHIVE_NAME = import.meta.env.VITE_ARCHIVE_NAME || 'Archive.org';
+const TWOEMBED_DOMAIN = (import.meta.env.VITE_2EMBED_DOMAIN || 'https://www.2embed.cc').replace(/\\/$/, '');
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
 
@@ -24,13 +29,25 @@ const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:
 const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
 const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
 
-function buildTemplateEmbed(template, server, malId, episode, audio) {
-  if (!template || !malId || !episode) return null;
-  if (!template.includes('{malId}') || !template.includes('{episode}')) return null;
-  const raw = template
-    .replaceAll('{malId}', encodeURIComponent(String(malId)))
-    .replaceAll('{episode}', encodeURIComponent(String(episode)))
-    .replaceAll('{audio}', audio === 'dub' ? 'dub' : 'sub');
+function externalIds(links = []) {
+  const ids = { imdbId: '', tmdbId: '' };
+  for (const item of links) {
+    const url = String(item?.url || '');
+    const site = String(item?.site || '').toLowerCase();
+    const imdb = url.match(/\\b(tt\\d{7,})\\b/i);
+    const tmdb = url.match(/(?:themoviedb\\.org\\/(?:anime|tv|movie)\\/|tmdb(?:id)?[=/])([0-9]+)/i);
+    if (imdb && !ids.imdbId) ids.imdbId = imdb[1];
+    if (tmdb && !ids.tmdbId) ids.tmdbId = tmdb[1];
+    if (site.includes('imdb') && imdb && !ids.imdbId) ids.imdbId = imdb[1];
+    if (site.includes('tmdb') && tmdb && !ids.tmdbId) ids.tmdbId = tmdb[1];
+  }
+  return ids;
+}
+
+function buildTemplateEmbed(template, server, values, required = ['episode']) {
+  if (!template || required.some(key => !values[key])) return null;
+  const raw = template.replace(/\\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\\}/g,
+    (_, key) => encodeURIComponent(String(values[key] ?? '')));
   try {
     const url = new URL(raw);
     if (url.protocol !== 'https:') return null;
@@ -40,11 +57,30 @@ function buildTemplateEmbed(template, server, malId, episode, audio) {
   }
 }
 
-function buildPlayerSources(anilistId, malId, episode, audio) {
+function buildPlayerSources(values) {
+  const ids = externalIds(values.externalLinks);
+  const tokens = {
+    anilistId: values.anilistId,
+    malId: values.malId,
+    imdbId: ids.imdbId,
+    tmdbId: ids.tmdbId,
+    id: ids.imdbId || ids.tmdbId,
+    season: values.season || 1,
+    episode: values.episode,
+    audio: values.audio === 'dub' ? 'dub' : 'sub'
+  };
   const candidates = [
-    buildTemplateEmbed(VIDSRC_TEMPLATE, 'VidSrc', malId, episode, audio),
-    buildTemplateEmbed(EMBED_TEMPLATE, EMBED_NAME, malId, episode, audio),
-    buildTemplateEmbed(FALLBACK_EMBED_TEMPLATE, FALLBACK_EMBED_NAME, malId, episode, audio)
+    buildTemplateEmbed(VIDSRC_TEMPLATE, 'VidSrc', tokens),
+    (tokens.id ? {
+      server: '2Embed',
+      type: 'embed',
+      embed: TWOEMBED_DOMAIN + '/embedtv/' + encodeURIComponent(tokens.id) + '&s=' +
+        encodeURIComponent(String(tokens.season)) + '&e=' + encodeURIComponent(String(tokens.episode))
+    } : null),
+    buildTemplateEmbed(EMBED_TEMPLATE, EMBED_NAME, tokens),
+    buildTemplateEmbed(SUPEREMBED_TEMPLATE, SUPEREMBED_NAME, tokens),
+    buildTemplateEmbed(FALLBACK_EMBED_TEMPLATE, FALLBACK_EMBED_NAME, tokens),
+    buildTemplateEmbed(ARCHIVE_TEMPLATE, ARCHIVE_NAME, tokens, ['episode'])
   ].filter(Boolean);
   const seen = new Set();
   return candidates.filter(source => {
@@ -179,7 +215,7 @@ function AnimeDetails(){
        </div></div>
        {episodes.length?episodes.map((ep,i)=>{
          const number=ep.number;
-         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&title='+encodeURIComponent(titleOf(anime))}>
+         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&imdb='+encodeURIComponent(externalIds(anime.externalLinks).imdbId)+'&tmdb='+encodeURIComponent(externalIds(anime.externalLinks).tmdbId)+'&season=1&title='+encodeURIComponent(titleOf(anime))}>
            <span>EP {number}</span><b>Episode {number}</b><small>▶ OPEN EMBED</small>
          </Link>;
        }):<div className="notice">AniList has not provided an episode count for this title.</div>}
