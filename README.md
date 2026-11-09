@@ -4,7 +4,7 @@
 - AniList GraphQL powers search, trending, popular, anime details, episode counts and the AniList-to-MAL ID mapping.
 - Episode numbers are built locally from AniList metadata, so opening an anime page does not wait for the Kuhi episode extractor.
 - Jikan supplies MyAnimeList score, rank and popularity in the background; it does not block the episode list or player.
-- Playback loads the configured VidSrc iframe directly. Additional HTTPS embed templates and the existing Vidy route are available as backups.
+- Playback loads the configured VidSrc iframe directly. Optional additional HTTPS embed templates can be configured as backups. No Vidy player fallback is included.
 - Kuhi is not on the episode-list or playback critical path. It is only pinged occasionally to reduce cold starts for any other API tools that still use it.
 
 ## Configure the VidSrc player

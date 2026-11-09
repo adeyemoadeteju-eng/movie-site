@@ -40,22 +40,11 @@ function buildTemplateEmbed(template, server, malId, episode, audio) {
   }
 }
 
-function buildEmbedFallback(anilistId, episode) {
-  if (!anilistId || !episode) return null;
-  const url = new URL(
-    `https://www.vidy.st/anime/${encodeURIComponent(String(anilistId))}/${encodeURIComponent(String(episode))}`
-  );
-  url.searchParams.set('color', 'DC2626');
-  url.searchParams.set('autoplay', 'true');
-  return { server: 'Vidy (backup)', type: 'embed', embed: url.toString() };
-}
-
 function buildPlayerSources(anilistId, malId, episode, audio) {
   const candidates = [
     buildTemplateEmbed(VIDSRC_TEMPLATE, 'VidSrc', malId, episode, audio),
     buildTemplateEmbed(EMBED_TEMPLATE, EMBED_NAME, malId, episode, audio),
-    buildTemplateEmbed(FALLBACK_EMBED_TEMPLATE, FALLBACK_EMBED_NAME, malId, episode, audio),
-    buildEmbedFallback(anilistId, episode)
+    buildTemplateEmbed(FALLBACK_EMBED_TEMPLATE, FALLBACK_EMBED_NAME, malId, episode, audio)
   ].filter(Boolean);
   const seen = new Set();
   return candidates.filter(source => {
@@ -253,7 +242,7 @@ function Watch(){
        <a className="muted" href={active.embed} target="_blank" rel="noreferrer">Open player separately ↗</a>
      </div>
    </>:<div className="notice">
-     No embed source is configured for this episode. Add your HTTPS VidSrc URL template as the GitHub Actions variable VITE_VIDSRC_TEMPLATE. It must contain {'{malId}'} and {'{episode}'}; {'{audio}'} is optional. The episode list will still load without it.
+     No VidSrc embed source is configured for this episode. Add your HTTPS VidSrc URL template as the GitHub Actions variable VITE_VIDSRC_TEMPLATE. It must contain {'{malId}'} and {'{episode}'}; {'{audio}'} is optional. The episode list will still load without it.
    </div>}
  </main></>;
 }
