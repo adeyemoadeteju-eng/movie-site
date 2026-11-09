@@ -8,8 +8,8 @@ const TMDB_API_KEY = '0d7d64fb0d37c316134f390928a55d6f';
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
 
-async function anilist(query, variables = {}) {
-  const res = await fetch(GRAPHQL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({query,variables}) });
+async function anilist(query, variables = {}, signal = AbortSignal.timeout(15000)) {
+  const res = await fetch(GRAPHQL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({query,variables}), signal });
   if (!res.ok) throw new Error('AniList request failed (' + res.status + ')');
   const json = await res.json();
   if (json.errors) throw new Error(json.errors[0]?.message || 'AniList error');
@@ -20,23 +20,19 @@ const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:
 const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
 const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
 
-async function findTmdbIds(media) {
-  const title = media?.title?.english || media?.title?.romaji;
-  if (!title) return null;
-  const params = new URLSearchParams({ api_key: TMDB_API_KEY, query: title, include_adult: 'false' });
-  if (media?.seasonYear) params.set('first_air_date_year', String(media.seasonYear));
-  const response = await fetch('https://api.themoviedb.org/3/search/tv?' + params.toString());
-  if (!response.ok) throw new Error('TMDB lookup failed (' + response.status + ')');
-  const data = await response.json();
-  const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const wanted = normalize(title);
-  const results = data.results || [];
-  const match = results.find(item => normalize(item.name) === wanted || normalize(item.original_name) === wanted) || results[0];
-  if (!match?.id) return null;
-  const idsResponse = await fetch('https://api.themoviedb.org/3/tv/' + match.id + '/external_ids?api_key=' + encodeURIComponent(TMDB_API_KEY));
-  if (!idsResponse.ok) throw new Error('TMDB external ID lookup failed (' + idsResponse.status + ')');
-  const ids = await idsResponse.json();
-  return { tmdbId: match.id, imdbId: ids.imdb_id || null, tmdbName: match.name || match.original_name || title };
+function buildEmbedFallback(malId, episode, audio) {
+  if (!EMBED_TEMPLATE || !malId) return null;
+  const raw = EMBED_TEMPLATE
+    .replaceAll('{malId}', encodeURIComponent(String(malId)))
+    .replaceAll('{episode}', encodeURIComponent(String(episode)))
+    .replaceAll('{audio}', audio === 'dub' ? 'dub' : 'sub');
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:') return null;
+    return { server: EMBED_NAME, type: 'embed', embed: url.toString() };
+  } catch {
+    return null;
+  }
 }
 const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
@@ -118,9 +114,7 @@ function readEpisodePayload(payload, audio) {
 function AnimeDetails(){
  const {id}=useParams();
  const [anime,setAnime]=useState(null);
- const [externalIds,setExternalIds]=useState(null);
  const [malData,setMalData]=useState(null);
- const [idLookupError,setIdLookupError]=useState('');
  const [episodeData,setEpisodeData]=useState(null);
  const [episodes,setEpisodes]=useState([]);
  const [provider,setProvider]=useState('');
@@ -132,9 +126,7 @@ function AnimeDetails(){
  useEffect(()=>{
    let alive=true;
    setAnime(null);
-   setExternalIds(null);
    setMalData(null);
-   setIdLookupError('');
    setLoading(true);
    setErr('');
    anilist(DETAILS_QUERY,{id:Number(id)})
@@ -173,14 +165,6 @@ function AnimeDetails(){
    return()=>{alive=false};
  },[anime?.idMal]);
  useEffect(()=>{
-   if(!anime) return;
-   let alive=true;
-   findTmdbIds(anime)
-     .then(ids=>{if(alive)setExternalIds(ids);})
-     .catch(e=>{if(alive)setIdLookupError(e?.message||'TMDB ID lookup unavailable.');});
-   return()=>{alive=false};
- },[anime]);
- useEffect(()=>{
    let alive=true;
    const cacheKey='zoro-episodes-'+id;
    let hasCached=false;
@@ -205,7 +189,7 @@ function AnimeDetails(){
    (async()=>{
      try{
        const response=await fetch(API+'/anime/episodes/'+encodeURIComponent(id),{
-         signal:AbortSignal.timeout(60000),
+         signal:AbortSignal.timeout(30000),
          headers:{Accept:'application/json'}
        });
        if(!response.ok) throw new Error('Episode service returned HTTP '+response.status);
@@ -237,7 +221,7 @@ function AnimeDetails(){
  return <><Header/><main className="detail-page">
    {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
      <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
-       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>TMDB: {externalIds?.tmdbId||'Looking up…'}</span><span>IMDb: {externalIds?.imdbId||'Not listed'}</span><span>MAL score: {malData?.score??'Loading…'}</span><span>MAL rank: {malData?.rank?'#'+malData.rank:'—'}</span><span>MAL popularity: {malData?.popularity?'#'+malData.popularity:'—'}</span>{idLookupError&&<small>{idLookupError}</small>}</div></div>
+       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>MAL score: {malData?.score??'Loading…'}</span><span>MAL rank: {malData?.rank?'#'+malData.rank:'—'}</span><span>MAL popularity: {malData?.popularity?'#'+malData.popularity:'—'}</span></div></div>
      </div>
      <section className="episodes">
        <div className="section-title"><h2>EPISODES</h2><div className="controls">
@@ -265,38 +249,57 @@ function Watch(){
  const [selected,setSelected]=useState(0);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
+ const [usingFallback,setUsingFallback]=useState(false);
+
+ async function resolveEmbedFallback() {
+   if (!EMBED_TEMPLATE) return null;
+   try {
+     const detail=await anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(8000));
+     return buildEmbedFallback(detail?.Media?.idMal,episode,audio);
+   } catch { return null; }
+ }
+
  useEffect(()=>{
    let alive=true;
-   setLoading(true);
-   setError('');
-   setStreams([]);
+   setLoading(true); setError(''); setStreams([]); setSelected(0); setUsingFallback(false);
    (async()=>{
-     const results=await Promise.allSettled([
-       fetch(API+'/anime/extract/'+id+'?e='+episode+'&type='+audio+'&provider='+encodeURIComponent(provider||''),{signal:AbortSignal.timeout(90000)}).then(r=>{if(!r.ok)throw Error('Stream extraction failed ('+r.status+')');return r.json()}),
-       anilist(DETAILS_QUERY,{id:Number(id)})
-     ]);
-     if(!alive)return;
-     const extracted=results[0].status==='fulfilled'?(results[0].value.streams||[]):[];
-     const media=results[1].status==='fulfilled'?results[1].value?.Media:null;
-     const malId=media?.idMal;
-     const extra=[];
-     // VidSrc.me's anime route is MAL-ID based; only offer it when AniList supplies a MAL mapping.
-     if(malId){
-       extra.push({server:'VidSrc.me',type:'embed',embed:'https://vidsrcme.ru/'+encodeURIComponent(malId)+'/'+encodeURIComponent(episode)+'/'+(audio==='dub'?'dub':'sub')});
-     }
-     const combined=[...extracted,...extra];
-     setStreams(combined);
-     setSelected(Math.max(0,extracted.findIndex(s=>s.isActive)));
-     if(!combined.length){
-       const apiError=results[0].status==='rejected'?results[0].reason?.message:'';
-       setError(apiError||'No playable sources or MAL mapping were returned.');
-     }
-     setLoading(false);
-   })().catch(e=>{if(alive){setError(e?.message||'Could not load playback sources.');setLoading(false)}});
+     try {
+       const response=await fetch(API+'/anime/extract/'+encodeURIComponent(id)+'?e='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)+'&provider='+encodeURIComponent(provider||''),{
+         signal:AbortSignal.timeout(35000), headers:{Accept:'application/json'}
+       });
+       if(!response.ok) throw new Error('Stream service returned HTTP '+response.status);
+       const payload=await response.json();
+       const extracted=Array.isArray(payload?.streams)?payload.streams:[];
+       if(!alive)return;
+       if(extracted.length) {
+         setStreams(extracted);
+         const active=extracted.findIndex(s=>s?.isActive);
+         setSelected(active>=0?active:0);
+         return;
+       }
+       const fallback=await resolveEmbedFallback();
+       if(!alive)return;
+       if(fallback) { setStreams([fallback]); setUsingFallback(true); }
+       else setError('No playable source was returned. '+(EMBED_TEMPLATE?'The configured backup embed could not be resolved.':'No backup embed is configured.'));
+     } catch(e) {
+       if(!alive)return;
+       const fallback=await resolveEmbedFallback();
+       if(!alive)return;
+       if(fallback) { setStreams([fallback]); setUsingFallback(true); }
+       else setError(e?.name==='TimeoutError'?'Stream request timed out. No backup embed is configured or available.':(e?.message||'Could not load playback sources.'));
+     } finally { if(alive)setLoading(false); }
+   })();
    return()=>{alive=false};
  },[id,episode,audio,provider]);
+
  const stream=streams[selected];
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to provider… Render may need a moment to wake up.</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Anime player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:stream.type==='hls'?<video controls autoPlay src={stream.url} />:<video controls autoPlay src={stream.url}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div></>:<div className="notice">{error}<p>Try returning to the episode list and selecting another provider.</p></div>}</main></>
+ const onPlayerError=async()=>{
+   if(usingFallback)return;
+   const fallback=await resolveEmbedFallback();
+   if(fallback) { setStreams([fallback]); setSelected(0); setUsingFallback(true); setError(''); }
+   else setError('This video source could not play. Try another available source.');
+ };
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Connecting to playback source…</div>:stream?<><div className="player">{stream.type==='embed'||stream.embed?<iframe title="Video player" src={stream.embed||stream.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade"/>:<video controls autoPlay src={stream.url} onError={onPlayerError}/>}</div><div className="server-list"><b>SOURCE</b>{streams.map((s,i)=><button className={i===selected?'selected':''} onClick={()=>setSelected(i)} key={i}>{s.server||'Server '+(i+1)}{s.isActive?' • ACTIVE':''}</button>)}</div>{usingFallback&&<p className="muted">Using your configured backup embed.</p>}</>:<div className="notice">{error}<p>Try returning to the episode list and selecting another available source.</p></div>}</main></>
 }
 function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
