@@ -13,7 +13,7 @@ const SUPEREMBED_TEMPLATE = import.meta.env.VITE_SUPEREMBED_TEMPLATE || '';
 const SUPEREMBED_NAME = import.meta.env.VITE_SUPEREMBED_NAME || 'SuperEmbed';
 const ARCHIVE_TEMPLATE = import.meta.env.VITE_ARCHIVE_TEMPLATE || '';
 const ARCHIVE_NAME = import.meta.env.VITE_ARCHIVE_NAME || 'Archive.org';
-const TWOEMBED_DOMAIN = (import.meta.env.VITE_2EMBED_DOMAIN || 'https://www.2embed.cc').replace(/\\/$/, '');
+const TWOEMBED_DOMAIN = (import.meta.env.VITE_2EMBED_DOMAIN || 'https://www.2embed.cc').replace(/\/$/, '');
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
 
