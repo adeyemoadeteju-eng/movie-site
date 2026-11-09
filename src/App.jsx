@@ -162,7 +162,7 @@ function AnimeDetails(){
        </div></div>
        {episodes.length?episodes.map((ep,i)=>{
          const number=ep.number;
-         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')}>
+         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&title='+encodeURIComponent(titleOf(anime))}>
            <span>EP {number}</span><b>Episode {number}</b><small>▶ OPEN EMBED</small>
          </Link>;
        }):<div className="notice">AniList has not provided an episode count for this title.</div>}
@@ -226,40 +226,41 @@ function Watch(){
  const navigate=useNavigate();
  const [searchParams]=useSearchParams();
  const malId=searchParams.get('mal')||'';
+ const titleFromUrl=searchParams.get('title')||'Episode';
  const [sources,setSources]=useState([]);
  const [active,setActive]=useState(0);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
- const [title,setTitle]=useState('Episode');
+ const [title,setTitle]=useState(titleFromUrl);
  const [matchCandidates,setMatchCandidates]=useState([]);
  const ownEmbed=useMemo(()=>buildEmbedFallback(malId,episode,audio),[malId,episode,audio]);
  useEffect(()=>{
    let alive=true;
-   setSources(ownEmbed?[ownEmbed]:[]);setActive(0);setError('');setLoading(!ownEmbed);setMatchCandidates([]);
-   anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
-    .then(async data=>{
-      const anime=data?.Media;
-      if(!anime) throw new Error('Anime details could not be found.');
-      if(alive)setTitle(titleOf(anime));
-      const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(18000)});
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok){
-        const detail=payload?.detail;
-        if(response.status===409 && detail && typeof detail==='object'){
-          if(alive)setMatchCandidates(detail.candidates||[]);
-          throw new Error(detail.message||'TMDB match needs confirmation.');
-        }
-        throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
-      }
-      const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
-      const combined=[...(ownEmbed?[ownEmbed]:[]),...available];
-      if(!combined.length)throw new Error('No embed sources were returned and no backup embed is configured.');
-      if(alive)setSources(combined);
-    })
-    .catch(e=>{if(alive&&!ownEmbed)setError(e?.message||'Playback could not be loaded.');})
-    .finally(()=>{if(alive)setLoading(false);});
+   setSources(ownEmbed?[ownEmbed]:[]);setActive(0);setError('');setLoading(!ownEmbed);setMatchCandidates([]);setTitle(titleFromUrl);
+   (async()=>{
+     try{
+       const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(45000)});
+       const payload=await response.json().catch(()=>({}));
+       if(!response.ok){
+         const detail=payload?.detail;
+         if(response.status===409 && detail && typeof detail==='object'){
+           if(alive)setMatchCandidates(detail.candidates||[]);
+           throw new Error(detail.message||'TMDB match needs confirmation.');
+         }
+         throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
+       }
+       const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
+       const combined=[...(ownEmbed?[ownEmbed]:[]),...available];
+       if(!combined.length)throw new Error('No embed sources were returned and no backup embed is configured.');
+       if(alive)setSources(combined);
+     }catch(e){
+       if(alive&&!ownEmbed)setError(e?.message||'Playback could not be loaded.');
+     }finally{
+       if(alive)setLoading(false);
+     }
+   })();
    return()=>{alive=false;};
- },[id,episode,audio,malId,ownEmbed]);
+ },[id,episode,audio,malId,ownEmbed,titleFromUrl]);
  const source=sources[active];
  const playerUrl=source?.url||'';
  const changeAudio=next=>{
