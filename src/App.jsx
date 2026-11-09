@@ -64,9 +64,9 @@ function buildPlayerSources(values) {
   const tokens = {
     anilistId: values.anilistId,
     malId: values.malId,
-    imdbId: ids.imdbId,
-    tmdbId: ids.tmdbId,
-    id: ids.imdbId || ids.tmdbId,
+    imdbId: values.imdbId || ids.imdbId,
+    tmdbId: values.tmdbId || ids.tmdbId,
+    id: values.imdbId || ids.imdbId || values.tmdbId || ids.tmdbId,
     season: values.season || 1,
     episode: values.episode,
     audio: values.audio === 'dub' ? 'dub' : 'sub'
@@ -231,11 +231,14 @@ function Watch(){
  const [searchParams]=useSearchParams();
  const malId=searchParams.get('mal')||'';
  const displayTitle=searchParams.get('title')||'Episode';
+ const imdbId=searchParams.get('imdb')||'';
+ const tmdbId=searchParams.get('tmdb')||'';
+ const season=searchParams.get('season')||'1';
  const [selected,setSelected]=useState(0);
  const [frameLoading,setFrameLoading]=useState(true);
  const [frameError,setFrameError]=useState(false);
  const [frameVersion,setFrameVersion]=useState(0);
- const players=buildPlayerSources(id,malId,episode,audio);
+ const players=buildPlayerSources({anilistId:id,malId,imdbId,tmdbId,season,episode,audio});
  const active=players[selected]||players[0]||null;
 
  useEffect(()=>{
