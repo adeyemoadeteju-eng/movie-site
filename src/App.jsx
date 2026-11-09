@@ -229,7 +229,6 @@ function Watch(){
  const [error,setError]=useState('');
  const [title,setTitle]=useState('Episode');
  const [matchCandidates,setMatchCandidates]=useState([]);
- const switchTimer=useRef(null);
  useEffect(()=>{
    let alive=true;
    setSources([]);setActive(0);setError('');setLoading(true);setMatchCandidates([]);
@@ -254,19 +253,13 @@ function Watch(){
     })
     .catch(e=>{if(alive)setError(e?.message||'Playback could not be loaded.');})
     .finally(()=>{if(alive)setLoading(false);});
-   return()=>{alive=false;if(switchTimer.current)clearTimeout(switchTimer.current);};
+   return()=>{alive=false;};
  },[id,episode]);
- useEffect(()=>{
-   if(switchTimer.current)clearTimeout(switchTimer.current);
-   if(!sources.length||active>=sources.length-1)return;
-   switchTimer.current=setTimeout(()=>setActive(current=>Math.min(current+1,sources.length-1)),25000);
-   return()=>{if(switchTimer.current)clearTimeout(switchTimer.current);};
- },[sources,active]);
  const source=sources[active];
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1>
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
- :source?<><div className="player"><iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="notice">Playing with {source.name||'embed source'}. If it does not start, the player will try another source automatically.</div></>
- :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul>}</div>}
+ :source?<><div className="player"><iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'}. If it does not load, choose another source above.</div></>
+ :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<><p>TMDB candidates to verify:</p><ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul></>}</div>}
  </main></>;
 }
 function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
