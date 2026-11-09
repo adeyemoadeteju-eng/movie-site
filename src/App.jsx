@@ -222,51 +222,83 @@ function StreamPlayer({stream,onError}) {
 }
 
 function Watch(){
- const {id,episode,audio}=useParams();
+ const {id,episode,audio,provider}=useParams();
+ const navigate=useNavigate();
+ const [searchParams]=useSearchParams();
+ const malId=searchParams.get('mal')||'';
  const [sources,setSources]=useState([]);
  const [active,setActive]=useState(0);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
  const [title,setTitle]=useState('Episode');
- const [matchCandidates,setMatchCandidates]=useState([]);
- const switchTimer=useRef(null);
+ const [audioChoice,setAudioChoice]=useState(audio==='dub'?'dub':'sub');
+ const [playerChoice,setPlayerChoice]=useState('auto');
  useEffect(()=>{
    let alive=true;
-   setSources([]);setActive(0);setError('');setLoading(true);setMatchCandidates([]);
+   const fallback=buildEmbedFallback(malId,episode,audioChoice);
+   const initial=fallback?[{...fallback,name:fallback.server||'Instant embed',url:fallback.embed,instant:true}]:[];
+   setSources(initial);
+   setActive(0);
+   setError('');
+   setLoading(true);
+   setAudioChoice(audio==='dub'?'dub':'sub');
+   setPlayerChoice('auto');
+   // Fetch the anime stream immediately; title metadata loads separately so it
+   // cannot delay the first available player.
+   fetch(`${API_BASE}/anime/extract/${encodeURIComponent(id)}?e=${encodeURIComponent(episode)}&type=${encodeURIComponent(audio)}`,{
+     headers:{Accept:'application/json'},
+     signal:AbortSignal.timeout(45000)
+   }).then(async response=>{
+     const payload=await response.json().catch(()=>({}));
+     if(!response.ok){
+       const detail=payload?.detail;
+       throw new Error(typeof detail==='string'?detail:'No playable source was returned for this episode.');
+     }
+     const available=(payload.streams||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url)).map((s,i)=>({
+       ...s,
+       name:s.server||s.provider||payload.provider||('Source '+(i+1)),
+       url:s.type==='embed'?(s.embed||s.url):s.url
+     }));
+     if(!available.length)throw new Error('The anime API found no playable stream for this episode.');
+     if(alive){
+       setSources(current=>{
+         const instant=current.filter(s=>s.instant);
+         return [...available,...instant];
+       });
+       setActive(0);
+     }
+   }).catch(e=>{
+     if(alive)setError(e?.message||'Playback could not be loaded.');
+   }).finally(()=>{
+     if(alive)setLoading(false);
+   });
    anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
-    .then(async data=>{
-      const anime=data?.Media;
-      if(!anime) throw new Error('Anime details could not be found.');
-      if(alive)setTitle(titleOf(anime));
-      const response=await fetch(`${API_BASE}/anime/extract/${encodeURIComponent(id)}?e=${encodeURIComponent(episode)}&type=${encodeURIComponent(audio)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(45000)});
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok){
-        const detail=payload?.detail;
-        throw new Error(typeof detail==='string'?detail:'No playable source was returned for this episode.');
-      }
-      const available=(payload.streams||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url)).map((s,i)=>({
-        ...s,
-        name:s.server||s.provider||payload.provider||('Source '+(i+1)),
-        url:s.embed||s.url
-      }));
-      if(!available.length)throw new Error('The anime API found no playable stream for this episode.');
-      if(alive)setSources(available);
-    })
-    .catch(e=>{if(alive)setError(e?.message||'Playback could not be loaded.');})
-    .finally(()=>{if(alive)setLoading(false);});
-   return()=>{alive=false;if(switchTimer.current)clearTimeout(switchTimer.current);};
- },[id,episode]);
- useEffect(()=>{
-   if(switchTimer.current)clearTimeout(switchTimer.current);
-   if(!sources.length||active>=sources.length-1)return;
-   switchTimer.current=setTimeout(()=>setActive(current=>Math.min(current+1,sources.length-1)),25000);
-   return()=>{if(switchTimer.current)clearTimeout(switchTimer.current);};
- },[sources,active]);
+     .then(data=>{if(alive&&data?.Media)setTitle(titleOf(data.Media));})
+     .catch(()=>{});
+   return()=>{alive=false;};
+ },[id,episode,audio,malId]);
+ const changeAudio=value=>{
+   setAudioChoice(value);
+   navigate(`/watch/${id}/${episode}/${value}/${provider||'auto'}?mal=${encodeURIComponent(malId)}`);
+ };
+ const choosePlayer=value=>{
+   setPlayerChoice(value);
+   const index=Number(value);
+   if(Number.isInteger(index)&&sources[index])setActive(index);
+ };
  const source=sources[active];
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1>
- {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
- :source?<><div className="player">{source.type==='embed'?<iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />:<StreamPlayer key={source.url} stream={source} onError={e=>setError(e?.message||'The selected stream could not be played.')} />}</div><div className="notice">Playing with {source.name||'anime provider'}. If playback does not start, try another available episode or provider.</div></>
- :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul>}</div>}
+ const playableSources=sources;
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audioChoice.toUpperCase()}</small></h1>
+ <div className="controls" style={{display:'flex',gap:'12px',alignItems:'center',flexWrap:'wrap',margin:'12px 0'}}>
+   <label>Audio <select value={audioChoice} onChange={e=>changeAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select></label>
+   <label>Player <select value={playerChoice==='auto'?String(active):playerChoice} onChange={e=>choosePlayer(e.target.value)}>
+     {playableSources.map((s,i)=><option key={s.name+'-'+i} value={String(i)}>{s.name||'Player '+(i+1)}{s.instant?' · instant fallback':''}</option>)}
+   </select></label>
+ </div>
+ {source?<><div className="player">{source.type==='embed'?<iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />:<StreamPlayer key={source.url} stream={source} onError={e=>setError(e?.message||'The selected stream could not be played.')} />}</div><div className="notice">{loading?'Loading more player options… ':''}Playing with {source.name||'anime provider'}. Choose another player above if needed.</div></>
+ :loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
+ :<div className="notice">{error||'No playback source is available.'}</div>}
+ {error&&source&&<div className="notice">The anime stream could not load: {error}. You can try the instant fallback player if it is listed above.</div>}
  </main></>;
 }
 function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
