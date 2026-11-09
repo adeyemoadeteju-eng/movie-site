@@ -46,6 +46,8 @@ function externalIds(links = []) {
 
 function buildTemplateEmbed(template, server, values, required = ['episode']) {
   if (!template || required.some(key => !values[key])) return null;
+  const tokens = [...template.matchAll(/\\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\\}/g)].map(match => match[1]);
+  if (tokens.some(key => !values[key])) return null;
   const raw = template.replace(/\\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\\}/g,
     (_, key) => encodeURIComponent(String(values[key] ?? '')));
   try {
