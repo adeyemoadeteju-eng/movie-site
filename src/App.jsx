@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { HashRouter, Link, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { HashRouter, Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
 const GRAPHQL = 'https://graphql.anilist.co';
@@ -239,20 +239,28 @@ function StreamPlayer({stream,onError}) {
 
 function Watch(){
  const {id,episode,audio}=useParams();
+ const [searchParams]=useSearchParams();
+ const routeMalId=searchParams.get('mal');
  const [anime,setAnime]=useState(null);
- const [loading,setLoading]=useState(true);
+ const [loading,setLoading]=useState(!routeMalId);
  const [error,setError]=useState('');
  const [failed,setFailed]=useState(false);
  useEffect(()=>{
    let alive=true;
-   setLoading(true);setError('');setFailed(false);
+   setFailed(false);
+   if(routeMalId) {
+     setLoading(false);
+     setError('');
+     return()=>{alive=false};
+   }
+   setLoading(true);setError('');
    anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
      .then(data=>{if(alive)setAnime(data?.Media||null);})
      .catch(e=>{if(alive)setError(e?.message||'Could not load anime details.');})
      .finally(()=>{if(alive)setLoading(false);});
    return()=>{alive=false};
- },[id]);
- const malId=anime?.idMal;
+ },[id,routeMalId]);
+ const malId=routeMalId||anime?.idMal;
  const embed=buildEmbedFallback(malId,episode,audio);
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>Set VITE_EMBED_TEMPLATE in the frontend deployment settings to an authorized HTTPS embed URL containing {'{malId}'}, {'{episode}'}, and optionally {'{audio}'}.</p></div>}</main></>;
 }
