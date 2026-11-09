@@ -224,15 +224,18 @@ function StreamPlayer({stream,onError}) {
 function Watch(){
  const {id,episode,audio}=useParams();
  const navigate=useNavigate();
+ const [searchParams]=useSearchParams();
+ const malId=searchParams.get('mal')||'';
  const [sources,setSources]=useState([]);
  const [active,setActive]=useState(0);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
  const [title,setTitle]=useState('Episode');
  const [matchCandidates,setMatchCandidates]=useState([]);
+ const ownEmbed=useMemo(()=>buildEmbedFallback(malId,episode,audio),[malId,episode,audio]);
  useEffect(()=>{
    let alive=true;
-   setSources([]);setActive(0);setError('');setLoading(true);setMatchCandidates([]);
+   setSources(ownEmbed?[ownEmbed]:[]);setActive(0);setError('');setLoading(!ownEmbed);setMatchCandidates([]);
    anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
     .then(async data=>{
       const anime=data?.Media;
@@ -249,25 +252,20 @@ function Watch(){
         throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
       }
       const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
-      if(!available.length)throw new Error('No embed sources were returned.');
-      if(alive)setSources(available);
+      const combined=[...(ownEmbed?[ownEmbed]:[]),...available];
+      if(!combined.length)throw new Error('No embed sources were returned and no backup embed is configured.');
+      if(alive)setSources(combined);
     })
-    .catch(e=>{if(alive)setError(e?.message||'Playback could not be loaded.');})
+    .catch(e=>{if(alive&&!ownEmbed)setError(e?.message||'Playback could not be loaded.');})
     .finally(()=>{if(alive)setLoading(false);});
    return()=>{alive=false;};
- },[id,episode]);
+ },[id,episode,audio,malId,ownEmbed]);
  const source=sources[active];
- const playerUrl=useMemo(()=>{
-   if(!source?.url)return '';
-   try{
-     const url=new URL(source.url);
-     url.searchParams.set('audio',audio==='dub'?'dub':'sub');
-     return url.toString();
-   }catch{return source.url;}
- },[source?.url,audio]);
+ const playerUrl=source?.url||'';
  const changeAudio=next=>{
    if(next===audio)return;
-   navigate('/watch/'+encodeURIComponent(id)+'/'+encodeURIComponent(episode)+'/'+next+'/embed',{replace:true});
+   const query=searchParams.toString();
+   navigate('/watch/'+encodeURIComponent(id)+'/'+encodeURIComponent(episode)+'/'+next+'/embed'+(query?'?'+query:''),{replace:true});
  };
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><div className="section-title"><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1><div className="controls"><label htmlFor="watch-audio">AUDIO</label><select id="watch-audio" value={audio==='dub'?'dub':'sub'} onChange={e=>changeAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select></div></div>
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
