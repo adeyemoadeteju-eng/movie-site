@@ -34,21 +34,21 @@ function externalIds(links = []) {
   for (const item of links) {
     const url = String(item?.url || '');
     const site = String(item?.site || '').toLowerCase();
-    const imdb = url.match(/\\b(tt\\d{7,})\\b/i);
-    const tmdb = url.match(/(?:themoviedb\\.org\\/(?:anime|tv|movie)\\/|tmdb(?:id)?[=/])([0-9]+)/i);
+    const imdb = url.match(/\b(tt\d{7,})\b/i);
+    const tmdb = url.match(/(?:themoviedb\.org\/(?:anime|tv|movie)\/|tmdb(?:id)?[=/])([0-9]+)/i);
     if (imdb && !ids.imdbId) ids.imdbId = imdb[1];
     if (tmdb && !ids.tmdbId) ids.tmdbId = tmdb[1];
-    if (site.includes('imdb') && /^tt\\d{7,}$/i.test(url) && !ids.imdbId) ids.imdbId = url;
-    if (site.includes('tmdb') && /^\\d+$/.test(url) && !ids.tmdbId) ids.tmdbId = url;
+    if (site.includes('imdb') && /^tt\d{7,}$/i.test(url) && !ids.imdbId) ids.imdbId = url;
+    if (site.includes('tmdb') && /^\d+$/.test(url) && !ids.tmdbId) ids.tmdbId = url;
   }
   return ids;
 }
 
 function buildTemplateEmbed(template, server, values, required = ['episode']) {
   if (!template || required.some(key => !values[key])) return null;
-  const tokens = [...template.matchAll(/\\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\\}/g)].map(match => match[1]);
+  const tokens = [...template.matchAll(/\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\}/g)].map(match => match[1]);
   if (tokens.some(key => !values[key])) return null;
-  const raw = template.replace(/\\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\\}/g,
+  const raw = template.replace(/\{(anilistId|malId|imdbId|tmdbId|id|season|episode|audio)\}/g,
     (_, key) => encodeURIComponent(String(values[key] ?? '')));
   try {
     const url = new URL(raw);
