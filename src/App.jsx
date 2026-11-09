@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Hls from 'hls.js';
+import React, { useEffect, useState } from 'react';
 import { HashRouter, Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
@@ -126,23 +125,6 @@ function Home(){
  {popular.length>0&&<Shelf id="popular" title="MOST POPULAR" items={popular}/>}
  <footer>© ZoroClone · Discover anime powered by AniList</footer></main></>
 }
-function readEpisodePayload(payload, audio) {
-  const root = payload?.data?.data || payload?.data || payload?.result || payload || {};
-  const rawProviders = root.providers || root.sources || {};
-  const providers = Array.isArray(rawProviders)
-    ? Object.fromEntries(rawProviders.map((p, i) => [p.name || p.id || ('provider-' + i), p]))
-    : rawProviders;
-  const names = Object.keys(providers || {});
-  const getList = (value, audioKey = audio) => {
-    if (Array.isArray(value)) return value;
-    if (!value || typeof value !== 'object') return [];
-    const candidate = value[audioKey] ?? value[audioKey.toUpperCase()] ?? value.episodes?.[audioKey] ?? value.episodes?.[audioKey.toUpperCase()] ?? value.episodes;
-    if (Array.isArray(candidate)) return candidate;
-    if (candidate && typeof candidate === 'object') return Object.values(candidate).filter(x => x && typeof x === 'object');
-    return [];
-  };
-  return { providers, names, getList, root };
-}
 function AnimeDetails(){
  const {id}=useParams();
  const [anime,setAnime]=useState(null);
@@ -208,7 +190,7 @@ function AnimeDetails(){
        </div></div>
        {episodes.length?episodes.map((ep,i)=>{
          const number=ep.number;
-         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')}>
+         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&title='+encodeURIComponent(titleOf(anime))}>
            <span>EP {number}</span><b>Episode {number}</b><small>▶ OPEN EMBED</small>
          </Link>;
        }):<div className="notice">AniList has not provided an episode count for this title.</div>}
@@ -217,85 +199,15 @@ function AnimeDetails(){
    </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
  </main></>
 }
-function StreamPlayer({stream,onError}) {
- const videoRef=useRef(null);
- useEffect(()=>{
-   const video=videoRef.current;
-   if(!video || !stream?.url)return;
-   const isHls=stream.type==='hls'||/\\.m3u8(?:$|[?#])/i.test(stream.url);
-   let hls=null;
-   let recoveredNetwork=false;
-   let recoveredMedia=false;
-   if(isHls && Hls.isSupported()) {
-     hls=new Hls({
-       enableWorker:true,
-       lowLatencyMode:false,
-       backBufferLength:60,
-       maxBufferLength:30,
-       maxMaxBufferLength:60,
-       manifestLoadingTimeOut:15000,
-       fragLoadingTimeOut:20000,
-       manifestLoadingMaxRetry:2,
-       fragLoadingMaxRetry:2
-     });
-     hls.attachMedia(video);
-     hls.on(Hls.Events.MEDIA_ATTACHED,()=>hls.loadSource(stream.url));
-     hls.on(Hls.Events.ERROR,(_,data)=>{
-       if(!data.fatal)return;
-       if(data.type===Hls.ErrorTypes.NETWORK_ERROR && !recoveredNetwork) {
-         recoveredNetwork=true;
-         hls.startLoad();
-       } else if(data.type===Hls.ErrorTypes.MEDIA_ERROR && !recoveredMedia) {
-         recoveredMedia=true;
-         hls.recoverMediaError();
-       } else {
-         onError?.(data);
-       }
-     });
-   } else {
-     video.src=stream.url;
-     if(isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
-       onError?.(new Error('This browser cannot play HLS streams.'));
-     }
-   }
-   return()=>{
-     if(hls)hls.destroy();
-     video.removeAttribute('src');
-     video.load();
-   };
- },[stream?.url,stream?.type]);
- return <video ref={videoRef} controls autoPlay playsInline onError={onError}/>;
-}
-
 function Watch(){
  const {id,episode,audio}=useParams();
  const [searchParams]=useSearchParams();
- const malFromUrl=searchParams.get('mal')||'';
- const [anime,setAnime]=useState(null);
+ const malId=searchParams.get('mal')||'';
+ const displayTitle=searchParams.get('title')||'Episode';
  const [selected,setSelected]=useState(0);
  const [frameLoading,setFrameLoading]=useState(true);
  const [frameError,setFrameError]=useState(false);
-
- // Load the title in the background. Playback does not wait for this request.
- useEffect(()=>{
-   let alive=true;
-   const cacheKey='zoro-anime-'+id;
-   try {
-     const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
-     if(cached?.data?.id===Number(id)) setAnime(cached.data);
-   } catch {}
-   anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(8000))
-     .then(data=>{
-       const media=data?.Media||null;
-       if(!alive||!media)return;
-       setAnime(media);
-       try { localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),data:media})); } catch {}
-     })
-     .catch(()=>{});
-   return()=>{alive=false};
- },[id]);
-
- const malId=malFromUrl||anime?.idMal||'';
+ const [frameVersion,setFrameVersion]=useState(0);
  const players=buildPlayerSources(id,malId,episode,audio);
  const active=players[selected]||players[0]||null;
 
@@ -303,7 +215,8 @@ function Watch(){
    setSelected(0);
    setFrameLoading(true);
    setFrameError(false);
- },[id,episode,audio,malFromUrl]);
+   setFrameVersion(v=>v+1);
+ },[id,episode,audio,malId]);
 
  const choosePlayer=index=>{
    setSelected(index);
@@ -311,13 +224,19 @@ function Watch(){
    setFrameError(false);
  };
 
+ const reloadPlayer=()=>{
+   setFrameLoading(true);
+   setFrameError(false);
+   setFrameVersion(v=>v+1);
+ };
+
  return <><Header/><main className="watch-page">
    <Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link>
-   <h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>
+   <h1>{displayTitle} · Episode {episode} <small>{audio.toUpperCase()}</small></h1>
    {active?<>
      {frameLoading&&<div className="player-message"><div className="spinner"/>Opening {active.server} player…</div>}
      <div className="player">
-       <iframe key={active.embed} title={active.server+' episode player'} src={active.embed}
+       <iframe key={active.embed+'-'+frameVersion} title={active.server+' episode player'} src={active.embed}
          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
          allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
          onLoad={()=>{setFrameLoading(false);setFrameError(false);}}
@@ -330,9 +249,9 @@ function Watch(){
        </button>)}
      </div>}
      {frameError&&<div className="notice">This player reported a loading error. Try another source above or reload the current player.</div>}
-     <div className="server-list"><button type="button" onClick={()=>{setFrameLoading(true);setFrameError(false);setSelected(selected);}}>
-       Reload player
-     </button><a className="muted" href={active.embed} target="_blank" rel="noreferrer">Open player separately ↗</a></div>
+     <div className="server-list"><button type="button" onClick={reloadPlayer}>Reload player</button>
+       <a className="muted" href={active.embed} target="_blank" rel="noreferrer">Open player separately ↗</a>
+     </div>
    </>:<div className="notice">
      No embed source is configured for this episode. Add your HTTPS VidSrc URL template as the GitHub Actions variable VITE_VIDSRC_TEMPLATE. It must contain {'{malId}'} and {'{episode}'}; {'{audio}'} is optional. The episode list will still load without it.
    </div>}
