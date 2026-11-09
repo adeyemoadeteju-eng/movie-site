@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/$/, '');
 const GRAPHQL = 'https://graphql.anilist.co';
 const JIKAN = 'https://api.jikan.moe/v4';
 const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
@@ -38,22 +37,6 @@ function buildEmbedFallback(malId, episode, audio) {
 }
 const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
-
-function useKeepWarm() {
-  useEffect(() => {
-    let stopped = false;
-    const ping = () => {
-      if (!stopped && document.visibilityState === 'visible') {
-        fetch(API+'/', { method:'GET', cache:'no-store', signal:AbortSignal.timeout(12000) }).catch(()=>{});
-      }
-    };
-    ping();
-    const interval = setInterval(ping, 10 * 60 * 1000);
-    const onVisibility = () => { if (document.visibilityState === 'visible') ping(); };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => { stopped = true; clearInterval(interval); document.removeEventListener('visibilitychange', onVisibility); };
-  }, []);
-}
 
 function useCatalog() {
   const [data,setData] = useState({trending:[],popular:[],loading:true,error:''});
@@ -264,5 +247,5 @@ function Watch(){
  const embed=buildEmbedFallback(malId,episode,audio);
  return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>Set VITE_EMBED_TEMPLATE in the frontend deployment settings to an authorized HTTPS embed URL containing {'{malId}'}, {'{episode}'}, and optionally {'{audio}'}.</p></div>}</main></>;
 }
-function App(){useKeepWarm();return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
+function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
