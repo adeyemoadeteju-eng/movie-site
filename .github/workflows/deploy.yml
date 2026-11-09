@@ -26,6 +26,8 @@ jobs:
         env:
           VITE_EMBED_TEMPLATE: ${{ vars.VITE_EMBED_TEMPLATE }}
           VITE_EMBED_NAME: ${{ vars.VITE_EMBED_NAME }}
+          VITE_FALLBACK_EMBED_TEMPLATE: ${{ vars.VITE_FALLBACK_EMBED_TEMPLATE }}
+          VITE_FALLBACK_EMBED_NAME: ${{ vars.VITE_FALLBACK_EMBED_NAME }}
         run: npm run build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
