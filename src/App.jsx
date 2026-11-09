@@ -3,6 +3,7 @@ import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 const GRAPHQL = 'https://graphql.anilist.co';
+const API_BASE = import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com';
 const JIKAN = 'https://api.jikan.moe/v4';
 const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
 const EMBED_NAME = import.meta.env.VITE_EMBED_NAME || import.meta.env.VITE_FALLBACK_EMBED_NAME || 'Embed player';
@@ -222,30 +223,51 @@ function StreamPlayer({stream,onError}) {
 
 function Watch(){
  const {id,episode,audio}=useParams();
- const [searchParams]=useSearchParams();
- const routeMalId=searchParams.get('mal');
- const [anime,setAnime]=useState(null);
- const [loading,setLoading]=useState(!routeMalId);
+ const [sources,setSources]=useState([]);
+ const [active,setActive]=useState(0);
+ const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
- const [failed,setFailed]=useState(false);
+ const [title,setTitle]=useState('Episode');
+ const [matchCandidates,setMatchCandidates]=useState([]);
+ const switchTimer=useRef(null);
  useEffect(()=>{
    let alive=true;
-   setFailed(false);
-   if(routeMalId) {
-     setLoading(false);
-     setError('');
-     return()=>{alive=false};
-   }
-   setLoading(true);setError('');
+   setSources([]);setActive(0);setError('');setLoading(true);setMatchCandidates([]);
    anilist(DETAILS_QUERY,{id:Number(id)},AbortSignal.timeout(10000))
-     .then(data=>{if(alive)setAnime(data?.Media||null);})
-     .catch(e=>{if(alive)setError(e?.message||'Could not load anime details.');})
-     .finally(()=>{if(alive)setLoading(false);});
-   return()=>{alive=false};
- },[id,routeMalId]);
- const malId=routeMalId||anime?.idMal;
- const embed=buildEmbedFallback(malId,episode,audio);
- return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{anime?titleOf(anime):'Episode'} {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="player-message"><div className="spinner"/>Preparing embed player…</div>:embed&&!failed?<div className="player"><iframe title="Episode player" src={embed.embed} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onError={()=>setFailed(true)}/></div>:<div className="notice">{failed?'The embed provider could not be loaded.':'Embed playback is not configured yet.'} {error&&<p>{error}</p>}<p>Set VITE_EMBED_TEMPLATE in the frontend deployment settings to an authorized HTTPS embed URL containing {'{malId}'}, {'{episode}'}, and optionally {'{audio}'}.</p></div>}</main></>;
+    .then(async data=>{
+      const anime=data?.Media;
+      if(!anime) throw new Error('Anime details could not be found.');
+      if(alive)setTitle(titleOf(anime));
+      const response=await fetch(`${API_BASE}/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(18000)});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok){
+        const detail=payload?.detail;
+        if(response.status===409 && detail && typeof detail==='object'){
+          if(alive)setMatchCandidates(detail.candidates||[]);
+          throw new Error(detail.message||'TMDB match needs confirmation.');
+        }
+        throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
+      }
+      const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
+      if(!available.length)throw new Error('No embed sources were returned.');
+      if(alive)setSources(available);
+    })
+    .catch(e=>{if(alive)setError(e?.message||'Playback could not be loaded.');})
+    .finally(()=>{if(alive)setLoading(false);});
+   return()=>{alive=false;if(switchTimer.current)clearTimeout(switchTimer.current);};
+ },[id,episode]);
+ useEffect(()=>{
+   if(switchTimer.current)clearTimeout(switchTimer.current);
+   if(!sources.length||active>=sources.length-1)return;
+   switchTimer.current=setTimeout(()=>setActive(current=>Math.min(current+1,sources.length-1)),25000);
+   return()=>{if(switchTimer.current)clearTimeout(switchTimer.current);};
+ },[sources,active]);
+ const source=sources[active];
+ return <><Header/><main className="watch-page"><Link to={'/anime/'+id} className="back">‹ BACK TO ANIME</Link><h1>{title} {episode} <small>{audio.toUpperCase()}</small></h1>
+ {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
+ :source?<><div className="player"><iframe key={source.url} title={source.name||'Episode player'} src={source.url} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" onLoad={()=>{if(switchTimer.current)clearTimeout(switchTimer.current);}}/></div><div className="notice">Playing with {source.name||'embed source'}. If it does not start, the player will try another source automatically.</div></>
+ :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul>}</div>}
+ </main></>;
 }
 function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
 export default App;
