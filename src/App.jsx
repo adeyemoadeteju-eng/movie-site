@@ -38,8 +38,8 @@ function externalIds(links = []) {
     const tmdb = url.match(/(?:themoviedb\\.org\\/(?:anime|tv|movie)\\/|tmdb(?:id)?[=/])([0-9]+)/i);
     if (imdb && !ids.imdbId) ids.imdbId = imdb[1];
     if (tmdb && !ids.tmdbId) ids.tmdbId = tmdb[1];
-    if (site.includes('imdb') && imdb && !ids.imdbId) ids.imdbId = imdb[1];
-    if (site.includes('tmdb') && tmdb && !ids.tmdbId) ids.tmdbId = tmdb[1];
+    if (site.includes('imdb') && /^tt\\d{7,}$/i.test(url) && !ids.imdbId) ids.imdbId = url;
+    if (site.includes('tmdb') && /^\\d+$/.test(url) && !ids.tmdbId) ids.tmdbId = url;
   }
   return ids;
 }
