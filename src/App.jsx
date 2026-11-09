@@ -283,7 +283,7 @@ function Watch(){
        <a className="muted" href={active.embed} target="_blank" rel="noreferrer">Open player separately ↗</a>
      </div>
    </>:<div className="notice">
-     No VidSrc embed source is configured for this episode. Add your HTTPS VidSrc URL template as the GitHub Actions variable VITE_VIDSRC_TEMPLATE. It must contain {'{malId}'} and {'{episode}'}; {'{audio}'} is optional. The episode list will still load without it.
+     No playable source was found for this episode. VidSrc, SuperEmbed, and Archive.org need their URL templates configured in the GitHub Actions repository variables. 2Embed needs an IMDb or TMDB ID for this title; AniList does not provide one for every anime.
    </div>}
  </main></>;
 }
