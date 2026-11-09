@@ -5,6 +5,7 @@ const API = (import.meta.env.VITE_KUHI_API_URL || 'https://anime-api-jqpp.onrend
 const GRAPHQL = 'https://graphql.anilist.co';
 const JIKAN = 'https://api.jikan.moe/v4';
 const VIDSRC_TEMPLATE = import.meta.env.VITE_VIDSRC_TEMPLATE || '';
+const VIDSRC_DOMAIN = (import.meta.env.VITE_VIDSRC_DOMAIN || 'https://vidsrc.mov').replace(/\\/$/, '');
 const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || '';
 const EMBED_NAME = import.meta.env.VITE_EMBED_NAME || 'Embed player';
 const FALLBACK_EMBED_TEMPLATE = import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
@@ -72,7 +73,14 @@ function buildPlayerSources(values) {
     audio: values.audio === 'dub' ? 'dub' : 'sub'
   };
   const candidates = [
-    buildTemplateEmbed(VIDSRC_TEMPLATE, 'VidSrc', tokens),
+    (VIDSRC_TEMPLATE
+      ? buildTemplateEmbed(VIDSRC_TEMPLATE, 'VidSrc', tokens, ['id', 'episode'])
+      : (tokens.id && tokens.episode
+        ? { server: 'VidSrc', type: 'embed', embed: VIDSRC_DOMAIN + '/embed/tv/' +
+            encodeURIComponent(String(tokens.id)) + '/' +
+            encodeURIComponent(String(tokens.season)) + '/' +
+            encodeURIComponent(String(tokens.episode)) }
+        : null)),
     (tokens.id ? {
       server: '2Embed',
       type: 'embed',
