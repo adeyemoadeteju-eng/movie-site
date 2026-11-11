@@ -16,10 +16,13 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   await page.goto(pagePath);
   await expect(page.locator('.ad-header')).toBeVisible();
   await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
+  await expect(page.locator('.ad-brand-mark').first()).toBeVisible();
+  await expect(page.locator('.ad-brand')).toHaveCSS('align-items', 'center');
   await expect(page.getByRole('heading', { name: 'Most Popular' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recent Release' })).toBeVisible();
   await expect(page.locator('#boot-screen')).toHaveCount(0);
   await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
+  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '18px');
   await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
   expect(assetFailures).toEqual([]);
   expect(pageErrors).toEqual([]);
@@ -61,4 +64,17 @@ test('a failed JavaScript bundle leaves a visible reload screen instead of a bla
   await expect(page.locator('#boot-screen')).toBeVisible();
   await expect(page.locator('#boot-status')).toContainText('Starting AnimeDex');
   await expect(page.getByRole('button', { name: 'Reload site' })).toBeVisible({ timeout: 15000 });
+});
+
+test('smooth AnimeDex layout stays usable on mobile without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(pagePath);
+  await expect(page.locator('.ad-brand-mark').first()).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: 'Search Anime' })).toBeVisible();
+  await expect(page.locator('.ad-tile').first()).toBeVisible({ timeout: 60000 });
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth
+  }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
 });
