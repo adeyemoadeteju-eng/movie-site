@@ -317,7 +317,7 @@ function Home(){
        <button className="btn btn-secondary" type="button" onClick={openRandom} disabled={!randomPool.length}>Random</button>
      </form>
 
-     {!showingSearch&&<div className="genre-bar" id="genreBar">
+     {!showingSearch&&<div className="genre-bar" id="genreBar" hidden={!genresLoading&&genres.length===0}>
        <span className="genre-bar-title">Discover by genre</span>
        <div className="genre-list" id="genreList" role="list">
          {genresLoading?<span className="genre-hint">Loading genres...</span>
