@@ -16,10 +16,10 @@ const EMBED=import.meta.env.VITE_EMBED_TEMPLATE||import.meta.env.VITE_FALLBACK_E
 const EMBED_NAME=import.meta.env.VITE_EMBED_NAME||'Embed player';
 function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const u=new URL(EMBED.replaceAll('{malId}',encodeURIComponent(mal)).replaceAll('{episode}',encodeURIComponent(ep)).replaceAll('{audio}',audio));return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
 
-function Header(){
+function Header({onSearch}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
- const submit=e=>{e.preventDefault();if(q.trim())nav('/?q='+encodeURIComponent(q.trim()))};
+ const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
  return <header className="ad-header"><Link to="/" className="ad-brand"><span>Anime</span><b>Dex</b></Link><form className="ad-search" onSubmit={submit}><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search Anime..." aria-label="Search Anime" required/><button aria-label="Search">⌕</button></form></header>
 }
 function Footer(){return <><hr className="ad-rule"/><footer className="ad-footer"><span>MADE WITH <b>♥</b> BY TECH SHREYASH</span><span>AnimeDexLite-inspired interface</span></footer><hr className="ad-rule"/></>}
@@ -32,10 +32,10 @@ function Home(){
  const [slide,setSlide]=useState(0);const request=useRef(0);
  useEffect(()=>{let live=true;(async()=>{const [p,r]=await Promise.allSettled([api('/anime/popular?page=1&per_page=20'),api('/anime/recent?page=1&per_page=20')]);if(!live)return;const popular=p.status==='fulfilled'?p.value.results||[]:[];const recent=r.status==='fulfilled'?r.value.results||[]:[];setData({popular,recent,loading:false,error:p.status==='rejected'&&r.status==='rejected'?'Could not connect to catalogue.':''});})();return()=>{live=false}},[]);
  const featured=data.popular[slide%Math.max(data.popular.length,1)];
- const search=async e=>{e?.preventDefault();const q=query.trim();if(!q){setResults(null);return}const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
+ const search=async (e,term=query)=>{e?.preventDefault();const q=String(term||'').trim();if(!q){setResults(null);return}setQuery(q);const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
  useEffect(()=>{const q=new URLSearchParams(location.hash.split('?')[1]||'').get('q');if(q){setQuery(q);searchQuery(q)}},[]);
  async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults(d.results||[])}catch(e){setErr(e.message)}finally{setBusy(false)}}
- return <><Header/><main className="ad-main">
+ return <><Header onSearch={search}/><main className="ad-main">
  {results===null?<>
  <section className="ad-hero">{featured&&<><img className="ad-hero-bg" src={image(featured)} alt=""/><div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">✦ &nbsp;ANIMEDEX SPOTLIGHT</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><Link className="ad-watch" to={'/anime/'+featured.id}>▶ &nbsp; Watch Now</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%data.popular.length)}>Next Spotlight ›</button></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>}</section>
  <section className="ad-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading}/></section>
