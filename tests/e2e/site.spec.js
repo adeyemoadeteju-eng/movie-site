@@ -70,10 +70,20 @@ test('search and anime details page load and episode links are present', async (
     status: 200, contentType: 'application/json', body: JSON.stringify({
       id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
       description: 'A test series', coverImage: { large: '', extraLarge: '' }, format: 'TV',
-      seasonYear: 2024, episodes: 3, genres: ['Action'], status: 'FINISHED',
+      seasonYear: 2024, episodes: 3, genres: ['Action', 'Adventure'], status: 'FINISHED',
       relations: { edges: [{ relationType: 'SEQUEL', node: { id: 2, type: 'ANIME', format: 'TV', title: { english: 'Test Anime Season 2' }, coverImage: { large: '', extraLarge: '' }, episodes: 12 } }] }
     })
   }));
+  await page.route('**/anime/filter?**', route => {
+    const url = new URL(route.request().url());
+    const genre = url.searchParams.get('genre');
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ results: genre === 'Action'
+        ? [{ id: 2, title: { english: 'Action Pick' }, genres: ['Action'] }, { id: 3, title: { english: 'Shared Pick' }, genres: ['Action', 'Adventure'] }]
+        : [{ id: 3, title: { english: 'Shared Pick' }, genres: ['Action', 'Adventure'] }, { id: 4, title: { english: 'Adventure Pick' }, genres: ['Adventure'] }] })
+    });
+  });
   await page.route('**/anime/episodes/*', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
