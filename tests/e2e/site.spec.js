@@ -42,11 +42,28 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   await page.route('**/anime/recent?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
   }));
+  await page.route('**/anime/filter?genre=Action**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
+      { id: 77, title: { english: 'Action Genre Pick' }, genres: ['Action'] }
+    ] })
+  }));
   await page.goto(pagePath);
+  await page.locator('.ad-quick-tags').getByRole('button', { name: 'Action' }).click();
+  await expect(page.getByRole('heading', { name: 'Genre: Action' })).toBeVisible();
+  await expect(page.locator('.ad-results .ad-tile')).toContainText('Action Genre Pick');
+  await page.getByRole('button', { name: 'Back to Home' }).click();
   const trailer = page.locator('.ad-hero-trailer');
   await expect(trailer).toBeVisible();
   await expect(trailer).toHaveAttribute('src', /autoplay=1.*mute=1/);
   await expect(trailer).toHaveAttribute('allow', /autoplay/);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.getByLabel('Autoplay muted trailers').uncheck();
+  await page.getByLabel('Accent colour').selectOption('blue');
+  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await expect(page.getByLabel('Autoplay muted trailers')).not.toBeChecked();
+  await expect(page.getByLabel('Accent colour')).toHaveValue('blue');
 });
 
 test('catalogue failures show a recovery message instead of an empty or blank page', async ({ page }) => {
