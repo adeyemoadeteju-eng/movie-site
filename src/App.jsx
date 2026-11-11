@@ -69,13 +69,13 @@ const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
 
 function useCatalog() {
-  const [data, setData] = useState({ trending: [], popular: [], loading: true, error: '' });
+  const [data, setData] = useState({ recent: [], popular: [], loading: true, error: '' });
 
   useEffect(() => {
     let alive = true;
 
     try {
-      const cached = JSON.parse(localStorage.getItem('zoroto-catalog') || 'null');
+      const cached = JSON.parse(localStorage.getItem('zoroto-catalog-v2') || 'null');
       if (cached?.value && Date.now() - cached.time < 5 * 60 * 1000) {
         setData({ ...cached.value, loading: true, error: '' });
       }
@@ -83,15 +83,15 @@ function useCatalog() {
 
     (async () => {
       const responses = await Promise.allSettled([
-        apiJson('/anime/trending?page=1&per_page=20'),
+        apiJson('/anime/recent?page=1&per_page=20'),
         apiJson('/anime/popular?page=1&per_page=20')
       ]);
 
       if (!alive) return;
 
-      const trendingOk = responses[0].status === 'fulfilled';
+      const recentOk = responses[0].status === 'fulfilled';
       const popularOk = responses[1].status === 'fulfilled';
-      const trending = trendingOk && Array.isArray(responses[0].value.results)
+      const recent = recentOk && Array.isArray(responses[0].value.results)
         ? responses[0].value.results
         : [];
       const popular = popularOk && Array.isArray(responses[1].value.results)
@@ -99,13 +99,13 @@ function useCatalog() {
         : [];
 
       const failures = [];
-      if (!trendingOk) failures.push('Trending: ' + (responses[0].reason?.message || 'could not load'));
+      if (!recentOk) failures.push('New anime: ' + (responses[0].reason?.message || 'could not load'));
       if (!popularOk) failures.push('Popular: ' + (responses[1].reason?.message || 'could not load'));
 
-      const value = { trending, popular };
-      if (trendingOk || popularOk) {
+      const value = { recent, popular };
+      if (recentOk || popularOk) {
         try {
-          localStorage.setItem('zoroto-catalog', JSON.stringify({ time: Date.now(), value }));
+          localStorage.setItem('zoroto-catalog-v2', JSON.stringify({ time: Date.now(), value }));
         } catch {}
       }
 
@@ -173,7 +173,7 @@ function Card({anime}){
 }
 
 function Home(){
- const {trending,popular,loading,error}=useCatalog();
+ const {recent,popular,loading,error}=useCatalog();
  const [genres,setGenres]=useState([]);
  const [genresLoading,setGenresLoading]=useState(true);
  const [activeGenre,setActiveGenre]=useState('');
@@ -187,7 +187,7 @@ function Home(){
  const nav=useNavigate();
  const showingResults=resultItems!==null;
  const showingSearch=showingResults&&!activeGenre;
- const randomPool=showingResults?resultItems:[...trending,...popular];
+ const randomPool=showingResults?resultItems:[...recent,...popular];
 
  useEffect(()=>{
    let alive=true;
@@ -303,17 +303,17 @@ function Home(){
 
  return <><Header/><main className="page">
    <div className="container">
-     <h1 className="page-title">Browse anime</h1>
+     <h1 className="page-title">AniWorld Downloader</h1>
 
      <div className="segmented" id="siteSwitch">
        <div className="segmented-track">
          <div className="segmented-thumb" aria-hidden="true" style={{width:'calc(100% - 6px)',transform:'translateX(3px)'}}/>
-         <span className="segmented-btn active">Anime</span>
+         <span className="segmented-btn active">AniWorld</span>
        </div>
      </div>
 
      <form id="search" className="search-bar" onSubmit={submitSearch}>
-       <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} type="search" placeholder="Search anime..." aria-label="Search anime" autoComplete="off" autoFocus/>
+       <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} type="search" placeholder="Search AniWorld..." aria-label="Search anime" autoComplete="off" autoFocus/>
        <button className="btn btn-primary" type="submit" disabled={resultsLoading}>Search</button>
        <button className="btn btn-secondary" type="button" onClick={openRandom} disabled={!randomPool.length}>Random</button>
      </form>
@@ -340,9 +340,9 @@ function Home(){
      </div>}
 
      <div id="browse" hidden={showingResults}>
-       <section className="browse-section" data-row="trending_animes">
-         <h2 className="browse-heading">Trending Animes</h2>
-         {renderRow(trending)}
+       <section className="browse-section" data-row="new_animes">
+         <h2 className="browse-heading">New Animes</h2>
+         {renderRow(recent)}
        </section>
        <section className="browse-section" data-row="popular_animes">
          <h2 className="browse-heading">Popular Animes</h2>
