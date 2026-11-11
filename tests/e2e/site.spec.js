@@ -47,6 +47,24 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
 test('search and anime details page load and episode links are present', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/anime/episodes/*', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      providers: {
+        anineko: {
+          episodes: {
+            sub: [
+              { number: 1, title: 'Episode 1' },
+              { number: 2, title: 'Episode 2' },
+              { number: 3, title: 'Episode 3' }
+            ],
+            dub: []
+          }
+        }
+      }
+    })
+  }));
   await page.goto(pagePath);
   await page.getByRole('searchbox', { name: 'Search Anime' }).fill('Naruto');
   await page.getByRole('button', { name: 'Search' }).click();
@@ -56,6 +74,7 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-detail-top')).toBeVisible({ timeout: 60000 });
   await expect(page.locator('.ad-detail-copy h1')).not.toBeEmpty();
   await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
   expect(errors).toEqual([]);
 });
 

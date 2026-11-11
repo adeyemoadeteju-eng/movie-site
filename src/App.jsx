@@ -46,13 +46,35 @@ function Home(){
 }
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
+ const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
+ const loadEpisodes=async()=>{
+  setEpisodesLoading(true);setEpisodesError('');
+  try{
+   const data=await api('/anime/episodes/'+encodeURIComponent(id));
+   const providers=data?.providers&&typeof data.providers==='object'?Object.values(data.providers):[];
+   const candidates=providers.flatMap(provider=>{
+    const lists=provider?.episodes||{};
+    const sub=Array.isArray(lists.sub)?lists.sub:[];
+    const dub=Array.isArray(lists.dub)?lists.dub:[];
+    return [sub,dub].filter(list=>list.length).map(list=>list.filter(ep=>Number.isFinite(Number(ep?.number))&&Number(ep.number)>0));
+   }).filter(list=>list.length);
+   candidates.sort((a,b)=>b.length-a.length);
+   const best=candidates[0]||[];
+   const unique=new Map();
+   for(const ep of best){const number=Number(ep.number);if(!unique.has(number))unique.set(number,{number,title:ep.title||('Episode '+number)});}
+   setEpisodeList([...unique.values()].sort((a,b)=>a.number-b.number));
+  }catch(e){setEpisodeList([]);setEpisodesError(e.message||'Episode list could not be loaded.');}
+  finally{setEpisodesLoading(false);}
+ };
  useEffect(()=>{let live=true;setLoading(true);api('/anime/info/'+encodeURIComponent(id)).then(a=>{if(live){setAnime(a);setLoading(false)}}).catch(e=>{if(live){setErr(e.message);setLoading(false)}});return()=>{live=false}},[id]);
  useEffect(()=>{let live=true;if(anime?.genres?.[0])api('/anime/filter?genre='+encodeURIComponent(anime.genres[0])+'&page=1&per_page=12').then(d=>{if(live)setSimilar((d.results||[]).filter(x=>String(x.id)!==String(id)).slice(0,10))}).catch(()=>{});return()=>{live=false}},[anime?.id]);
+ useEffect(()=>{loadEpisodes();},[id]);
  const count=Math.min(Number(anime?.episodes)||0,500);
+ const displayedEpisodes=episodeList.length?episodeList:Array.from({length:count},(_,i)=>({number:i+1,title:'Episode '+(i+1)}));
  return <><Header/>{loading?<div className="ad-loading">Loading anime...</div>:anime?<main className="ad-detail">
  <div className="ad-detail-backdrop" style={{backgroundImage:'url('+image(anime)+')'}}/>
- <section className="ad-detail-top"><div className="ad-detail-poster"><img src={image(anime)} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
- <section className="ad-episodes" id="watch"><h2>List Of Episodes:</h2>{count?<div className="ad-episode-grid">{Array.from({length:count},(_,i)=><Link key={i} to={'/watch/'+id+'/'+(i+1)+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>EP {i+1}</b><span>{title(anime)} - Episode {i+1}</span><i>▶</i></Link>)}</div>:<p>Episode count is not available for this title.</p>}</section>
+ <section className="ad-detail-top"><div className="ad-detail-poster"><img src={image(anime)} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
+ <section className="ad-episodes" id="watch"><h2>List Of Episodes:</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>▶</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}</section>
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
