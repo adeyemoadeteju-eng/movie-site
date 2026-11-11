@@ -1,42 +1,30 @@
 import { test, expect } from '@playwright/test';
 
-test('homepage matches AniWorld layout and loads live catalogue rows and genres', async ({ page }) => {
-  const pageErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
-
+test('AnimeDex home renders spotlight, popular and recent catalogue rows', async ({ page }) => {
+  const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/movie-site/');
-
-  await expect(page.getByRole('heading', { name: 'New Animes' })).toBeVisible();
-  await expect(page.locator('#browse .browse-section').nth(0).locator('.poster-card').first()).toBeVisible();
-  await expect(page.locator('#browse .browse-section').nth(1).locator('.poster-card').first()).toBeVisible();
-  await expect(page.locator('#genreList .genre-chip').first()).toBeVisible();
-
-  expect(pageErrors).toEqual([]);
+  await expect(page.locator('.ad-header')).toBeVisible();
+  await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
+  await expect(page.getByRole('heading',{name:'Most Popular'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Recent Release'})).toBeVisible();
+  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
+  await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
-test('genre filters, search results, and the anime details modal work', async ({ page }) => {
-  const pageErrors = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
-
-  await page.goto('/movie-site/');
-
-  const actionGenre = page.locator('#genreList .genre-chip', { hasText: 'Action' });
-  await expect(actionGenre).toBeVisible();
-  await actionGenre.click();
-  await expect(page.locator('#results .poster-card').first()).toBeVisible();
-
-  const search = page.getByRole('searchbox', { name: 'Search anime' });
-  await search.fill('Naruto');
-  await page.getByRole('button', { name: 'Search' }).click();
-
-  const firstResult = page.locator('#results .poster-card').first();
-  await expect(firstResult).toBeVisible();
-  const resultTitle = (await firstResult.locator('.title').innerText()).trim();
-  await firstResult.click();
-
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.locator('.series-meta h2')).toHaveText(resultTitle);
-  await expect(page.locator('#seasonAccordion .episode-item').first()).toBeVisible();
-
-  expect(pageErrors).toEqual([]);
+test('search and anime details page load and episode links are present',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/movie-site/');
+ const search=page.getByRole('searchbox',{name:'Search Anime'});
+ await search.fill('Naruto');
+ await page.getByRole('button',{name:'Search'}).click();
+ const first=page.locator('.ad-results .ad-tile').first();
+ await expect(first).toBeVisible();
+ const href=await first.getAttribute('href');
+ await page.goto('/movie-site/'+href);
+ await expect(page.locator('.ad-detail-top')).toBeVisible();
+ await expect(page.locator('.ad-detail-copy h1')).not.toBeEmpty();
+ await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
+ expect(errors).toEqual([]);
 });
