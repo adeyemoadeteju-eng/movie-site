@@ -4,7 +4,7 @@ A React and Vite anime discovery and watch frontend.
 
 ## Features
 
-- Browse trending and popular anime in separate catalogue rows.
+- Browse new and popular anime in separate catalogue rows.
 - Filter the catalogue by genre and search titles.
 - Open anime details in a centered modal and browse the episode list.
 - Switch between Sub and Dub, then load playback through the configured anime API with an embed fallback.
