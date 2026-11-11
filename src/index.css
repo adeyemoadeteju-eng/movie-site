@@ -242,3 +242,29 @@ button{color:inherit}
 /* Muted featured trailer preview */
 .ad-hero-trailer{position:absolute;z-index:-2;inset:0;width:100%;height:100%;display:block;border:0;object-fit:cover;pointer-events:none;transform:scale(1.12)}
 .ad-hero:has(.ad-hero-trailer) .ad-hero-shade{background:linear-gradient(90deg,rgba(12,14,20,.97) 0%,rgba(12,14,20,.84) 30%,rgba(12,14,20,.48) 66%,rgba(12,14,20,.2) 100%),linear-gradient(0deg,rgba(12,14,20,.5),transparent 45%,rgba(12,14,20,.16))}
+
+
+/* AnimeDex discovery preferences and quick genre filters */
+.ad-settings-trigger{flex:none;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:#1a1d26;color:#c9c6e9;font-size:11px;font-weight:700;cursor:pointer}
+.ad-settings-trigger:hover{border-color:rgba(161,153,224,.55);background:#202331}
+.ad-settings-panel{position:fixed;z-index:50;top:82px;right:max(16px,calc((100vw - 1400px)/2 + 20px));width:min(310px,calc(100vw - 28px));padding:17px;border:1px solid rgba(226,229,245,.14);border-radius:9px;background:rgba(22,25,35,.98);box-shadow:0 18px 55px rgba(0,0,0,.42);backdrop-filter:blur(18px)}
+.ad-settings-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;color:#f0eff7;font-size:14px}
+.ad-settings-head button{width:28px;height:28px;border:0;border-radius:5px;background:#292d3b;color:#e8e7f0;font-size:20px;cursor:pointer}
+.ad-settings-panel>label{display:flex;align-items:center;gap:9px;margin:12px 0;color:#c5c7d1;font-size:12px}
+.ad-settings-panel input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+.ad-settings-panel .ad-accent-setting{justify-content:space-between}
+.ad-settings-panel select{padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:#191d28;color:#e8e8ef;font-size:11px}
+.ad-settings-panel p{margin:15px 0 0;color:#858b9b;font-size:10px;line-height:1.5}
+.ad-quick-tags{width:min(1400px,100%);margin:-13px auto 30px;padding:0 30px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ad-quick-tags>span{margin-right:4px;color:#9399a9;font-size:10px;font-weight:700;letter-spacing:.4px}
+.ad-quick-tags button{padding:7px 11px;border:1px solid rgba(226,229,245,.11);border-radius:5px;background:#171b24;color:#bfc2ce;font-size:10px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.ad-quick-tags button:hover{border-color:rgba(145,136,220,.48);background:rgba(145,136,220,.12);color:#e9e7ff}
+:root[data-accent="blue"]{--accent:#739acb;--accent-soft:#9dbce6}
+:root[data-accent="mint"]{--accent:#72aa98;--accent-soft:#a0d1bd}
+@media(max-width:700px){
+ .ad-settings-trigger{padding:8px 9px;font-size:10px}
+ .ad-settings-panel{top:72px;right:10px}
+ .ad-quick-tags{margin:-7px auto 23px;padding:0 13px;gap:6px}
+ .ad-quick-tags>span{width:100%;margin-bottom:2px}
+ .ad-quick-tags button{padding:7px 9px;font-size:9px}
+}
