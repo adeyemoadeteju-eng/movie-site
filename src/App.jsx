@@ -67,12 +67,6 @@ function Home(){
  </>:<section className="ad-section ad-results"><h2>{selectedGenre?'Genre: '+selectedGenre:'Search Results: '+query}</h2>{err&&<p className="ad-error">{err}</p>}<TileGrid items={results} loading={busy}/><button className="ad-reset" onClick={()=>{setResults(null);setErr('');setSelectedGenre('')}}>Back to Home</button></section>}
  </main><Footer/></>
 }
- {prefs.quickTags&&<section className="ad-quick-tags" aria-label="Browse by genre"><span>Browse by genre</span>{genres.map(genre=><button key={genre} onClick={()=>filterGenre(genre)}>{genre}</button>)}</section>}
- <section className="ad-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
- <section className="ad-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
- </>:<section className="ad-section ad-results"><h2>{selectedGenre?'Genre: '+selectedGenre:'Search Results: '+query}</h2>{err&&<p className="ad-error">{err}</p>}<TileGrid items={results} loading={busy}/><button className="ad-reset" onClick={()=>{setResults(null);setErr('');setSelectedGenre('')}}>Back to Home</button></section>}
- </main><Footer/></>
-}
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
