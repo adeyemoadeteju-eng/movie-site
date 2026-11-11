@@ -12,6 +12,12 @@ async function api(path){
 const title=a=>a?.title?.english||a?.title?.romaji||a?.title?.native||a?.name||'Untitled';
 const image=a=>a?.coverImage?.extraLarge||a?.coverImage?.large||a?.image||a?.poster||'';
 const clean=s=>(s||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+function trailerEmbed(anime){
+ const trailer=anime?.trailer;
+ if(String(trailer?.site||'').toLowerCase()!=='youtube'||! /^[a-zA-Z0-9_-]{6,}$/.test(String(trailer?.id||'')))return '';
+ const id=trailer.id;
+ return 'https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&controls=0&loop=1&playlist='+id+'&playsinline=1&rel=0';
+}
 const EMBED=import.meta.env.VITE_EMBED_TEMPLATE||import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE||'';
 const EMBED_NAME=import.meta.env.VITE_EMBED_NAME||'Embed player';
 function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const u=new URL(EMBED.replaceAll('{malId}',encodeURIComponent(mal)).replaceAll('{episode}',encodeURIComponent(ep)).replaceAll('{audio}',audio));return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
@@ -47,7 +53,7 @@ function Home(){
  return <><Header onSearch={search}/><main className="ad-main">
  {data.error&&<div className="ad-catalogue-error" role="alert"><span>The catalogue is temporarily unavailable. Your page is still working; try loading the catalogue again.</span><button onClick={()=>window.location.reload()}>Retry</button></div>}
  {results===null?<>
- <section className="ad-hero">{featured?<><img className="ad-hero-bg" src={image(featured)} alt=""/><div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIMEDEX DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
+ <section className="ad-hero">{featured?<> {trailerEmbed(featured)?<iframe className="ad-hero-trailer" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIMEDEX DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
  <section className="ad-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  <section className="ad-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  </>:<section className="ad-section ad-results"><h2>Search Results: {query}</h2>{err&&<p className="ad-error">{err}</p>}<TileGrid items={results} loading={busy}/><button className="ad-reset" onClick={()=>{setResults(null);setErr('')}}>Back to Home</button></section>}
@@ -76,7 +82,32 @@ function Details(){
   finally{setEpisodesLoading(false);}
  };
  useEffect(()=>{let live=true;setLoading(true);api('/anime/info/'+encodeURIComponent(id)).then(a=>{if(live){setAnime(a);setLoading(false)}}).catch(e=>{if(live){setErr(e.message);setLoading(false)}});return()=>{live=false}},[id]);
- useEffect(()=>{let live=true;if(anime?.genres?.[0])api('/anime/filter?genre='+encodeURIComponent(anime.genres[0])+'&page=1&per_page=12').then(d=>{if(live)setSimilar((d.results||[]).filter(x=>String(x.id)!==String(id)).slice(0,10))}).catch(()=>{});return()=>{live=false}},[anime?.id]);
+ useEffect(()=>{
+  let live=true;
+  if(!anime?.id){setSimilar([]);return()=>{live=false}}
+  const genres=Array.isArray(anime.genres)?anime.genres.filter(Boolean).slice(0,4):[];
+  (async()=>{
+   const requests=await Promise.allSettled(genres.map(genre=>api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=18')));
+   if(!live)return;
+   const pool=new Map();
+   const add=(item,sourceGenre='')=>{
+    if(!item?.id||String(item.id)===String(id))return;
+    const key=String(item.id);
+    const previous=pool.get(key)||{item,score:0};
+    const overlap=(item.genres||[]).filter(g=>genres.includes(g)).length;
+    previous.score=Math.max(previous.score,overlap)+(sourceGenre&&genres.includes(sourceGenre)?1:0);
+    pool.set(key,previous);
+   };
+   requests.forEach((result,index)=>{
+    if(result.status==='fulfilled')(result.value.results||[]).forEach(item=>add(item,genres[index]));
+   });
+   (anime.recommendations?.nodes||[]).forEach(node=>add(node?.mediaRecommendation||node));
+   (anime.relations?.edges||[]).filter(edge=>['PREQUEL','SEQUEL','SIDE_STORY','SPIN_OFF'].includes(edge?.relationType)).forEach(edge=>add(edge?.node));
+   const ranked=[...pool.values()].sort((x,y)=>y.score-x.score).slice(0,10).map(entry=>entry.item);
+   if(live)setSimilar(ranked);
+  })();
+  return()=>{live=false};
+ },[anime?.id]);
  useEffect(()=>{loadEpisodes();},[id]);
  const count=Math.min(Number(anime?.episodes)||0,500);
  const displayedEpisodes=episodeList.length?episodeList:Array.from({length:count},(_,i)=>({number:i+1,title:'Episode '+(i+1)}));
