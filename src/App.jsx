@@ -180,7 +180,7 @@ function Home(){
      <form id="search" className="search-bar" onSubmit={submitSearch}>
        <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} type="search" placeholder="Search anime..." aria-label="Search anime"/>
        <button className="btn btn-primary" type="submit" disabled={searching}>{searching?'Searching...':'Search'}</button>
-       <button className="btn btn-secondary" type="button" onClick={openRandom} disabled={!visibleItems.length&&!trending.length&&!popular.length}>Random</button>
+       <button className="btn btn-secondary" type="button" onClick={openRandom} disabled={!visibleItems.length&&!trending.length&&!popular.length&&!topRated.length}>Random</button>
      </form>
 
      {loading&&<div className="spinner active">Loading anime...</div>}
