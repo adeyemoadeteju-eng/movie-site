@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-const API_BASE = (import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/+$/, '');
+const API_BASE = (import.meta.env.VITE_KUHI_API_URL || import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/+$/, '');
 
 async function apiJson(path, timeout = 60000) {
   const url = API_BASE + path;
@@ -10,13 +10,14 @@ async function apiJson(path, timeout = 60000) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const response = await fetch(url, {
+        cache: 'no-store',
         headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(timeout)
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const detail = typeof payload?.detail === 'string' ? payload.detail : '';
-        const error = new Error(detail || 'Catalogue API returned HTTP ' + response.status);
+        const error = new Error(detail || `${path} returned HTTP ${response.status}`);
         error.status = response.status;
         if (response.status >= 500 || response.status === 429) {
           lastError = error;
