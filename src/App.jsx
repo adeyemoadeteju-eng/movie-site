@@ -65,20 +65,67 @@ function Header(){
  const [q,setQ]=useState(''); const [results,setResults]=useState([]); const [busy,setBusy]=useState(false); const nav=useNavigate();
  useEffect(()=>{if(q.trim().length<2){setResults([]);return;} const timer=setTimeout(async()=>{setBusy(true);try{const d=await anilist(SEARCH_QUERY,{search:q.trim()});setResults(d.Page.media||[]);}catch{setResults([])}finally{setBusy(false)}},350);return()=>clearTimeout(timer)},[q]);
  const go=id=>{setQ('');setResults([]);nav('/anime/'+id)};
- return <header className="topbar"><Link to="/" className="brand"><img src={LOGO} onError={e=>e.currentTarget.style.display='none'} alt="ZoroClone"/><span>ZORO<span className="lime">CLONE</span></span></Link><nav><Link to="/">Home</Link><a href="#trending">Trending</a><a href="#popular">Popular</a></nav><div className="searchbox"><span>⌕</span><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..."/>{q&&<button onClick={()=>setQ('')}>×</button>}{q.length>1&&<div className="search-results">{busy?<p>Searching…</p>:results.map(a=><button key={a.id} onClick={()=>go(a.id)}><img src={imageOf(a)}/><span>{titleOf(a)}</span></button>)}</div>}</div></header>
+ const scrollTo=id=>{const target=document.getElementById(id);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});else{nav('/');window.setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}),180);}};
+ return <header className="topbar">
+   <Link to="/" className="brand"><img src={LOGO} onError={e=>e.currentTarget.style.display='none'} alt="ZoroClone"/><span>ZORO<span className="lime">CLONE</span></span></Link>
+   <nav className="desktop-nav" aria-label="Main navigation">
+     <Link to="/">Home</Link>
+     <button type="button" onClick={()=>scrollTo('trending')}>Trending</button>
+     <button type="button" onClick={()=>scrollTo('popular')}>Popular</button>
+   </nav>
+   <div className="searchbox">
+     <span className="search-icon" aria-hidden="true">⌕</span>
+     <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&results[0])go(results[0].id)}} placeholder="Search anime..."/>
+     {q&&<button className="clear-search" type="button" onClick={()=>setQ('')} aria-label="Clear search">×</button>}
+     {q.trim().length>1&&<div className="search-results">{busy?<p>Searching…</p>:results.length?results.map(a=><button key={a.id} type="button" onClick={()=>go(a.id)}><img src={imageOf(a)} alt=""/><span>{titleOf(a)}</span></button>):<p>No anime found.</p>}</div>}
+   </div>
+   <div className="mobile-nav" aria-label="Mobile navigation">
+     <Link to="/" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><span>⌂</span><small>HOME</small></Link>
+     <button type="button" onClick={()=>scrollTo('trending')}><span>↗</span><small>TRENDING</small></button>
+     <button type="button" onClick={()=>scrollTo('popular')}><span>▤</span><small>POPULAR</small></button>
+   </div>
+ </header>
 }
 function Card({anime}){return <Link className="anime-card" to={'/anime/'+anime.id}><div className="poster"><img loading="lazy" src={imageOf(anime)} alt={titleOf(anime)}/><span className="score">★ {anime.averageScore?anime.averageScore+'%':'—'}</span></div><b>{titleOf(anime)}</b><small>{anime.format||'ANIME'} {anime.seasonYear?'• '+anime.seasonYear:''}</small></Link>}
 function Shelf({id,title,items}){return <section className="shelf" id={id}><div className="section-title"><h2>{title}</h2><span>VIEW ALL　›</span></div><div className="card-row">{items.map(a=><Card key={a.id} anime={a}/>)}</div></section>}
 function Home(){
- const {trending,popular,loading,error}=useCatalog(); const hero=trending[0];
- return <><Header/><main>
- <section className="hero" style={{backgroundImage:hero?.bannerImage?'linear-gradient(90deg,#202125 3%,rgba(32,33,37,.78) 48%,rgba(32,33,37,.08)),url('+hero.bannerImage+')':'linear-gradient(90deg,#202125,#34363c)'}}>
- <div className="hero-content"><div className="eyebrow">#1　ANIME STREAMING EXPERIENCE</div><h1>{hero?titleOf(hero):'Discover your next anime'}</h1><div className="hero-meta"><span>★ {hero?.averageScore?hero.averageScore+'%':'FEATURED'}</span><span>{hero?.format||'ANIME'}</span><span>{hero?.seasonYear||'2026'}</span></div><p>{hero?.description?.replace(/<[^>]*>/g,'').slice(0,230)||'Explore trending anime, discover new favourites, and find your next series.'}</p>{hero&&<Link className="primary-btn" to={'/anime/'+hero.id}>▶　WATCH NOW</Link>}</div><div className="hero-count">01 <i>/ 24</i></div></section>
- {loading&&<div className="loading"><div className="spinner"/>Waking up the anime catalogue…</div>}
- {error&&<div className="notice">Catalogue connection issue: {error}. Refresh to try again.</div>}
- {trending.length>0&&<Shelf id="trending" title="TRENDING NOW" items={trending}/>}
- {popular.length>0&&<Shelf id="popular" title="MOST POPULAR" items={popular}/>}
- <footer>© ZoroClone · Discover anime powered by AniList</footer></main></>
+ const {trending,popular,loading,error}=useCatalog();
+ const heroItems=trending.slice(0,5);
+ const [heroIndex,setHeroIndex]=useState(0);
+ useEffect(()=>{
+   if(heroItems.length<2)return;
+   const timer=setInterval(()=>setHeroIndex(index=>(index+1)%heroItems.length),6000);
+   return()=>clearInterval(timer);
+ },[heroItems.length]);
+ const hero=heroItems[heroIndex]||heroItems[0];
+ const heroDescription=hero?.description?.replace(/<[^>]*>/g,'').slice(0,290)||'Discover trending anime, explore new favourites, and start watching your next series.';
+ const heroWatchHref=hero?'/watch/'+hero.id+'/1/sub/embed?mal='+encodeURIComponent(hero.idMal||'')+'&title='+encodeURIComponent(titleOf(hero)):'#';
+ return <><Header/><main className="home-main">
+   <section className="hero" aria-label="Featured anime" style={{backgroundImage:hero?.bannerImage?'url('+hero.bannerImage+')':'linear-gradient(135deg,#191919,#343434)'}}>
+     <div className="hero-actions">
+       {hero&&<Link className="primary-btn" to={'/anime/'+hero.id}>SEE DETAILS <span>›</span></Link>}
+       {hero&&<Link className="secondary-btn" to={heroWatchHref}>▶ WATCH NOW</Link>}
+     </div>
+     <div className="hero-content">
+       <div className="eyebrow">FEATURED ANIME</div>
+       <h1>{hero?titleOf(hero):'Discover your next anime'}</h1>
+       {hero&&<div className="hero-meta">
+         {(hero.genres||[]).slice(0,3).map((genre,index)=><span key={genre+index}>{genre}</span>)}
+         <span>{hero.seasonYear||'ANIME'}</span>
+         <span>★ {hero.averageScore?hero.averageScore+'%':'—'}</span>
+       </div>}
+       <p>{heroDescription}</p>
+     </div>
+     {heroItems.length>1&&<div className="hero-dots" aria-label="Choose featured anime">
+       {heroItems.map((item,index)=><button type="button" key={item.id} className={index===heroIndex?'active':''} aria-label={'Show '+titleOf(item)} aria-current={index===heroIndex?'true':undefined} onClick={()=>setHeroIndex(index)}/>)}
+     </div>}
+   </section>
+   {loading&&<div className="loading"><div className="spinner"/>Loading anime…</div>}
+   {error&&<div className="notice">Catalogue connection issue: {error}. Refresh to try again.</div>}
+   {trending.length>0&&<Shelf id="trending" title="TRENDING NOW" items={trending}/>}
+   {popular.length>0&&<Shelf id="popular" title="MOST POPULAR" items={popular}/>}
+   <footer>© ZoroClone · Discover anime powered by AniList</footer>
+ </main></>
 }
 function readEpisodePayload(payload, audio) {
   const root = payload?.data?.data || payload?.data || payload?.result || payload || {};
