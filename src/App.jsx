@@ -43,7 +43,7 @@ function useCatalog() {
   const [data,setData] = useState({trending:[],popular:[],topRated:[],loading:true,error:''});
   useEffect(() => {
     let alive=true;
-    const cached=localStorage.getItem('zoro-catalog');
+    const cached=localStorage.getItem('zoroto-catalog');
     if(cached){
       try{
         const c=JSON.parse(cached);
@@ -60,7 +60,7 @@ function useCatalog() {
           anilist(LIST_QUERY,{sort:['SCORE_DESC'],page:1})
         ]);
         const value={trending:t.Page.media,popular:p.Page.media,topRated:r.Page.media};
-        localStorage.setItem('zoro-catalog',JSON.stringify({time:Date.now(),value}));
+        localStorage.setItem('zoroto-catalog',JSON.stringify({time:Date.now(),value}));
         if(alive)setData({...value,loading:false,error:''});
       }catch(e){
         if(alive)setData(v=>({...v,loading:false,error:e.message||'Could not load catalogue'}));
@@ -253,7 +253,7 @@ function AnimeDetails(){
  useEffect(()=>{
    if(!anime?.idMal) return;
    let alive=true;
-   const key='zoro-jikan-'+anime.idMal;
+   const key='zoroto-jikan-'+anime.idMal;
    const load=async()=>{
      try{
        const saved=JSON.parse(localStorage.getItem(key)||'null');
