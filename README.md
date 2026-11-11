@@ -4,17 +4,15 @@ A React and Vite anime discovery and watch frontend.
 
 ## Features
 
-- Browse trending, popular, and top-rated anime.
-- Search the AniList catalogue and open anime details.
-- View episode lists and switch between Sub and Dub.
-- Load playback sources from the configured anime API, with the configured embed as a fallback.
-- AniWorld Downloader-style catalogue with genre chips, separate trending/popular rows, and the original poster-card layout.
-- Reference-style title modal, language selector, and episode accordion.
+- Browse trending and popular anime in separate catalogue rows.
+- Filter the catalogue by genre and search titles.
+- Open anime details in a centered modal and browse the episode list.
+- Switch between Sub and Dub, then load playback through the configured anime API with an embed fallback.
+- Use the AniWorld Downloader interface layout, poster cards, genre chips, and episode accordion.
 
 ## Data and playback
 
-- AniList GraphQL provides catalogue, search, and anime metadata.
-- Jikan provides supplementary MyAnimeList metadata when an anime has a MAL ID.
+- The Kuhi API proxies AniList catalogue, search, genre, and anime-detail requests. The frontend does not call AniList GraphQL directly.
 - The playback API defaults to `https://anime-api-jqpp.onrender.com`. Set `VITE_ANIME_API_URL` to use a different backend.
 - The frontend supports iframe embeds and HLS/direct video playback where a provider returns a compatible source.
 
