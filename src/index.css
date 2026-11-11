@@ -238,3 +238,7 @@ button{color:inherit}
 .ad-season-card-copy b{overflow:hidden;color:#e5e6ed;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
 .ad-season-card-copy em{color:#858b9b;font-size:9px;font-style:normal}
 .ad-season-card>i{color:#aaa3e7;font-size:22px;font-style:normal}
+
+/* Muted featured trailer preview */
+.ad-hero-trailer{position:absolute;z-index:-2;inset:0;width:100%;height:100%;display:block;border:0;object-fit:cover;pointer-events:none;transform:scale(1.12)}
+.ad-hero:has(.ad-hero-trailer) .ad-hero-shade{background:linear-gradient(90deg,rgba(12,14,20,.97) 0%,rgba(12,14,20,.84) 30%,rgba(12,14,20,.48) 66%,rgba(12,14,20,.2) 100%),linear-gradient(0deg,rgba(12,14,20,.5),transparent 45%,rgba(12,14,20,.16))}
