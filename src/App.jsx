@@ -99,6 +99,13 @@ function Header(){
  </header>
 }
 
+function SiteFooter(){
+ return <footer className="site-footer" id="credits">
+   <p>Interface layout based on <a href="https://github.com/phoenixthrush/AniWorld-Downloader" target="_blank" rel="noreferrer">AniWorld Downloader</a>, adapted for this project.</p>
+   <p>Copyright © 2024–2026 phoenixthrush, Tmaster055, SiroxCW, and Yezun-hikari. Used under the <a href="https://github.com/adeyemoadeteju-eng/movie-site/blob/main/THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt" target="_blank" rel="noreferrer">MIT License</a>.</p>
+ </footer>
+}
+
 function Card({anime}){
  const image=imageOf(anime);
  const subtitle=[anime.format,anime.seasonYear].filter(Boolean).join(' · ');
@@ -200,7 +207,7 @@ function Home(){
        </section>
      </div>
    </div>
- </main></>
+ </main><SiteFooter/></>
 }
 
 function readEpisodePayload(payload, audio) {
@@ -222,12 +229,25 @@ function readEpisodePayload(payload, audio) {
 }
 function AnimeDetails(){
  const {id}=useParams();
+ const navigate=useNavigate();
  const [anime,setAnime]=useState(null);
  const [malData,setMalData]=useState(null);
  const [episodes,setEpisodes]=useState([]);
  const [audio,setAudio]=useState('sub');
  const [loading,setLoading]=useState(true);
  const [err,setErr]=useState('');
+
+ useEffect(()=>{
+   const previousOverflow=document.body.style.overflow;
+   document.body.style.overflow='hidden';
+   const onKeyDown=event=>{if(event.key==='Escape')navigate('/')};
+   window.addEventListener('keydown',onKeyDown);
+   return()=>{
+     document.body.style.overflow=previousOverflow;
+     window.removeEventListener('keydown',onKeyDown);
+   };
+ },[navigate]);
+
  useEffect(()=>{
    let alive=true;
    setAnime(null);
@@ -251,48 +271,103 @@ function AnimeDetails(){
  },[id]);
 
  useEffect(()=>{
-   if(!anime?.idMal) return;
+   if(!anime?.idMal)return;
    let alive=true;
    const key='zoroto-jikan-'+anime.idMal;
    const load=async()=>{
      try{
        const saved=JSON.parse(localStorage.getItem(key)||'null');
-       if(saved?.data && Date.now()-saved.time<24*60*60*1000){ setMalData(saved.data); return; }
+       if(saved?.data&&Date.now()-saved.time<24*60*60*1000){setMalData(saved.data);return;}
      }catch{}
-     const response=await fetch(JIKAN+'/anime/'+encodeURIComponent(anime.idMal)+'/full',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10000)});
-     if(!response.ok) throw new Error('Jikan returned HTTP '+response.status);
+     const response=await fetch(JIKAN+'/anime/'+encodeURIComponent(anime.idMal)+'/full',{
+       headers:{Accept:'application/json'},
+       signal:AbortSignal.timeout(10000)
+     });
+     if(!response.ok)throw new Error('Jikan returned HTTP '+response.status);
      const json=await response.json();
-     if(!json?.data) throw new Error('Jikan returned no anime details');
+     if(!json?.data)throw new Error('Jikan returned no anime details');
      try{localStorage.setItem(key,JSON.stringify({time:Date.now(),data:json.data}));}catch{}
      if(alive)setMalData(json.data);
    };
    load().catch(()=>{});
    return()=>{alive=false};
  },[anime?.idMal]);
+
  useEffect(()=>{
-   if(!anime) { setEpisodes([]); return; }
+   if(!anime){setEpisodes([]);return;}
    const count=Number(anime.episodes)||0;
    setEpisodes(Array.from({length:Math.min(count,500)},(_,i)=>({number:i+1,title:'Episode '+(i+1)})));
  },[anime?.id,anime?.episodes]);
- return <><Header/><main className="detail-page">
-   {loading?<div className="loading"><div className="spinner"/>Loading anime and episodes…</div>:anime?<>
-     <div className="detail-hero" style={{backgroundImage:anime.bannerImage?'linear-gradient(90deg,#202125 5%,rgba(32,33,37,.75)),url('+anime.bannerImage+')':'none'}}>
-       <img src={imageOf(anime)}/><div><h1>{titleOf(anime)}</h1><p>{anime.description?.replace(/<[^>]*>/g,'').slice(0,500)}</p><div className="hero-meta"><span>★ {anime.averageScore||'—'}%</span><span>{anime.format}</span><span>{anime.episodes||'?'} episodes</span></div><div className="id-mapping"><b>EXTERNAL IDs</b><span>AniList: {anime.id}</span><span>MAL: {anime.idMal||'Not listed'}</span><span>MAL score: {malData?.score??'Loading…'}</span><span>MAL rank: {malData?.rank?'#'+malData.rank:'—'}</span><span>MAL popularity: {malData?.popularity?'#'+malData.popularity:'—'}</span></div></div>
-     </div>
-     <section className="episodes">
-       <div className="section-title"><h2>EPISODES</h2><div className="controls">
-         <select value={audio} onChange={e=>setAudio(e.target.value)}><option value="sub">Sub</option><option value="dub">Dub</option></select>
-       </div></div>
-       {episodes.length?episodes.map((ep,i)=>{
-         const number=ep.number;
-         return <Link key={number} className="episode" to={'/watch/'+id+'/'+encodeURIComponent(number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&title='+encodeURIComponent(titleOf(anime))}>
-           <span>EP {number}</span><b>Episode {number}</b><small>▶ OPEN EMBED</small>
-         </Link>;
-       }):<div className="notice">AniList has not provided an episode count for this title.</div>}
+
+ const close=()=>navigate('/');
+ const summary=anime?.description?.replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ').trim();
+ return <div className="overlay open" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)close();}}>
+   <section className="modal" role="dialog" aria-modal="true" aria-label={anime?titleOf(anime):'Anime details'}>
+     <button className="modal-close" type="button" aria-label="Close" onClick={close}>×</button>
+     {loading?<div className="skeleton-view" aria-live="polite" aria-busy="true">
+       <div className="skeleton-header">
+         <div className="skeleton skeleton-poster"/>
+         <div className="skeleton-meta">
+           <div className="skeleton skeleton-title"/>
+           <div className="skeleton skeleton-line"/>
+           <div className="skeleton skeleton-line"/>
+           <div className="skeleton skeleton-line"/>
+           <div className="skeleton skeleton-line"/>
+         </div>
+       </div>
+       <div className="skeleton-controls"><div className="skeleton skeleton-field"/></div>
+       <div className="skeleton-rows">
+         {Array.from({length:6},(_,i)=><div className="skeleton skeleton-row" key={i}/>)}
+       </div>
+       <div className="skeleton-status">Loading anime details…</div>
+     </div>:anime?<>
+       <div className="series-header">
+         <img src={imageOf(anime)} alt={titleOf(anime)}/>
+         <div className="series-meta">
+           <h2>{titleOf(anime)}</h2>
+           <div className="series-genres">{(anime.genres||[]).join(' · ')}</div>
+           <div className="series-year">{anime.seasonYear||'—'} · {anime.format||'Anime'} · {anime.episodes||'?'} episodes</div>
+           <div className="series-desc">{summary||'No description is available for this title.'}</div>
+           <div className="hero-meta">
+             <span>★ {anime.averageScore||'—'}%</span>
+             {malData?.score&&<span>MAL {malData.score}</span>}
+             {malData?.rank&&<span>Rank #{malData.rank}</span>}
+           </div>
+         </div>
+       </div>
+
+       <div className="control-row">
+         <label className="field">
+           <span className="field-label">Audio</span>
+           <select value={audio} onChange={event=>setAudio(event.target.value)}>
+             <option value="sub">Japanese Sub</option>
+             <option value="dub">English Dub</option>
+           </select>
+         </label>
+       </div>
+
+       <div className="episodes-header">
+         <h3>Episodes</h3>
+         <span className="episode-count">{episodes.length} available</span>
+       </div>
+       {episodes.length?<div className="season-accordion">
+         <div className="season-section">
+           <div className="season-header expanded">
+             <span className="season-label"><span className="arrow expanded">▶</span> Episodes ({episodes.length})</span>
+           </div>
+           <div className="season-body expanded">
+             {episodes.map(ep=><Link key={ep.number} className="episode-item episode-item-link" to={'/watch/'+id+'/'+encodeURIComponent(ep.number)+'/'+audio+'/embed?mal='+encodeURIComponent(anime.idMal||'')+'&title='+encodeURIComponent(titleOf(anime))}>
+               <span className="ep-num">EP {ep.number}</span>
+               <span className="ep-main"><span className="ep-title">{ep.title}</span></span>
+               <span className="episode-open">Watch ›</span>
+             </Link>)}
+           </div>
+         </div>
+       </div>:<div className="accordion-message">AniList has not provided an episode count for this title.</div>}
        {err&&<div className="notice">Anime details warning: {err}</div>}
-     </section>
-   </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
- </main></>
+     </>:<div className="notice">{err||'Anime could not be loaded.'}</div>}
+   </section>
+ </div>
 }
 function StreamPlayer({stream,onError}) {
  const videoRef=useRef(null);
@@ -402,7 +477,14 @@ function Watch(){
  {loading?<div className="player-message"><div className="spinner"/>Preparing playback sources…</div>
  :source?<><div className="player"><iframe key={playerUrl} title={source.name||'Episode player'} src={playerUrl} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div><div className="server-list" aria-label="Choose playback source"><b>SWITCH SOURCE:</b>{sources.map((item,index)=><button type="button" key={item.url} className={index===active?'selected':''} aria-pressed={index===active} onClick={()=>setActive(index)}>{item.name||('Source '+(index+1))}</button>)}</div><div className="notice">Using {source.name||'selected source'}. The configured backup embed receives the selected Sub/Dub setting; other providers may require changing audio in their own player controls.</div></>
  :<div className="notice">{error||'No playback source is available.'}{matchCandidates.length>0&&<><p>TMDB candidates to verify:</p><ul>{matchCandidates.map(c=><li key={c.tmdbId}>{c.title} ({c.year||'year unknown'})</li>)}</ul></>}</div>}
- </main></>;
+ </main><SiteFooter/></>;
 }
-function App(){return <HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<AnimeDetails/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Home/>}/></Routes></HashRouter>}
+function AppRouter(){
+ const location=useLocation();
+ const isWatch=location.pathname.startsWith('/watch/');
+ return isWatch
+   ?<Routes><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<Watch/>}/></Routes>
+   :<><Home/><Routes><Route path="/anime/:id" element={<AnimeDetails/>}/></Routes></>;
+}
+function App(){return <HashRouter><AppRouter/></HashRouter>}
 export default App;
