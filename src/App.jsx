@@ -79,6 +79,11 @@ function Header(){
      {q&&<button className="clear-search" type="button" onClick={()=>setQ('')} aria-label="Clear search">×</button>}
      {q.trim().length>1&&<div className="search-results">{busy?<p>Searching…</p>:results.length?results.map(a=><button key={a.id} type="button" onClick={()=>go(a.id)}><img src={imageOf(a)} alt=""/><span>{titleOf(a)}</span></button>):<p>No anime found.</p>}</div>}
    </div>
+   <div className="mobile-nav" aria-label="Mobile navigation">
+     <Link to="/" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><span>⌂</span><small>HOME</small></Link>
+     <button type="button" onClick={()=>scrollTo('trending')}><span>↗</span><small>TRENDING</small></button>
+     <button type="button" onClick={()=>scrollTo('popular')}><span>▤</span><small>POPULAR</small></button>
+   </div>
  </header>
 }
 function Card({anime}){return <Link className="anime-card" to={'/anime/'+anime.id}><div className="poster"><img loading="lazy" src={imageOf(anime)} alt={titleOf(anime)}/><span className="score">★ {anime.averageScore?anime.averageScore+'%':'—'}</span></div><b>{titleOf(anime)}</b><small>{anime.format||'ANIME'} {anime.seasonYear?'• '+anime.seasonYear:''}</small></Link>}
