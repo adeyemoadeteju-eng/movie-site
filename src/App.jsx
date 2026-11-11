@@ -18,6 +18,7 @@ async function apiJson(path, timeout = 60000) {
       if (!response.ok) {
         const detail = typeof payload?.detail === 'string' ? payload.detail : '';
         const error = new Error(detail || 'Catalogue API returned HTTP ' + response.status);
+        error.status = response.status;
         if (response.status >= 500 || response.status === 429) {
           lastError = error;
           if (attempt === 0) {
@@ -30,10 +31,12 @@ async function apiJson(path, timeout = 60000) {
       return payload;
     } catch (error) {
       lastError = error;
-      if (attempt === 0) {
+      const retryable = !error.status || error.status >= 500 || error.status === 429;
+      if (attempt === 0 && retryable) {
         await new Promise(resolve => setTimeout(resolve, 900));
         continue;
       }
+      break;
     }
   }
   if (lastError?.name === 'TimeoutError' || lastError?.name === 'AbortError') {
