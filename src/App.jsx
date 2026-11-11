@@ -20,7 +20,7 @@ function Header(){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();if(q.trim())nav('/?q='+encodeURIComponent(q.trim()))};
- return <header className="ad-header"><Link to="/" className="ad-brand"><span>Anime</span><b>Dex</b></Link><form className="ad-search" onSubmit={submit}><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search Anime..." aria-label="Search Anime" required/><button aria-label="Search">⌕</button></form></header>
+ return <header className="ad-header"><Link to="/" className="ad-brand"><span>Anime</span><b>Dex</b></Link><form className="ad-search" onSubmit={submit}><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search Anime..." aria-label="Search Anime" required/><button aria-label="Search">⌕</button></form></header>
 }
 function Footer(){return <><hr className="ad-rule"/><footer className="ad-footer"><span>MADE WITH <b>♥</b> BY TECH SHREYASH</span><span>AnimeDexLite-inspired interface</span></footer><hr className="ad-rule"/></>}
 function Tile({item}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading="lazy" src={image(item)} alt={title(item)}/>:<div className="ad-no-image">AnimeDex</div>}<span className="ad-tag">HD</span><span className="ad-tag ad-tag-right">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
