@@ -70,6 +70,7 @@ h1, h2, h3, .eyebrow, .section-title h2 {
   object-fit: contain;
 }
 .lime { color: var(--red); }
+.mobile-nav { display: none; }
 .desktop-nav {
   display: flex;
   align-items: center;
@@ -654,6 +655,34 @@ footer {
   .brand { gap: 7px; font-size: 16px; letter-spacing: .3px; }
   .brand img { width: 31px; height: 31px; }
   .desktop-nav { display: none; }
+  body { padding-bottom: 68px; }
+  .mobile-nav {
+    position: fixed;
+    z-index: 60;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    min-height: 64px;
+    padding: 7px 6px max(7px, env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.97);
+    border-top: 1px solid #292929;
+    box-shadow: 0 -8px 25px rgba(0,0,0,.35);
+  }
+  .mobile-nav a, .mobile-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #ddd;
+    background: transparent;
+    border: 0;
+  }
+  .mobile-nav a:hover, .mobile-nav button:hover { color: var(--red); }
+  .mobile-nav span { font-size: 21px; line-height: 1.1; }
+  .mobile-nav small { font-size: 9px; font-weight: 900; letter-spacing: .45px; }
   .searchbox {
     flex: 1 1 auto;
     min-width: 0;
