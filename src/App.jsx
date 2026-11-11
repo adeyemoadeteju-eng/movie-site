@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { HashRouter, Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { HashRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 const GRAPHQL = 'https://graphql.anilist.co';
 const API_BASE = import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com';
@@ -40,21 +40,31 @@ const titleOf = a => a?.title?.english || a?.title?.romaji || 'Untitled anime';
 const imageOf = a => a?.coverImage?.extraLarge || a?.coverImage?.large || '';
 
 function useCatalog() {
-  const [data,setData] = useState({trending:[],popular:[],loading:true,error:''});
+  const [data,setData] = useState({trending:[],popular:[],topRated:[],loading:true,error:''});
   useEffect(() => {
     let alive=true;
     const cached=localStorage.getItem('zoro-catalog');
-    if(cached){try{const c=JSON.parse(cached); if(Date.now()-c.time<12*60*1000) setData({...c.value,loading:true});}catch{}}
+    if(cached){
+      try{
+        const c=JSON.parse(cached);
+        if(Date.now()-c.time<12*60*1000) {
+          setData({...c.value,topRated:c.value.topRated||[],loading:true});
+        }
+      }catch{}
+    }
     (async()=>{
       try{
-        const [t,p]=await Promise.all([
+        const [t,p,r]=await Promise.all([
           anilist(LIST_QUERY,{sort:['TRENDING_DESC'],page:1}),
-          anilist(LIST_QUERY,{sort:['POPULARITY_DESC'],page:1})
+          anilist(LIST_QUERY,{sort:['POPULARITY_DESC'],page:1}),
+          anilist(LIST_QUERY,{sort:['SCORE_DESC'],page:1})
         ]);
-        const value={trending:t.Page.media,popular:p.Page.media};
+        const value={trending:t.Page.media,popular:p.Page.media,topRated:r.Page.media};
         localStorage.setItem('zoro-catalog',JSON.stringify({time:Date.now(),value}));
         if(alive)setData({...value,loading:false,error:''});
-      }catch(e){if(alive)setData(v=>({...v,loading:false,error:e.message||'Could not load catalogue'}));}
+      }catch(e){
+        if(alive)setData(v=>({...v,loading:false,error:e.message||'Could not load catalogue'}));
+      }
     })();
     return()=>{alive=false};
   },[]);
@@ -62,71 +72,137 @@ function useCatalog() {
 }
 
 function Header(){
- const [q,setQ]=useState(''); const [results,setResults]=useState([]); const [busy,setBusy]=useState(false); const nav=useNavigate();
- useEffect(()=>{if(q.trim().length<2){setResults([]);return;} const timer=setTimeout(async()=>{setBusy(true);try{const d=await anilist(SEARCH_QUERY,{search:q.trim()});setResults(d.Page.media||[]);}catch{setResults([])}finally{setBusy(false)}},350);return()=>clearTimeout(timer)},[q]);
- const go=id=>{setQ('');setResults([]);nav('/anime/'+id)};
- const scrollTo=id=>{const target=document.getElementById(id);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});else{nav('/');window.setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}),180);}};
- return <header className="topbar">
-   <Link to="/" className="brand"><img src={LOGO} onError={e=>e.currentTarget.style.display='none'} alt="ZoroClone"/><span>ZORO<span className="lime">CLONE</span></span></Link>
-   <nav className="desktop-nav" aria-label="Main navigation">
-     <Link to="/">Home</Link>
-     <button type="button" onClick={()=>scrollTo('trending')}>Trending</button>
-     <button type="button" onClick={()=>scrollTo('popular')}>Popular</button>
+ const [menuOpen,setMenuOpen]=useState(false);
+ const nav=useNavigate();
+ const location=useLocation();
+ const goTo=id=>{
+   setMenuOpen(false);
+   if(location.pathname!=='/'){
+     nav('/');
+     window.setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}),220);
+   }else{
+     document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+   }
+ };
+ return <header className="top-bar">
+   <Link to="/" className="top-bar-brand" aria-label="Zoro.to home" onClick={()=>setMenuOpen(false)}>
+     <img src={LOGO} alt="Zoro.to" onError={e=>e.currentTarget.style.display='none'}/>
+   </Link>
+   <button className="nav-toggle" type="button" aria-label="Toggle navigation" aria-controls="mainNav" aria-expanded={menuOpen} onClick={()=>setMenuOpen(value=>!value)}>
+     <span></span><span></span><span></span>
+   </button>
+   <nav className={menuOpen?'top-bar-nav open':'top-bar-nav'} id="mainNav" aria-label="Main navigation">
+     <Link to="/" className="top-bar-link" onClick={()=>setMenuOpen(false)}>Home</Link>
+     <button type="button" className="top-bar-link" onClick={()=>goTo('search')}>Search</button>
+     <button type="button" className="top-bar-link" onClick={()=>goTo('browse')}>Browse</button>
    </nav>
-   <div className="searchbox">
-     <span className="search-icon" aria-hidden="true">⌕</span>
-     <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&results[0])go(results[0].id)}} placeholder="Search anime..."/>
-     {q&&<button className="clear-search" type="button" onClick={()=>setQ('')} aria-label="Clear search">×</button>}
-     {q.trim().length>1&&<div className="search-results">{busy?<p>Searching…</p>:results.length?results.map(a=><button key={a.id} type="button" onClick={()=>go(a.id)}><img src={imageOf(a)} alt=""/><span>{titleOf(a)}</span></button>):<p>No anime found.</p>}</div>}
-   </div>
-   <div className="mobile-nav" aria-label="Mobile navigation">
-     <Link to="/" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><span>⌂</span><small>HOME</small></Link>
-     <button type="button" onClick={()=>scrollTo('trending')}><span>↗</span><small>TRENDING</small></button>
-     <button type="button" onClick={()=>scrollTo('popular')}><span>▤</span><small>POPULAR</small></button>
-   </div>
  </header>
 }
-function Card({anime}){return <Link className="anime-card" to={'/anime/'+anime.id}><div className="poster"><img loading="lazy" src={imageOf(anime)} alt={titleOf(anime)}/><span className="score">★ {anime.averageScore?anime.averageScore+'%':'—'}</span></div><b>{titleOf(anime)}</b><small>{anime.format||'ANIME'} {anime.seasonYear?'• '+anime.seasonYear:''}</small></Link>}
-function Shelf({id,title,items}){return <section className="shelf" id={id}><div className="section-title"><h2>{title}</h2><span>VIEW ALL　›</span></div><div className="card-row">{items.map(a=><Card key={a.id} anime={a}/>)}</div></section>}
+
+function Card({anime}){
+ const image=imageOf(anime);
+ const subtitle=[anime.format,anime.seasonYear].filter(Boolean).join(' · ');
+ return <Link className="poster-card" to={'/anime/'+anime.id}>
+   <div className="poster-card-image">
+     {image?<img loading="lazy" src={image} alt={titleOf(anime)}/>:<div className="poster-fallback">No image</div>}
+     {anime.averageScore>0&&<span className="poster-score">★ {anime.averageScore}%</span>}
+   </div>
+   <div className="info">
+     <div className="title" title={titleOf(anime)}>{titleOf(anime)}</div>
+     <div className="subtitle">{subtitle||'Anime'}</div>
+   </div>
+ </Link>
+}
+
 function Home(){
- const {trending,popular,loading,error}=useCatalog();
- const heroItems=trending.slice(0,5);
- const [heroIndex,setHeroIndex]=useState(0);
- useEffect(()=>{
-   if(heroItems.length<2)return;
-   const timer=setInterval(()=>setHeroIndex(index=>(index+1)%heroItems.length),6000);
-   return()=>clearInterval(timer);
- },[heroItems.length]);
- const hero=heroItems[heroIndex]||heroItems[0];
- const heroDescription=hero?.description?.replace(/<[^>]*>/g,'').slice(0,290)||'Discover trending anime, explore new favourites, and start watching your next series.';
- const heroWatchHref=hero?'/watch/'+hero.id+'/1/sub/embed?mal='+encodeURIComponent(hero.idMal||'')+'&title='+encodeURIComponent(titleOf(hero)):'#';
- return <><Header/><main className="home-main">
-   <section className="hero" aria-label="Featured anime" style={{backgroundImage:hero?.bannerImage?'url('+hero.bannerImage+')':'linear-gradient(135deg,#191919,#343434)'}}>
-     <div className="hero-actions">
-       {hero&&<Link className="primary-btn" to={'/anime/'+hero.id}>SEE DETAILS <span>›</span></Link>}
-       {hero&&<Link className="secondary-btn" to={heroWatchHref}>▶ WATCH NOW</Link>}
+ const {trending,popular,topRated,loading,error}=useCatalog();
+ const [activeList,setActiveList]=useState('trending');
+ const [searchQuery,setSearchQuery]=useState('');
+ const [searchResults,setSearchResults]=useState(null);
+ const [searching,setSearching]=useState(false);
+ const [searchError,setSearchError]=useState('');
+ const nav=useNavigate();
+ const lists={
+   trending:{label:'Trending',items:trending},
+   popular:{label:'Popular',items:popular},
+   topRated:{label:'Top Rated',items:topRated}
+ };
+ const active=lists[activeList]||lists.trending;
+ const visibleItems=searchResults!==null?searchResults:active.items;
+ const isSearching=searchResults!==null;
+
+ const changeList=key=>{
+   setActiveList(key);
+   setSearchResults(null);
+   setSearchError('');
+   setSearchQuery('');
+ };
+
+ const submitSearch=async event=>{
+   event.preventDefault();
+   const term=searchQuery.trim();
+   if(!term){
+     setSearchError('Enter an anime title to search.');
+     setSearchResults(null);
+     return;
+   }
+   setSearching(true);
+   setSearchError('');
+   try{
+     const result=await anilist(SEARCH_QUERY,{search:term});
+     setSearchResults(result.Page.media||[]);
+   }catch(e){
+     setSearchResults([]);
+     setSearchError(e.message||'Search could not be completed.');
+   }finally{
+     setSearching(false);
+   }
+ };
+
+ const openRandom=()=>{
+   const pool=visibleItems.length?visibleItems:[...trending,...popular,...topRated];
+   if(!pool.length)return;
+   const anime=pool[Math.floor(Math.random()*pool.length)];
+   nav('/anime/'+anime.id);
+ };
+
+ return <><Header/><main className="page">
+   <div className="container">
+     <h1 className="page-title">Browse anime</h1>
+
+     <div className="segmented" role="tablist" aria-label="Browse anime by ranking">
+       <div className="segmented-track">
+         <div className="segmented-thumb" style={{width:'33.333%',transform:'translateX('+(activeList==='trending'?0:activeList==='popular'?100:200)+'%)'}}/>
+         {Object.entries(lists).map(([key,value])=><button key={key} type="button" role="tab" aria-selected={activeList===key} className={activeList===key?'segmented-btn active':'segmented-btn'} onClick={()=>changeList(key)}>{value.label}</button>)}
+       </div>
      </div>
-     <div className="hero-content">
-       <div className="eyebrow">FEATURED ANIME</div>
-       <h1>{hero?titleOf(hero):'Discover your next anime'}</h1>
-       {hero&&<div className="hero-meta">
-         {(hero.genres||[]).slice(0,3).map((genre,index)=><span key={genre+index}>{genre}</span>)}
-         <span>{hero.seasonYear||'ANIME'}</span>
-         <span>★ {hero.averageScore?hero.averageScore+'%':'—'}</span>
-       </div>}
-       <p>{heroDescription}</p>
+
+     <form id="search" className="search-bar" onSubmit={submitSearch}>
+       <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} type="search" placeholder="Search anime..." aria-label="Search anime"/>
+       <button className="btn btn-primary" type="submit" disabled={searching}>{searching?'Searching...':'Search'}</button>
+       <button className="btn btn-secondary" type="button" onClick={openRandom} disabled={!visibleItems.length&&!trending.length&&!popular.length}>Random</button>
+     </form>
+
+     {loading&&<div className="spinner active">Loading anime...</div>}
+     {error&&<div className="notice">{error}. Refresh to try again.</div>}
+     {searchError&&<div className="notice">{searchError}</div>}
+
+     <div id="browse">
+       <section className="browse-section">
+         <h2 className="browse-heading">{isSearching?'Search results':active.label+' anime'}</h2>
+         {searching?<div className="spinner active">Searching anime...</div>
+          :visibleItems.length>0
+            ?<div className="browse-grid">{visibleItems.map(anime=><Card key={anime.id} anime={anime}/>)}</div>
+            :isSearching
+              ?<div className="empty-state">No anime matched that search.</div>
+              :!loading?<div className="empty-state">No titles are available right now.</div>:null}
+         {isSearching&&<div className="genre-more"><button className="btn btn-secondary" type="button" onClick={()=>{setSearchResults(null);setSearchError('');setSearchQuery('');}}>Back to browsing</button></div>}
+       </section>
      </div>
-     {heroItems.length>1&&<div className="hero-dots" aria-label="Choose featured anime">
-       {heroItems.map((item,index)=><button type="button" key={item.id} className={index===heroIndex?'active':''} aria-label={'Show '+titleOf(item)} aria-current={index===heroIndex?'true':undefined} onClick={()=>setHeroIndex(index)}/>)}
-     </div>}
-   </section>
-   {loading&&<div className="loading"><div className="spinner"/>Loading anime…</div>}
-   {error&&<div className="notice">Catalogue connection issue: {error}. Refresh to try again.</div>}
-   {trending.length>0&&<Shelf id="trending" title="TRENDING NOW" items={trending}/>}
-   {popular.length>0&&<Shelf id="popular" title="MOST POPULAR" items={popular}/>}
-   <footer>© ZoroClone · Discover anime powered by AniList</footer>
+   </div>
  </main></>
 }
+
 function readEpisodePayload(payload, audio) {
   const root = payload?.data?.data || payload?.data || payload?.result || payload || {};
   const rawProviders = root.providers || root.sources || {};
