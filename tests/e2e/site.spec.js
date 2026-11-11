@@ -47,6 +47,9 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
 test('search and anime details page load and episode links are present', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/anime/popular?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+  }));
   await page.route('**/anime/info/*', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({
       id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
