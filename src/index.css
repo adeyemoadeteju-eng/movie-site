@@ -202,6 +202,8 @@ button{color:inherit}
   .ad-synopsis{grid-column:1/-1;font-size:11px;line-height:1.7;margin-top:13px}
   .ad-info{grid-column:1/-1;padding:14px}
   .ad-episodes{padding:10px 14px 24px}
+  .ad-season-grid{grid-template-columns:1fr}
+  .ad-season-card{padding:8px}
   .ad-episode-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .ad-episode-grid a{padding:9px 8px;font-size:9px;gap:7px}
   .ad-episode-grid b{font-size:8px}
@@ -221,3 +223,18 @@ button{color:inherit}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* Season navigation beneath the episode list */
+.ad-season-nav{margin-top:30px;padding-top:22px;border-top:1px solid rgba(226,229,245,.1)}
+.ad-season-heading{display:flex;align-items:baseline;gap:11px;margin-bottom:13px}
+.ad-season-heading h3{margin:0;color:#e9eaf0;font-size:15px;font-weight:750}
+.ad-season-heading>span{color:#858b9b;font-size:10px}
+.ad-season-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:9px}
+.ad-season-card{min-width:0;display:flex;align-items:center;gap:11px;padding:9px;border:1px solid rgba(226,229,245,.09);border-radius:6px;background:rgba(255,255,255,.025);transition:border-color .2s,background .2s}
+.ad-season-card:hover{border-color:rgba(145,136,220,.4);background:rgba(255,255,255,.055)}
+.ad-season-card>img{width:43px;height:58px;flex:none;object-fit:cover;border-radius:3px;background:#20232d}
+.ad-season-card-copy{min-width:0;display:flex;flex:1;flex-direction:column;gap:3px}
+.ad-season-card-copy small{color:#aaa3e7;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.55px}
+.ad-season-card-copy b{overflow:hidden;color:#e5e6ed;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.ad-season-card-copy em{color:#858b9b;font-size:9px;font-style:normal}
+.ad-season-card>i{color:#aaa3e7;font-size:22px;font-style:normal}
