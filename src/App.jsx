@@ -65,7 +65,7 @@ function Header(){
  const [q,setQ]=useState(''); const [results,setResults]=useState([]); const [busy,setBusy]=useState(false); const nav=useNavigate();
  useEffect(()=>{if(q.trim().length<2){setResults([]);return;} const timer=setTimeout(async()=>{setBusy(true);try{const d=await anilist(SEARCH_QUERY,{search:q.trim()});setResults(d.Page.media||[]);}catch{setResults([])}finally{setBusy(false)}},350);return()=>clearTimeout(timer)},[q]);
  const go=id=>{setQ('');setResults([]);nav('/anime/'+id)};
- const scrollTo=id=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+ const scrollTo=id=>{const target=document.getElementById(id);if(target)target.scrollIntoView({behavior:'smooth',block:'start'});else{nav('/');window.setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'}),180);}};
  return <header className="topbar">
    <Link to="/" className="brand"><img src={LOGO} onError={e=>e.currentTarget.style.display='none'} alt="ZoroClone"/><span>ZORO<span className="lime">CLONE</span></span></Link>
    <nav className="desktop-nav" aria-label="Main navigation">
