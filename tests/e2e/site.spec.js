@@ -30,6 +30,25 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   expect(pageErrors).toEqual([]);
 });
 
+test('featured YouTube trailers autoplay muted on the home page', async ({ page }) => {
+  await page.route('**/anime/popular?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ results: [{
+      id: 55, title: { english: 'Trailer Test' }, format: 'TV', seasonYear: 2026,
+      description: 'A featured series', coverImage: { large: '', extraLarge: '' },
+      trailer: { id: 'abcDEF12345', site: 'youtube' }
+    }] })
+  }));
+  await page.route('**/anime/recent?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+  }));
+  await page.goto(pagePath);
+  const trailer = page.locator('.ad-hero-trailer');
+  await expect(trailer).toBeVisible();
+  await expect(trailer).toHaveAttribute('src', /autoplay=1.*mute=1/);
+  await expect(trailer).toHaveAttribute('allow', /autoplay/);
+});
+
 test('catalogue failures show a recovery message instead of an empty or blank page', async ({ page }) => {
   await page.route('**/anime/popular?**', route => route.fulfill({
     status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'temporarily unavailable' })
