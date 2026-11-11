@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-const API_BASE = (import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\\/+$/, '');
+const API_BASE = (import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/+$/, '');
 const JIKAN = 'https://api.jikan.moe/v4';
 
 async function apiJson(path, timeout = 60000) {
