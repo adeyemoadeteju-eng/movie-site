@@ -236,7 +236,7 @@ function Watch(){
  const ownEmbed=useMemo(()=>buildEmbedFallback(malId,episode,audio),[malId,episode,audio]);
  useEffect(()=>{
    let alive=true;
-   setSources(ownEmbed?[ownEmbed]:[]);setActive(0);setError('');setLoading(!ownEmbed);setMatchCandidates([]);setTitle(titleFromUrl);
+   setSources([]);setActive(0);setError('');setLoading(true);setMatchCandidates([]);setTitle(titleFromUrl);
    (async()=>{
      try{
        const response=await fetch(`${API_BASE}/anime/playback/${encodeURIComponent(id)}?episode=${encodeURIComponent(episode)}`,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(60000)});
@@ -244,17 +244,24 @@ function Watch(){
        if(!response.ok){
          const detail=payload?.detail;
          if(response.status===409 && detail && typeof detail==='object'){
-           if(alive)setMatchCandidates(detail.candidates||[]);
-           throw new Error(detail.message||'TMDB match needs confirmation.');
+           if(alive){
+             setMatchCandidates(detail.candidates||[]);
+             setError(detail.message||'TMDB could not verify the correct show and season.');
+           }
+           return;
          }
          throw new Error(typeof detail==='string'?detail:'Playback sources could not be prepared.');
        }
        const available=(payload.sources||[]).filter(s=>s?.url && /^https:\/\//i.test(s.url));
-       const combined=[...(ownEmbed?[ownEmbed]:[]),...available];
+       // Prefer TMDB-matched backend sources; the MAL-based embed is backup only.
+       const combined=[...available,...(ownEmbed?[ownEmbed]:[])];
        if(!combined.length)throw new Error('No embed sources were returned and no backup embed is configured.');
        if(alive)setSources(combined);
      }catch(e){
-       if(alive&&!ownEmbed)setError(e?.message||'Playback could not be loaded.');
+       if(alive){
+         if(ownEmbed)setSources([ownEmbed]);
+         else setError(e?.message||'Playback could not be loaded.');
+       }
      }finally{
        if(alive)setLoading(false);
      }
