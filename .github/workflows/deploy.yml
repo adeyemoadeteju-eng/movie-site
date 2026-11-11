@@ -10,7 +10,9 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  # Keep PR validation isolated from production deploys.
+  # A PR update must never cancel or queue behind the main Pages deployment.
+  group: pages-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
