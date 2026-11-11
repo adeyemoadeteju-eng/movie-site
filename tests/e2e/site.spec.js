@@ -51,9 +51,21 @@ test('search and anime details page load and episode links are present', async (
     status: 200, contentType: 'application/json', body: JSON.stringify({
       id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
       description: 'A test series', coverImage: { large: '', extraLarge: '' }, format: 'TV',
-      seasonYear: 2024, episodes: 3, genres: ['Action'], status: 'FINISHED',
+      seasonYear: 2024, episodes: 3, genres: ['Action','Fantasy'], status: 'FINISHED',
       relations: { edges: [{ relationType: 'SEQUEL', node: { id: 2, type: 'ANIME', format: 'TV', title: { english: 'Test Anime Season 2' }, coverImage: { large: '', extraLarge: '' }, episodes: 12 } }] }
     })
+  }));
+  await page.route('**/anime/filter?genre=Action**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
+      { id: 1, title: { english: 'Test Anime' }, genres: ['Action'] },
+      { id: 10, title: { english: 'Related Action' }, genres: ['Action'] }
+    ] })
+  }));
+  await page.route('**/anime/filter?genre=Fantasy**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
+      { id: 10, title: { english: 'Related Action' }, genres: ['Fantasy'] },
+      { id: 11, title: { english: 'Related Fantasy' }, genres: ['Fantasy'] }
+    ] })
   }));
   await page.route('**/anime/episodes/*', route => route.fulfill({
     status: 200,
@@ -86,7 +98,38 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-episodes h2')).toHaveText('Season 1 Episodes');
   await expect(page.locator('.ad-episode-grid a').first()).toContainText('S1 · EP 1');
   await expect(page.getByRole('link', { name: /Next season Test Anime Season 2/ })).toBeVisible();
+  const similar = page.locator('.ad-section').filter({ has: page.getByRole('heading', { name: 'Similar Animes' }) });
+  await expect(similar.locator('.ad-tile')).toHaveCount(2);
+  await expect(similar).toContainText('Related Action');
+  await expect(similar).toContainText('Related Fantasy');
   expect(errors).toEqual([]);
+});
+
+
+test('home supports a muted autoplay trailer and saved discovery settings', async ({ page }) => {
+  await page.route('**/anime/popular?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
+      { id: 11, title: { english: 'Trailer Test' }, coverImage: { large: '', extraLarge: '' }, format: 'TV', seasonYear: 2025 }
+    ] })
+  }));
+  await page.route('**/anime/recent?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+  }));
+  await page.route('**/anime/info/11', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({
+      id: 11, title: { english: 'Trailer Test' }, trailer: { site: 'youtube', id: 'abc123XYZ89' }
+    })
+  }));
+  await page.goto(pagePath);
+  const trailer = page.locator('.ad-hero-trailer');
+  await expect(trailer).toBeVisible();
+  await expect(trailer).toHaveAttribute('src', /autoplay=1&mute=1/);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.getByLabel('Autoplay muted trailers').uncheck();
+  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await page.reload();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await expect(page.getByLabel('Autoplay muted trailers')).not.toBeChecked();
 });
 
 test('a failed JavaScript bundle leaves a visible reload screen instead of a blank page', async ({ page }) => {
