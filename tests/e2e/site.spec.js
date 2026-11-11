@@ -53,3 +53,12 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('a failed JavaScript bundle leaves a visible reload screen instead of a blank page', async ({ page }) => {
+  await page.route('**/assets/*.js', route => route.abort());
+
+  await page.goto(pagePath);
+  await expect(page.locator('#boot-screen')).toBeVisible();
+  await expect(page.locator('#boot-status')).toContainText('Starting AnimeDex');
+  await expect(page.getByRole('button', { name: 'Reload site' })).toBeVisible({ timeout: 15000 });
+});
