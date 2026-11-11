@@ -178,7 +178,6 @@ function Home(){
  const [activeGenre,setActiveGenre]=useState('');
  const [searchQuery,setSearchQuery]=useState('');
  const [resultItems,setResultItems]=useState(null);
- const [resultTitle,setResultTitle]=useState('');
  const [resultsLoading,setResultsLoading]=useState(false);
  const [resultsError,setResultsError]=useState('');
  const [genrePage,setGenrePage]=useState(1);
@@ -203,7 +202,6 @@ function Home(){
  const clearResults=()=>{
    requestToken.current+=1;
    setResultItems(null);
-   setResultTitle('');
    setActiveGenre('');
    setResultsLoading(false);
    setResultsError('');
@@ -222,7 +220,6 @@ function Home(){
    const token=++requestToken.current;
    setActiveGenre('');
    setResultItems([]);
-   setResultTitle('Search results');
    setResultsLoading(true);
    setResultsError('');
    setGenrePage(1);
@@ -252,7 +249,6 @@ function Home(){
    setActiveGenre(genre);
    setSearchQuery('');
    setResultItems([]);
-   setResultTitle(genre);
    setResultsLoading(true);
    setResultsError('');
    setGenrePage(1);
@@ -299,7 +295,7 @@ function Home(){
    nav('/anime/'+anime.id);
  };
 
- const renderRow=(items,label)=>{
+ const renderRow=items=>{
    if(items.length)return <div className="browse-grid">{items.map(anime=><Card key={anime.id} anime={anime}/>)}</div>;
    return <div className="empty-state">{loading?'Loading...':'No results found.'}</div>;
  };
@@ -345,11 +341,11 @@ function Home(){
      <div id="browse" hidden={showingResults}>
        <section className="browse-section" data-row="trending_animes">
          <h2 className="browse-heading">Trending Animes</h2>
-         {renderRow(trending,'Trending Animes')}
+         {renderRow(trending)}
        </section>
        <section className="browse-section" data-row="popular_animes">
          <h2 className="browse-heading">Popular Animes</h2>
-         {renderRow(popular,'Popular Animes')}
+         {renderRow(popular)}
        </section>
      </div>
    </div>
