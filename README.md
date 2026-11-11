@@ -34,4 +34,4 @@ Create a `.env` file to override the backend URL or configured fallback embed va
 
 ## Third-party notices
 
-The AniWorld Downloader interface was used as a visual reference. Its MIT license notice is preserved in [THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt](THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt).
+The home-page layout, search controls, poster cards, modal structure, and related styling are adapted from the MIT-licensed [AniWorld Downloader](https://github.com/phoenixthrush/AniWorld-Downloader) by phoenixthrush, Tmaster055, SiroxCW, and Yezun-hikari. The upstream copyright and full MIT permission notice are retained in [THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt](THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt). This project adapts the interface to its own AniList catalogue and playback API; it does not include the upstream downloader backend.
