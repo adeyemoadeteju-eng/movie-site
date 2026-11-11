@@ -295,10 +295,10 @@ function Home(){
    nav('/anime/'+anime.id);
  };
 
- const renderRow=items=>{
-   if(items.length)return <div className="browse-grid">{items.map(anime=><Card key={anime.id} anime={anime}/>)}</div>;
-   return <div className="empty-state">{loading?'Loading...':'No results found.'}</div>;
- };
+ const renderRow=items=><div className="browse-grid">
+   {items.length?items.map(anime=><Card key={anime.id} anime={anime}/>)
+    :<div className="empty-state">{loading?'Loading...':'No results found.'}</div>}
+ </div>;
 
  return <><Header/><main className="page">
    <div className="container">
