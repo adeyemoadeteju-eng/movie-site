@@ -39,6 +39,9 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
       trailer: { id: 'abcDEF12345', site: 'youtube' }
     }] })
   }));
+  await page.route('**/anime/recent?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+  }));
   await page.route('**/anime/filter?genre=Action**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
       { id: 77, title: { english: 'Action Genre Pick' }, genres: ['Action'] }
