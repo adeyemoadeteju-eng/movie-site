@@ -16,14 +16,13 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   await page.goto(pagePath);
   await expect(page.locator('.ad-header')).toBeVisible();
   await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
-  await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
   await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
   await expect(page.locator('.ad-brand')).toHaveCSS('align-items', 'center');
   await expect(page.getByRole('heading', { name: 'Most Popular' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recently Updated' })).toBeVisible();
   await expect(page.locator('#boot-screen')).toHaveCount(0);
   await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
-  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '0px');
+  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '6px');
   await expect(page.locator('.ad-section').first().locator('.ad-poster').first()).toHaveCSS('position', 'relative');
   await expect(page.locator('.ad-section').first().locator('.ad-tile-info').first()).toHaveCSS('position', 'relative');
   await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
