@@ -3,28 +3,25 @@
   <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="theme-color" content="#090d17"/>
+    <meta name="theme-color" content="#11141b"/>
     <meta name="color-scheme" content="dark"/>
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%animedex-mark.svg"/>
-    <link rel="apple-touch-icon" href="%BASE_URL%animedex-mark.svg"/>
     <meta name="description" content="Browse anime, discover new series, and explore episode details on AnimeDex."/>
     <title>AnimeDex</title>
     <style>
-      html,body{margin:0;min-height:100%;background:#090d17;color:#f3f5fb;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-      #boot-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#090d17;text-align:center;padding:24px}
+      html,body{margin:0;min-height:100%;background:#0d0f14;color:#e9eaf0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+      #boot-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#0d0f14;text-align:center;padding:24px}
       .boot-card{max-width:420px}
-      .boot-lockup{display:flex;align-items:center;justify-content:center;gap:9px;font-size:38px;font-weight:850;letter-spacing:-1.8px}
-      .boot-lockup img{width:48px;height:48px}
-      .boot-lockup b{color:#a79cff}
+      .boot-lockup{display:flex;align-items:center;justify-content:center;gap:9px;font-size:32px;font-weight:800;letter-spacing:-1.4px}
+      .boot-lockup b{color:#b0a9ec}
       #boot-status{color:#94a2b9;font-size:13px;line-height:1.65}
-      #boot-retry{display:none;margin-top:14px;padding:10px 18px;border:0;border-radius:999px;background:linear-gradient(110deg,#9a8fff,#72d6e7);color:#111625;font-weight:800;cursor:pointer}
+      #boot-retry{display:none;margin-top:14px;padding:10px 18px;border:0;border-radius:999px;background:#8179c2;color:#fff;font-weight:800;cursor:pointer}
     </style>
   </head>
   <body>
     <div id="root"></div>
     <div id="boot-screen" role="status" aria-live="polite">
       <div class="boot-card">
-        <div class="boot-lockup"><img src="%BASE_URL%animedex-mark.svg" alt=""/><span>Anime<b>Dex</b></span></div>
+        <div class="boot-lockup"><span>Anime<b>Dex</b></span></div>
         <p id="boot-status">Starting AnimeDex…</p>
         <button id="boot-retry" type="button" onclick="window.__animeDexRetry()">Reload site</button>
       </div>
