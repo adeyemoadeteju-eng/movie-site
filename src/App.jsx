@@ -2,25 +2,52 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { HashRouter, Link, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-const GRAPHQL = 'https://graphql.anilist.co';
-const API_BASE = import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com';
+const API_BASE = (import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\\/+$/, '');
 const JIKAN = 'https://api.jikan.moe/v4';
+
+async function apiJson(path, timeout = 60000) {
+  const url = API_BASE + path;
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(timeout)
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = typeof payload?.detail === 'string' ? payload.detail : '';
+        const error = new Error(detail || 'Catalogue API returned HTTP ' + response.status);
+        if (response.status >= 500 || response.status === 429) {
+          lastError = error;
+          if (attempt === 0) {
+            await new Promise(resolve => setTimeout(resolve, 900));
+            continue;
+          }
+        }
+        throw error;
+      }
+      return payload;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 900));
+        continue;
+      }
+    }
+  }
+  if (lastError?.name === 'TimeoutError' || lastError?.name === 'AbortError') {
+    throw new Error('The catalogue server took too long to respond. Please try again.');
+  }
+  if (lastError?.message === 'Failed to fetch' || lastError instanceof TypeError) {
+    throw new Error('The catalogue server could not be reached. It may be waking up; please try again in a moment.');
+  }
+  throw lastError || new Error('The catalogue request failed.');
+}
 const EMBED_TEMPLATE = import.meta.env.VITE_EMBED_TEMPLATE || import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE || '';
 const EMBED_NAME = import.meta.env.VITE_EMBED_NAME || import.meta.env.VITE_FALLBACK_EMBED_NAME || 'Embed player';
 const LOGO = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png';
 const HERO_BG = 'https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/banner.png';
-
-async function anilist(query, variables = {}, signal = AbortSignal.timeout(15000)) {
-  const res = await fetch(GRAPHQL, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({query,variables}), signal });
-  if (!res.ok) throw new Error('AniList request failed (' + res.status + ')');
-  const json = await res.json();
-  if (json.errors) throw new Error(json.errors[0]?.message || 'AniList error');
-  return json.data;
-}
-const mediaFields = 'id idMal externalLinks { site url } title { romaji english } description(asHtml:false) coverImage { extraLarge large } bannerImage averageScore episodes seasonYear format genres status';
-const LIST_QUERY = `query($sort:[MediaSort],$page:Int){ Page(page:$page,perPage:24){ media(type:ANIME,sort:$sort,isAdult:false){ ${mediaFields} } } }`;
-const SEARCH_QUERY = `query($search:String){ Page(page:1,perPage:20){ media(type:ANIME,search:$search,isAdult:false,sort:SEARCH_MATCH){ ${mediaFields} } } }`;
-const DETAILS_QUERY = `query($id:Int){ Media(id:$id,type:ANIME){ ${mediaFields} } }`;
 
 function buildEmbedFallback(malId, episode, audio) {
   if (!EMBED_TEMPLATE || !malId) return null;
@@ -55,11 +82,15 @@ function useCatalog() {
     (async()=>{
       try{
         const [t,p,r]=await Promise.all([
-          anilist(LIST_QUERY,{sort:['TRENDING_DESC'],page:1}),
-          anilist(LIST_QUERY,{sort:['POPULARITY_DESC'],page:1}),
-          anilist(LIST_QUERY,{sort:['SCORE_DESC'],page:1})
+          apiJson('/anime/trending?page=1&per_page=24'),
+          apiJson('/anime/popular?page=1&per_page=24'),
+          apiJson('/anime/filter?sort=SCORE_DESC&page=1&per_page=24')
         ]);
-        const value={trending:t.Page.media,popular:p.Page.media,topRated:r.Page.media};
+        const value={
+          trending:Array.isArray(t.results)?t.results:[],
+          popular:Array.isArray(p.results)?p.results:[],
+          topRated:Array.isArray(r.results)?r.results:[]
+        };
         localStorage.setItem('zoroto-catalog',JSON.stringify({time:Date.now(),value}));
         if(alive)setData({...value,loading:false,error:''});
       }catch(e){
@@ -162,8 +193,8 @@ function Home(){
    setSearching(true);
    setSearchError('');
    try{
-     const result=await anilist(SEARCH_QUERY,{search:term});
-     setSearchResults(result.Page.media||[]);
+     const result=await apiJson('/anime/search?query='+encodeURIComponent(term)+'&page=1&per_page=20');
+     setSearchResults(Array.isArray(result.results)?result.results:[]);
    }catch(e){
      setSearchResults([]);
      setSearchError(e.message||'Search could not be completed.');
@@ -260,11 +291,11 @@ function AnimeDetails(){
    setMalData(null);
    setLoading(true);
    setErr('');
-   anilist(DETAILS_QUERY,{id:Number(id)})
+   apiJson('/anime/info/'+encodeURIComponent(id))
      .then(detail=>{
        if(!alive)return;
-       if(!detail?.Media) throw new Error('AniList could not find this anime.');
-       setAnime(detail.Media);
+       if(!detail?.id) throw new Error('The catalogue API could not find this anime.');
+       setAnime(detail);
        setLoading(false);
      })
      .catch(e=>{
