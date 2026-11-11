@@ -310,7 +310,7 @@ function Home(){
 
      <div className="segmented" id="siteSwitch">
        <div className="segmented-track">
-         <div className="segmented-thumb" aria-hidden="true" style={{width:'calc(100% - 6px)'}}/>
+         <div className="segmented-thumb" aria-hidden="true" style={{width:'calc(100% - 6px)',transform:'translateX(3px)'}}/>
          <span className="segmented-btn active">Anime</span>
        </div>
      </div>
