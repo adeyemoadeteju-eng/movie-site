@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('homepage loads live catalogue rows and genres', async ({ page }) => {
+test('homepage matches AniWorld layout and loads live catalogue rows and genres', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/movie-site/');
 
-  await expect(page.getByRole('heading', { name: 'Trending Animes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New Animes' })).toBeVisible();
   await expect(page.locator('#browse .browse-section').nth(0).locator('.poster-card').first()).toBeVisible();
   await expect(page.locator('#browse .browse-section').nth(1).locator('.poster-card').first()).toBeVisible();
   await expect(page.locator('#genreList .genre-chip').first()).toBeVisible();
