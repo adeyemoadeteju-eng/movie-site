@@ -15,6 +15,10 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
 
   await page.goto(pagePath);
   await expect(page.locator('.ad-header')).toBeVisible();
+  await expect(page.locator('.ad-home-intro')).toBeVisible();
+  await expect(page.locator('.ad-home-intro-brand')).toContainText('AnimeDex');
+  await expect(page.locator('.ad-home-search')).toHaveCSS('border-radius', '999px');
+  await expect(page.locator('.ad-header .ad-search')).toBeHidden();
   await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
   await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
   await expect(page.locator('.ad-brand')).toHaveCSS('align-items', 'center');
@@ -22,7 +26,7 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   await expect(page.getByRole('heading', { name: 'Recently Updated' })).toBeVisible();
   await expect(page.locator('#boot-screen')).toHaveCount(0);
   await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
-  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '6px');
+  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '12px');
   await expect(page.locator('.ad-section').first().locator('.ad-poster').first()).toHaveCSS('position', 'relative');
   await expect(page.locator('.ad-section').first().locator('.ad-tile-info').first()).toHaveCSS('position', 'relative');
   await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
@@ -49,7 +53,7 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   }));
   await page.goto(pagePath);
   await page.locator('.ad-quick-tags').getByRole('button', { name: 'Action' }).click();
-  await expect(page.getByRole('heading', { name: 'Genre: Action' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Action', exact: true })).toBeVisible();
   await expect(page.locator('.ad-results .ad-tile')).toContainText('Action Genre Pick');
   await page.getByRole('button', { name: 'Back to Home' }).click();
   const trailer = page.locator('.ad-hero-trailer');
