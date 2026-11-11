@@ -16,7 +16,7 @@ const EMBED=import.meta.env.VITE_EMBED_TEMPLATE||import.meta.env.VITE_FALLBACK_E
 const EMBED_NAME=import.meta.env.VITE_EMBED_NAME||'Embed player';
 function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const u=new URL(EMBED.replaceAll('{malId}',encodeURIComponent(mal)).replaceAll('{episode}',encodeURIComponent(ep)).replaceAll('{audio}',audio));return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
 
-function BrandMark({className=''}){return <svg className={`ad-brand-mark ${className}`} viewBox="0 0 54 54" fill="none" aria-hidden="true"><path d="M6.5 27C12 16.8 19 11 27 11s15 5.8 20.5 16C42 37.2 35 43 27 43S12 37.2 6.5 27Z" className="ad-mark-orbit"/><path d="m23 19 13 8-13 8V19Z" className="ad-mark-play"/><path d="M43.5 9.5 46 4l2.5 5.5L54 12l-5.5 2.5L46 20l-2.5-5.5L38 12l5.5-2.5Z" className="ad-mark-spark"/></svg>}
+function BrandMark({className=''}){return <svg className={'ad-brand-mark '+className} viewBox="0 0 54 54" fill="none" aria-hidden="true"><defs><linearGradient id="adLogoGradient" x1="9" y1="8" x2="43" y2="45" gradientUnits="userSpaceOnUse"><stop stopColor="#a79cff"/><stop offset="1" stopColor="#70d8e7"/></linearGradient></defs><path d="M9 41 21.7 12.8c1.9-4.1 7.7-4.1 9.6 0L44 41" className="ad-mark-orbit"/><path d="M17.5 29.5h19" className="ad-mark-play"/><circle cx="42.5" cy="12" r="3.2" className="ad-mark-spark"/></svg>}
 function Header({onSearch}){
  const [q,setQ]=useState('');
  const nav=useNavigate();

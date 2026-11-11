@@ -23,6 +23,8 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   await expect(page.locator('#boot-screen')).toHaveCount(0);
   await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
   await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '18px');
+  await expect(page.locator('.ad-section').first().locator('.ad-poster').first()).toHaveCSS('position', 'absolute');
+  await expect(page.locator('.ad-section').first().locator('.ad-tile-info').first()).toHaveCSS('position', 'absolute');
   await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
   expect(assetFailures).toEqual([]);
   expect(pageErrors).toEqual([]);
