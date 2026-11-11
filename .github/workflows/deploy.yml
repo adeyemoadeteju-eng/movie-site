@@ -12,7 +12,7 @@ permissions:
 concurrency:
   # Keep PR validation isolated from production deploys.
   # A PR update must never cancel or queue behind the main Pages deployment.
-  group: pages-${{ github.event_name }}-${{ github.ref }}
+  group: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'pages' || format('pages-{0}-{1}', github.event_name, github.ref) }}
   cancel-in-progress: true
 jobs:
   build:
