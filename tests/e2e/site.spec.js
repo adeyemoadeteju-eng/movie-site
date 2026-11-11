@@ -47,6 +47,14 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
 test('search and anime details page load and episode links are present', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/anime/info/*', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({
+      id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
+      description: 'A test series', coverImage: { large: '', extraLarge: '' }, format: 'TV',
+      seasonYear: 2024, episodes: 3, genres: ['Action'], status: 'FINISHED',
+      relations: { edges: [{ relationType: 'SEQUEL', node: { id: 2, type: 'ANIME', format: 'TV', title: { english: 'Test Anime Season 2' }, coverImage: { large: '', extraLarge: '' }, episodes: 12 } }] }
+    })
+  }));
   await page.route('**/anime/episodes/*', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
@@ -75,6 +83,9 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-detail-copy h1')).not.toBeEmpty();
   await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
+  await expect(page.locator('.ad-episodes h2')).toHaveText('Season 1 Episodes');
+  await expect(page.locator('.ad-episode-grid a').first()).toContainText('S1 · EP 1');
+  await expect(page.getByRole('link', { name: /Next season Test Anime Season 2/ })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
