@@ -8,7 +8,8 @@ A React and Vite anime discovery and watch frontend.
 - Search the AniList catalogue and open anime details.
 - View episode lists and switch between Sub and Dub.
 - Load playback sources from the configured anime API, with the configured embed as a fallback.
-- Responsive dark interface with a compact poster grid.
+- AniWorld Downloader-style catalogue with genre chips, separate trending/popular rows, and the original poster-card layout.
+- Reference-style title modal, language selector, and episode accordion.
 
 ## Data and playback
 
@@ -34,4 +35,4 @@ Create a `.env` file to override the backend URL or configured fallback embed va
 
 ## Third-party notices
 
-The home-page layout, search controls, poster cards, modal structure, and related styling are adapted from the MIT-licensed [AniWorld Downloader](https://github.com/phoenixthrush/AniWorld-Downloader) by phoenixthrush, Tmaster055, SiroxCW, and Yezun-hikari. The upstream copyright and full MIT permission notice are retained in [THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt](THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt). This project adapts the interface to its own AniList catalogue and playback API; it does not include the upstream downloader backend.
+The interface stylesheet and catalogue layout are adapted directly from the MIT-licensed [AniWorld Downloader](https://github.com/phoenixthrush/AniWorld-Downloader) by phoenixthrush, Tmaster055, SiroxCW, and Yezun-hikari. The upstream copyright and full MIT permission notice are retained in [THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt](THIRD_PARTY_LICENSES/AniWorld-Downloader-MIT.txt). The app-specific catalogue data and playback routes remain powered by this project's AniList-compatible API.
