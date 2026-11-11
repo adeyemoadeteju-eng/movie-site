@@ -3,16 +3,47 @@
   <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="theme-color" content="#0a0a0f"/>
+    <meta name="theme-color" content="#14151a"/>
+    <meta name="description" content="Browse anime, discover new series, and explore episode details on AnimeDex."/>
+    <title>AnimeDex</title>
+    <style>
+      html,body{margin:0;min-height:100%;background:#14151a;color:#fff;font-family:Arial,sans-serif}
+      #boot-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#14151a;text-align:center;padding:24px}
+      .boot-card{max-width:420px}
+      .boot-brand{font-size:42px;font-weight:800;letter-spacing:-2px}
+      .boot-brand b{color:#ed3832}
+      #boot-status{color:#bbb;font-size:14px;line-height:1.6}
+      #boot-retry{display:none;margin-top:14px;padding:10px 18px;border:0;border-radius:5px;background:#ed3832;color:#171717;font-weight:700;cursor:pointer}
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png"/>
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/fiskryeziu/zoroClone/main/src/assets/images/logo.png"/>
-    <title>Zoro.to</title>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-screen" role="status" aria-live="polite">
+      <div class="boot-card">
+        <div class="boot-brand">Anime<b>Dex</b></div>
+        <p id="boot-status">Starting AnimeDex…</p>
+        <button id="boot-retry" type="button" onclick="window.__animeDexRetry()">Reload site</button>
+      </div>
+    </div>
+    <noscript><p style="padding:24px;color:#fff">AnimeDex needs JavaScript enabled to display the catalogue.</p></noscript>
+    <script>
+      window.__animeDexRetry=function(){
+        var next=new URL(window.location.href);
+        next.searchParams.set('refresh',String(Date.now()));
+        window.location.replace(next.href);
+      };
+      window.setTimeout(function(){
+        var status=document.getElementById('boot-status');
+        var retry=document.getElementById('boot-retry');
+        if(status&&document.getElementById('boot-screen')){
+          status.textContent='The app is taking longer than expected to start. Reload to fetch the newest version.';
+          if(retry)retry.style.display='inline-block';
+        }
+      },12000);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
