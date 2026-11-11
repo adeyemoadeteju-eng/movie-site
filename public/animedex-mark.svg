@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="animeDex" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff7185"/>
+      <stop offset="1" stop-color="#ff9a72"/>
+    </linearGradient>
+  </defs>
+  <path d="M7.5 32C14.1 19.8 22.2 13.5 32 13.5s17.9 6.3 24.5 18.5C49.9 44.2 41.8 50.5 32 50.5S14.1 44.2 7.5 32Z" fill="#151923" stroke="url(#animeDex)" stroke-width="4.3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m27 22.8 17 9.2-17 9.2V22.8Z" fill="url(#animeDex)"/>
+  <path d="m51 8 2.1 4.7 4.9 2.1-4.9 2.1L51 21.6l-2.1-4.7-4.9-2.1 4.9-2.1L51 8Z" fill="#ffd2a2"/>
+</svg>

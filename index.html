@@ -3,15 +3,18 @@
   <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="theme-color" content="#14151a"/>
+    <meta name="theme-color" content="#0c0e14"/>
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%animedex-mark.svg"/>
+    <link rel="apple-touch-icon" href="%BASE_URL%animedex-mark.svg"/>
     <meta name="description" content="Browse anime, discover new series, and explore episode details on AnimeDex."/>
     <title>AnimeDex</title>
     <style>
       html,body{margin:0;min-height:100%;background:#14151a;color:#fff;font-family:Arial,sans-serif}
       #boot-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#14151a;text-align:center;padding:24px}
       .boot-card{max-width:420px}
-      .boot-brand{font-size:42px;font-weight:800;letter-spacing:-2px}
-      .boot-brand b{color:#ed3832}
+      .boot-lockup{display:flex;align-items:center;justify-content:center;gap:10px;font-size:40px;font-weight:800;letter-spacing:-2px}
+      .boot-lockup img{width:52px;height:52px}
+      .boot-lockup b{background:linear-gradient(105deg,#ff7185,#ff9b72);-webkit-background-clip:text;background-clip:text;color:transparent}
       #boot-status{color:#bbb;font-size:14px;line-height:1.6}
       #boot-retry{display:none;margin-top:14px;padding:10px 18px;border:0;border-radius:5px;background:#ed3832;color:#171717;font-weight:700;cursor:pointer}
     </style>
@@ -23,7 +26,7 @@
     <div id="root"></div>
     <div id="boot-screen" role="status" aria-live="polite">
       <div class="boot-card">
-        <div class="boot-brand">Anime<b>Dex</b></div>
+        <div class="boot-lockup"><img src="%BASE_URL%animedex-mark.svg" alt=""/><span>Anime<b>Dex</b></span></div>
         <p id="boot-status">Starting AnimeDex…</p>
         <button id="boot-retry" type="button" onclick="window.__animeDexRetry()">Reload site</button>
       </div>
