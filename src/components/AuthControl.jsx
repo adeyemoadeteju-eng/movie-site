@@ -139,8 +139,12 @@ export default function AuthControl(){
   <button type="button" className="ad-settings-trigger ad-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}}>{session?.user?(profile?.display_name||profile?.username||'Account'):'Sign in'}</button>
   {open&&<div className="ad-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
    <section className="ad-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-auth-title">
-    <div className="ad-auth-heading"><div><span className="ad-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ad-auth-title">{session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
-    {session?.user?<>
+    <div className="ad-auth-heading"><div><span className="ad-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ad-auth-title">{recoveryMode?'Choose a new password':session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
+    {session?.user&&recoveryMode?<form className="ad-profile-form" onSubmit={updatePassword}>
+     <label>New password<input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={event=>setNewPassword(event.target.value)} required/></label>
+     <p className="ad-auth-help">Choose a new password with at least 8 characters.</p>
+     <button type="submit" className="ad-auth-primary" disabled={busy}>{busy?'Updating…':'Update password'}</button>
+    </form>:session?.user?<>
      <div className="ad-auth-signed-in"><span className="ad-auth-avatar">{avatarUrl?<img src={avatarUrl} alt="Your avatar"/>:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><div><b>{profile?.display_name||profile?.username||'AniOrbit member'}</b><small>{session.user.email}</small></div></div>
      {profile&&<form className="ad-profile-form" onSubmit={saveProfile}>
       <div className="ad-avatar-control"><label htmlFor="ad-avatar-upload">Profile avatar</label><input id="ad-avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAvatar} disabled={busy}/><small>JPG, PNG, or WebP · 2 MB max · visible to signed-in members when used in comments</small></div>
