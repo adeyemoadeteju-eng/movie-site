@@ -10,8 +10,6 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  # Keep PR validation isolated from production deploys.
-  # A PR update must never cancel or queue behind the main Pages deployment.
   group: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'pages' || format('pages-{0}-{1}', github.event_name, github.ref) }}
   cancel-in-progress: true
 jobs:
@@ -36,10 +34,6 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
-      - name: Install Chromium for browser tests
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
       - name: Run browser tests against the production build
