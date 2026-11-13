@@ -73,7 +73,8 @@ async function api(path){
  return requestApi(path,ttl);
 }
 const title=a=>a?.title?.english||a?.title?.romaji||a?.title?.native||a?.name||'Untitled';
-const image=a=>a?.coverImage?.extraLarge||a?.coverImage?.large||a?.image||a?.poster||'';
+const imageCandidates=a=>[...new Set([a?.coverImage?.extraLarge,a?.coverImage?.large,a?.image,a?.poster].filter(value=>typeof value==='string'&&value.trim()))];
+const image=a=>imageCandidates(a)[0]||'';
 const clean=s=>(s||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 function trailerEmbed(anime){
  const trailer=anime?.trailer;
@@ -122,7 +123,7 @@ function libraryAnime(anime){
  return {
   id:Number(anime?.id)||anime?.id,
   title:{english:anime?.title?.english||anime?.title?.romaji||anime?.title?.native||anime?.name||'Untitled',romaji:anime?.title?.romaji||'',native:anime?.title?.native||''},
-  coverImage:{large:image(anime),extraLarge:image(anime)},
+  coverImage:{large:anime?.coverImage?.large||anime?.image||anime?.poster||anime?.coverImage?.extraLarge||'',extraLarge:anime?.coverImage?.extraLarge||anime?.coverImage?.large||anime?.image||anime?.poster||''},
   genres:Array.isArray(anime?.genres)?anime.genres.slice(0,8):[],
   format:anime?.format||'TV',
   seasonYear:anime?.seasonYear||null,
@@ -193,6 +194,42 @@ function Header({onSearch,onSettings}){
 function Footer(){return <footer className="ad-footer"><div className="ad-footer-inner"><Link to="/" className="ad-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ad-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading={priority?'eager':'lazy'} decoding="async" fetchPriority={priority?'high':'auto'} src={image(item)} alt={title(item)}/>:<div className="ad-no-image"><span>No artwork</span></div>}<span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
 function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ad-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x} priority={i<3}/>):<div className="ad-empty">{loading?'Loading anime...':emptyLabel}</div>}</div>}
+function ContinuePoster({item}){
+ const candidates=imageCandidates(item);
+ const [src,setSrc]=useState(candidates[0]||'');
+ const [missing,setMissing]=useState(!candidates.length);
+ const attempted=useRef(new Set());
+ const refreshed=useRef(false);
+ const freshArtwork=useRef(null);
+ const persistFreshArtwork=()=>{
+  const fresh=freshArtwork.current;
+  if(!fresh)return;
+  freshArtwork.current=null;
+  const summary=libraryAnime(fresh);
+  updateLibrary(data=>({
+   ...data,
+   history:data.history.map(entry=>String(entry.id)===String(item.id)?{...entry,coverImage:summary.coverImage}:entry),
+   watchlist:data.watchlist.map(entry=>String(entry.id)===String(item.id)?{...entry,coverImage:summary.coverImage}:entry)
+  }));
+ };
+ const retryArtwork=async()=>{
+  if(src)attempted.current.add(src);
+  const alternate=candidates.find(candidate=>!attempted.current.has(candidate));
+  if(alternate){setSrc(alternate);return;}
+  if(!refreshed.current&&item?.id){
+   refreshed.current=true;
+   try{
+    const fresh=await api('/anime/info/'+encodeURIComponent(item.id));
+    const current=imageCandidates(fresh);
+    const replacement=current.find(candidate=>!attempted.current.has(candidate));
+    if(replacement){freshArtwork.current=fresh;setSrc(replacement);return;}
+   }catch{}
+  }
+  setMissing(true);
+ };
+ if(missing)return <div className="ad-continue-poster ad-continue-poster-empty" role="img" aria-label={'Artwork unavailable for '+title(item)}><span>ANIORBIT</span></div>;
+ return <img className="ad-continue-poster" src={src} alt="" loading="lazy" decoding="async" onError={retryArtwork} onLoad={persistFreshArtwork}/>;
+}
 function Home(){
  const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender'};
  const [prefs,setPrefs]=useState(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem('animedex-settings')||'{}')}}catch{return defaults}});
@@ -301,7 +338,7 @@ function Home(){
 
  {continueList.length>0&&<section className="ad-personal-section" aria-label="Continue watching">
   <div className="ad-personal-heading"><div><span className="ad-discovery-kicker">PICK UP WHERE YOU LEFT OFF</span><h2>Continue Watching</h2></div><span>Saved on this device</span></div>
-  <div className="ad-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);return <Link className="ad-continue-card" key={item.id} to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><img src={image(item)} alt="" loading="lazy"/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}</small><em>Continue watching ↗</em></span></Link>})}</div>
+  <div className="ad-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);return <div className="ad-continue-card" key={item.id}><Link className="ad-continue-main" to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><ContinuePoster item={item}/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}</small><em>Continue watching ↗</em></span></Link><button className="ad-continue-remove" type="button" title="Remove from Continue Watching" aria-label={'Remove '+title(item)+' from Continue Watching'} onClick={()=>updateLibrary(data=>({...data,history:data.history.filter(entry=>String(entry.id)!==String(item.id))}))}>×</button></div>})}</div>
  </section>}
  {recommendations.length>0&&<section className="ad-section ad-recommendations"><div className="ad-personal-heading"><div><span className="ad-discovery-kicker">BASED ON WHAT YOU VIEWED</span><h2>Picked for You</h2></div></div><TileGrid items={recommendations} loading={false}/></section>}
  {libraryData.watchlist.length>0&&<section className="ad-section ad-my-list" id="my-list">
