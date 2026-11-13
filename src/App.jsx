@@ -1,5 +1,6 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {HashRouter,Link,Route,Routes,useNavigate,useParams,useSearchParams} from 'react-router-dom';
+import AuthControl from './components/AuthControl.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 const API_CACHE_KEY='animedex-api-cache-v1';
@@ -185,7 +186,7 @@ function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
- return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
+ return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><AuthControl/>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
 }
 function Footer(){return <footer className="ad-footer"><div className="ad-footer-inner"><Link to="/" className="ad-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ad-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading={priority?'eager':'lazy'} decoding="async" fetchPriority={priority?'high':'auto'} src={image(item)} alt={title(item)}/>:<div className="ad-no-image"><span>No artwork</span></div>}<span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
