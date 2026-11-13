@@ -26,8 +26,9 @@ For local development, copy `.env.example` to `.env` and fill in the same two pu
 3. Open the repository file `supabase/migrations/202611130001_aniorbit_community.sql`.
 4. Copy the full SQL into a new SQL query and run it once.
 5. Confirm the `profiles`, `anime_comments`, and `comment_likes` tables appear in Table Editor.
+6. Run `supabase/migrations/202611130002_private_profiles.sql` as a second query. This sets profiles to private by default and updates the signup trigger so new profiles remain private unless a member opts in.
 
-The migration enables RLS, creates a pseudonymous profile automatically after signup, and creates a private avatar bucket with a 2 MB limit for JPEG, PNG, and WebP files.
+The migrations enable RLS, create a pseudonymous profile automatically after signup, and create a private avatar bucket with a 2 MB limit for JPEG, PNG, and WebP files.
 
 ## 3. Configure authentication URLs
 
@@ -44,4 +45,4 @@ If the site later moves to a custom domain, update these URLs then.
 
 ## 4. What is and isn't active yet
 
-The frontend Supabase client and database foundation are being added on the AniOrbit feature branch. This does not turn on registration or comments by itself. The next implementation step is the actual sign-up/login UI, profile editor, avatar upload flow, and community components, followed by tests of RLS with separate test accounts.
+The frontend now includes sign-up, sign-in, password-reset, sign-out, and a basic profile editor. The first migration creates the schema; the second migration makes profile visibility private by default. Comments and likes still need their user-facing components, moderation controls, and testing before public launch.
