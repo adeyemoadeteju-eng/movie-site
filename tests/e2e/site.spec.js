@@ -163,7 +163,7 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-episodes h2')).toHaveText('Season 1 Episodes');
   await expect(page.locator('.ad-episode-grid a').first()).toContainText('S1 · EP 1');
   await expect(page.getByRole('link', { name: /Next season Test Anime Season 2/ })).toBeVisible();
-  await expect(page.locator('.ad-section .ad-tile')).toContainText('Recommended Pick');
+  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Recommended Pick');
   expect(similarGenreRequests).toBe(0);
   expect(errors).toEqual([]);
 });
