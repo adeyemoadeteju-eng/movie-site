@@ -90,6 +90,96 @@ function seasonNumberFor(anime){
  return edges.some(edge=>edge?.relationType==='PREQUEL'&&edge?.node?.type==='ANIME'&&['TV','ONA'].includes(edge?.node?.format))?2:1;
 }
 
+const LIBRARY_KEY='animedex-library-v1';
+function emptyLibrary(){return {watchlist:[],history:[],watchedEpisodes:{},notifiedEpisodes:[]};}
+function readLibrary(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(LIBRARY_KEY)||'{}');
+  return {...emptyLibrary(),...saved,watchlist:Array.isArray(saved.watchlist)?saved.watchlist:[],history:Array.isArray(saved.history)?saved.history:[],watchedEpisodes:saved.watchedEpisodes&&typeof saved.watchedEpisodes==='object'?saved.watchedEpisodes:{},notifiedEpisodes:Array.isArray(saved.notifiedEpisodes)?saved.notifiedEpisodes:[]};
+ }catch{return emptyLibrary();}
+}
+function writeLibrary(next){
+ try{localStorage.setItem(LIBRARY_KEY,JSON.stringify(next));}catch{}
+ try{window.dispatchEvent(new Event('animedex-library-change'));}catch{}
+ return next;
+}
+function updateLibrary(update){return writeLibrary(update(readLibrary()));}
+function useLibraryData(){
+ const [data,setData]=useState(()=>readLibrary());
+ useEffect(()=>{
+  const refresh=()=>setData(readLibrary());
+  window.addEventListener('animedex-library-change',refresh);
+  window.addEventListener('storage',refresh);
+  return()=>{window.removeEventListener('animedex-library-change',refresh);window.removeEventListener('storage',refresh);};
+ },[]);
+ return data;
+}
+function libraryAnime(anime){
+ return {
+  id:Number(anime?.id)||anime?.id,
+  title:{english:anime?.title?.english||anime?.title?.romaji||anime?.title?.native||anime?.name||'Untitled',romaji:anime?.title?.romaji||'',native:anime?.title?.native||''},
+  coverImage:{large:image(anime),extraLarge:image(anime)},
+  genres:Array.isArray(anime?.genres)?anime.genres.slice(0,8):[],
+  format:anime?.format||'TV',
+  seasonYear:anime?.seasonYear||null,
+  status:anime?.status||null,
+  nextAiringEpisode:anime?.nextAiringEpisode||null
+ };
+}
+function rememberAnime(anime){
+ if(!anime?.id)return;
+ const summary=libraryAnime(anime);
+ const recommendations=(anime?.recommendations?.nodes||[]).map(node=>{
+  const item=node?.mediaRecommendation||node;
+  if(!item?.id)return null;
+  return {...libraryAnime(item),meanScore:item.meanScore||item.averageScore||null,recommendationRating:Number(node?.rating)||0};
+ }).filter(Boolean).slice(0,10);
+ updateLibrary(data=>{
+  const previous=data.history.find(item=>String(item.id)===String(anime.id));
+  const entry={...previous,...summary,viewedAt:Date.now(),recommendations:recommendations.length?recommendations:(previous?.recommendations||[])};
+  return {...data,history:[entry,...data.history.filter(item=>String(item.id)!==String(anime.id))].slice(0,30)};
+ });
+}
+function recordEpisodeStart(id,episode,audio,name){
+ const key=String(id),number=Math.max(1,Number(episode)||1);
+ updateLibrary(data=>{
+  const old=data.history.find(item=>String(item.id)===key)||{...libraryAnime({id:Number(id),title:{english:name||'Anime'}}),recommendations:[]};
+  return {...data,history:[{...old,lastEpisode:number,audio:audio==='dub'?'dub':'sub',lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
+ });
+}
+function markEpisodeWatched(id,episode){
+ const key=String(id),number=Math.max(1,Number(episode)||1);
+ updateLibrary(data=>{
+  const watched=Array.isArray(data.watchedEpisodes[key])?data.watchedEpisodes[key]:[];
+  const nextWatched=[...new Set([...watched,number])].sort((a,b)=>a-b);
+  const old=data.history.find(item=>String(item.id)===key)||{...libraryAnime({id:Number(id)}),recommendations:[]};
+  return {...data,watchedEpisodes:{...data.watchedEpisodes,[key]:nextWatched},history:[{...old,lastEpisode:number,lastCompletedEpisode:number,lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
+ });
+}
+function continueEpisode(item,library){
+ const last=Math.max(1,Number(item?.lastEpisode)||1);
+ const watched=library?.watchedEpisodes?.[String(item?.id)]||[];
+ return watched.includes(last)?last+1:last;
+}
+function getPersonalRecommendations(library){
+ const seen=new Set([...(library?.history||[]),...(library?.watchlist||[])].map(item=>String(item.id)));
+ const ranked=new Map();
+ for(const history of library?.history||[]){
+  for(const item of history.recommendations||[]){
+   if(!item?.id||seen.has(String(item.id)))continue;
+   const key=String(item.id),current=ranked.get(key)||{item,score:0};
+   current.score+=10+Math.min(100,Number(item.recommendationRating)||0)/10;
+   ranked.set(key,current);
+  }
+ }
+ return [...ranked.values()].sort((a,b)=>b.score-a.score).slice(0,12).map(entry=>entry.item);
+}
+function formatAiringTime(timestamp){
+ const value=Number(timestamp);
+ if(!value)return 'Time not available';
+ try{return new Date(value*1000).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});}catch{return 'Time not available';}
+}
+
 function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
@@ -104,16 +194,91 @@ function Home(){
  const [prefs,setPrefs]=useState(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem('animedex-settings')||'{}')}}catch{return defaults}});
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [selectedGenre,setSelectedGenre]=useState('');const [formatFilter,setFormatFilter]=useState('all');
+ const [filtersOpen,setFiltersOpen]=useState(false);
+ const [discovery,setDiscovery]=useState({genre:'',year:'',season:'',format:'',status:'',studio:'',minRating:'',popularity:'',sort:'POPULARITY_DESC'});
+ const [discoveryGenres,setDiscoveryGenres]=useState(['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi']);
+ const libraryData=useLibraryData();
+ const recommendations=getPersonalRecommendations(libraryData);
+ const continueList=libraryData.history.filter(item=>item.lastEpisode);
+ const [airingAlerts,setAiringAlerts]=useState([]);
+ const [alertMessage,setAlertMessage]=useState('');
+ const [notificationPermission,setNotificationPermission]=useState(()=>('Notification' in window?Notification.permission:'unsupported'));
+ const alertTimers=useRef(new Map());
+ const followedKey=libraryData.watchlist.map(item=>String(item.id)).sort().join(',');
+
  const [data,setData]=useState({popular:[],recent:[],loading:true,error:''});
  const [query,setQuery]=useState(new URLSearchParams(location.hash.split('?')[1]||'').get('q')||'');
  const [results,setResults]=useState(null);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
  const [slide,setSlide]=useState(0);const request=useRef(0);
  useEffect(()=>{try{localStorage.setItem('animedex-settings',JSON.stringify(prefs));document.documentElement.dataset.accent=prefs.accent||'lavender'}catch{}},[prefs]);
+ useEffect(()=>{if(!filtersOpen)return;let live=true;api('/anime/genres').then(data=>{if(live&&Array.isArray(data.genres)&&data.genres.length)setDiscoveryGenres(data.genres)}).catch(()=>{});return()=>{live=false}},[filtersOpen]);
+ useEffect(()=>{
+  if(!followedKey){setAiringAlerts([]);return;}
+  let live=true;
+  const refreshSchedule=async()=>{
+   try{
+    const data=await api('/anime/schedule?page=1&per_page=50');
+    if(!live)return;
+    const followed=new Set(followedKey.split(','));
+    const matching=(data.results||[]).filter(item=>followed.has(String(item.id))&&item.next_episode&&item.airingAt);
+    setAiringAlerts(matching);
+    if(notificationPermission==='granted'&&'Notification' in window){
+     const library=readLibrary(),delivered=new Set(library.notifiedEpisodes||[]);
+     for(const item of matching){
+      const key=String(item.id)+':'+String(item.next_episode);
+      if(delivered.has(key)||alertTimers.current.has(key))continue;
+      const when=Number(item.airingAt)*1000,delay=when-Date.now();
+      if(!Number.isFinite(when)||delay>7*24*60*60*1000)continue;
+      const timer=window.setTimeout(()=>{
+       try{new Notification('New episode airing',{body:title(item)+' · Episode '+item.next_episode+' is scheduled now.'});}catch{}
+       const latest=readLibrary();
+       writeLibrary({...latest,notifiedEpisodes:[...(latest.notifiedEpisodes||[]),key].slice(-150)});
+       alertTimers.current.delete(key);
+      },Math.max(0,delay));
+      alertTimers.current.set(key,timer);
+     }
+    }
+   }catch{if(live)setAlertMessage('The airing schedule is temporarily unavailable.');}
+  };
+  refreshSchedule();
+  const interval=window.setInterval(refreshSchedule,15*60*1000);
+  return()=>{live=false;window.clearInterval(interval);for(const timer of alertTimers.current.values())window.clearTimeout(timer);alertTimers.current.clear();};
+ },[followedKey,notificationPermission]);
+ const enableEpisodeAlerts=async()=>{
+  if(!('Notification' in window)){setNotificationPermission('unsupported');setAlertMessage('Browser notifications are not supported here. Your in-site airing list will still work.');return;}
+  try{
+   const permission=await Notification.requestPermission();
+   setNotificationPermission(permission);
+   setAlertMessage(permission==='granted'?'Episode alerts are enabled while AnimeDex is open.':permission==='denied'?'Notifications are blocked in your browser settings.':'Notification permission was not granted.');
+  }catch{setAlertMessage('Could not request notification permission in this browser.');}
+ };
+
  useEffect(()=>{let live=true;api('/anime/home').then(home=>{if(live)setData({popular:Array.isArray(home.popular)?home.popular:[],recent:Array.isArray(home.recent)?home.recent:[],loading:false,error:''})}).catch(error=>{if(live)setData({popular:[],recent:[],loading:false,error:error.message||'Could not connect to catalogue.'})});return()=>{live=false}},[]);
  const featured=data.popular[slide%Math.max(data.popular.length,1)];
  const search=async (e,term=query)=>{e?.preventDefault();const q=String(term||'').trim();if(!q){setResults(null);setSelectedGenre('');return}setQuery(q);setSelectedGenre('');setFormatFilter('all');const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
  const filterGenre=async genre=>{const id=++request.current;setSelectedGenre(genre);setFormatFilter('all');setQuery(genre);setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(e){if(id===request.current)setErr(e.message)}finally{if(id===request.current)setBusy(false)}};
  useEffect(()=>{const q=new URLSearchParams(location.hash.split('?')[1]||'').get('q');if(q){setQuery(q);searchQuery(q)}},[]);
+
+ const applyDiscovery=async e=>{
+  e?.preventDefault();
+  const id=++request.current;
+  const params=new URLSearchParams({page:'1',per_page:'50',sort:discovery.sort||'POPULARITY_DESC'});
+  ['genre','year','season','format','status'].forEach(key=>{if(discovery[key])params.set(key,discovery[key]);});
+  setBusy(true);setErr('');setResults([]);setSelectedGenre(discovery.genre||'');setQuery('');setFormatFilter('all');
+  try{
+   const data=await api('/anime/filter?'+params.toString());
+   const studio=discovery.studio.trim().toLocaleLowerCase();
+   const minRating=Number(discovery.minRating)||0,minPopularity=Number(discovery.popularity)||0;
+   const filtered=(data.results||[]).filter(item=>{
+    const score=Number(item.averageScore||item.meanScore||0),popularity=Number(item.popularity)||0;
+    const studios=(item.studios?.nodes||[]).map(node=>node?.name||'').join(' ').toLocaleLowerCase();
+    return (!minRating||score>=minRating)&&(!minPopularity||popularity>=minPopularity)&&(!studio||studios.includes(studio));
+   });
+   if(id===request.current)setResults(filtered);
+  }catch(error){if(id===request.current)setErr(error.message||'Could not apply discovery filters.');}
+  finally{if(id===request.current)setBusy(false);}
+ };
+
  async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults(d.results||[])}catch(e){setErr(e.message)}finally{setBusy(false)}}
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE'));
@@ -130,6 +295,36 @@ function Home(){
  {results===null?<>
  <section className="ad-hero">{featured?<> {prefs.autoplayTrailer&&trailerEmbed(featured)?<iframe className="ad-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIMEDEX DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
  {prefs.quickTags&&<section className="ad-quick-tags" aria-label="Browse by genre"><span>Browse by genre</span>{genres.map(genre=><button key={genre} onClick={()=>filterGenre(genre)}>{genre}</button>)}</section>}
+ <section className="ad-discovery-panel" aria-label="Advanced anime discovery">
+  <div className="ad-discovery-heading"><div><span className="ad-discovery-kicker">FIND SOMETHING TO WATCH</span><h2>Advanced discovery</h2></div><button type="button" className="ad-discovery-toggle" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>{filtersOpen?'Hide filters':'Open filters'} <span>{filtersOpen?'−':'+'}</span></button></div>
+  {filtersOpen&&<form className="ad-discovery-form" onSubmit={applyDiscovery}>
+   <label>Genre<select value={discovery.genre} onChange={e=>setDiscovery(value=>({...value,genre:e.target.value}))}><option value="">Any genre</option>{discoveryGenres.map(genre=><option key={genre} value={genre}>{genre}</option>)}</select></label>
+   <label>Year<input type="number" min="1940" max="2100" placeholder="Any year" value={discovery.year} onChange={e=>setDiscovery(value=>({...value,year:e.target.value}))}/></label>
+   <label>Season<select value={discovery.season} onChange={e=>setDiscovery(value=>({...value,season:e.target.value}))}><option value="">Any season</option><option value="WINTER">Winter</option><option value="SPRING">Spring</option><option value="SUMMER">Summer</option><option value="FALL">Fall</option></select></label>
+   <label>Format<select value={discovery.format} onChange={e=>setDiscovery(value=>({...value,format:e.target.value}))}><option value="">Any format</option><option value="TV">TV</option><option value="MOVIE">Movie</option><option value="OVA">OVA</option><option value="ONA">ONA</option><option value="SPECIAL">Special</option></select></label>
+   <label>Status<select value={discovery.status} onChange={e=>setDiscovery(value=>({...value,status:e.target.value}))}><option value="">Any status</option><option value="RELEASING">Airing</option><option value="FINISHED">Completed</option><option value="NOT_YET_RELEASED">Upcoming</option><option value="CANCELLED">Cancelled</option></select></label>
+   <label>Minimum rating<select value={discovery.minRating} onChange={e=>setDiscovery(value=>({...value,minRating:e.target.value}))}><option value="">Any rating</option><option value="60">6/10+</option><option value="70">7/10+</option><option value="80">8/10+</option><option value="90">9/10+</option></select></label>
+   <label>Popularity<select value={discovery.popularity} onChange={e=>setDiscovery(value=>({...value,popularity:e.target.value}))}><option value="">Any popularity</option><option value="10000">10,000+ users</option><option value="50000">50,000+ users</option><option value="100000">100,000+ users</option></select></label>
+   <label>Studio<input type="search" placeholder="e.g. A-1 Pictures" value={discovery.studio} onChange={e=>setDiscovery(value=>({...value,studio:e.target.value}))}/></label>
+   <label>Sort by<select value={discovery.sort} onChange={e=>setDiscovery(value=>({...value,sort:e.target.value}))}><option value="POPULARITY_DESC">Popularity</option><option value="SCORE_DESC">Highest rated</option><option value="TRENDING_DESC">Trending</option><option value="START_DATE_DESC">Newest</option><option value="FAVOURITES_DESC">Most favourited</option></select></label>
+   <div className="ad-discovery-actions"><button type="submit" disabled={busy}>{busy?'Searching…':'Apply filters'}</button><button type="button" onClick={()=>setDiscovery({genre:'',year:'',season:'',format:'',status:'',studio:'',minRating:'',popularity:'',sort:'POPULARITY_DESC'})}>Clear</button></div>
+   <p>Catalogue filters handle genre, year, season, format, status and sorting. Studio, rating and popularity thresholds refine the returned results.</p>
+  </form>}
+ </section>
+
+ {continueList.length>0&&<section className="ad-personal-section" aria-label="Continue watching">
+  <div className="ad-personal-heading"><div><span className="ad-discovery-kicker">PICK UP WHERE YOU LEFT OFF</span><h2>Continue Watching</h2></div><span>Saved on this device</span></div>
+  <div className="ad-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);return <Link className="ad-continue-card" key={item.id} to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><img src={image(item)} alt="" loading="lazy"/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}</small><em>Continue watching ↗</em></span></Link>})}</div>
+ </section>}
+ {recommendations.length>0&&<section className="ad-section ad-recommendations"><div className="ad-personal-heading"><div><span className="ad-discovery-kicker">BASED ON WHAT YOU VIEWED</span><h2>Picked for You</h2></div></div><TileGrid items={recommendations} loading={false}/></section>}
+ {libraryData.watchlist.length>0&&<section className="ad-section ad-my-list" id="my-list">
+  <div className="ad-personal-heading"><div><span className="ad-discovery-kicker">YOUR SAVED SHOWS</span><h2>My Watchlist</h2></div><button className="ad-alert-button" onClick={enableEpisodeAlerts}>{notificationPermission==='granted'?'Episode alerts enabled':'Enable episode alerts'}</button></div>
+  <TileGrid items={libraryData.watchlist} loading={false}/>
+  <p className="ad-alert-note">Airing reminders use the catalogue's episode timetable. Browser notifications need permission and AnimeDex to remain open.</p>
+  {alertMessage&&<p className="ad-alert-message" role="status">{alertMessage}</p>}
+  {airingAlerts.length>0?<div className="ad-airing-list"><h3>Upcoming episodes in your list</h3>{airingAlerts.map(item=><div className="ad-airing-item" key={item.id+':'+item.next_episode}><b>{title(item)}</b><span>Episode {item.next_episode} · {formatAiringTime(item.airingAt)}</span></div>)}</div>:<p className="ad-alert-note">No followed shows are currently in the next schedule results.</p>}
+ </section>}
+
  <section className="ad-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  <section className="ad-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  </>:<section className="ad-section ad-results">
@@ -144,6 +339,7 @@ function Home(){
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
+ const libraryData=useLibraryData();
  const [watchOptions,setWatchOptions]=useState(null);const [watchOptionsLoading,setWatchOptionsLoading]=useState(false);
  const loadEpisodes=async()=>{
   setEpisodesLoading(true);setEpisodesError('');
@@ -183,6 +379,7 @@ function Details(){
    .forEach(edge=>add(edge?.node,35));
   setSimilar([...pool.values()].sort((a,b)=>b.score-a.score).slice(0,10).map(entry=>entry.item));
  },[anime?.id]);
+ useEffect(()=>{if(anime?.id)rememberAnime(anime);},[anime?.id]);
  useEffect(()=>{loadEpisodes();},[id]);
  useEffect(()=>{
   let live=true;
@@ -196,11 +393,17 @@ function Details(){
  },[id]);
  const count=Math.min(Number(anime?.episodes)||0,500);
  const displayedEpisodes=episodeList.length?episodeList:Array.from({length:count},(_,i)=>({number:i+1,title:'Episode '+(i+1)}));
+
+ const isFollowing=libraryData.watchlist.some(item=>String(item.id)===String(id));
+ const toggleFollow=()=>{
+  const saved=libraryAnime(anime);
+  updateLibrary(data=>({...data,watchlist:data.watchlist.some(item=>String(item.id)===String(id))?data.watchlist.filter(item=>String(item.id)!==String(id)):[saved,...data.watchlist].slice(0,100)}));
+ };
  const seasonNumber=seasonNumberFor(anime);
  const seasonLinks=(anime?.relations?.edges||[]).filter(edge=>['PREQUEL','SEQUEL'].includes(edge?.relationType)&&edge?.node?.type==='ANIME'&&['TV','ONA'].includes(edge?.node?.format)&&edge?.node?.id).filter((edge,index,all)=>all.findIndex(other=>String(other.node.id)===String(edge.node.id))===index).sort((a,b)=>(a.relationType==='PREQUEL'?-1:1)-(b.relationType==='PREQUEL'?-1:1));
  return <><Header/>{loading?<div className="ad-loading">Loading anime...</div>:anime?<main className="ad-detail">
  <div className="ad-detail-backdrop" style={{backgroundImage:'url('+image(anime)+')'}}/>
- <section className="ad-detail-top"><div className="ad-detail-poster"><img src={image(anime)} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
+ <section className="ad-detail-top"><div className="ad-detail-poster"><img src={image(anime)} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><button className="ad-follow-button" type="button" onClick={toggleFollow}>{isFollowing?'✓ In your watchlist':'+ Add to watchlist'}</button><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
  <section className="ad-section ad-dub-finder" aria-labelledby="ad-dub-heading">
   <div className="ad-dub-heading">
    <div><span className="ad-dub-kicker">OFFICIAL STREAMING LOOKUP · CANADA</span><h2 id="ad-dub-heading">English dub finder</h2></div>
@@ -219,15 +422,17 @@ function Details(){
     <p className="ad-dub-message">The official service lookup is temporarily unavailable. Try again later.</p>}
   <p className="ad-dub-footnote">This finder points to licensed service listings; it does not extract or host video files.</p>
  </section>
- <section className="ad-episodes" id="watch"><h2>Season {seasonNumber} Episodes</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>▶</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
+ <section className="ad-episodes" id="watch"><h2>Season {seasonNumber} Episodes</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>{(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))?'✓':'▶'}</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const mal=params.get('mal')||'';const name=params.get('title')||'Anime';const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
  const own=fallback(mal,episode,audio);
+ const [markedWatched,setMarkedWatched]=useState(()=>((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode))));
+ useEffect(()=>{recordEpisodeStart(id,episode,audio,name);setMarkedWatched((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode)));},[id,episode,audio]);
  useEffect(()=>{let live=true;setLoading(true);setError('');api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
- return <><Header/><main className="ad-watch-page"><Link to={'/anime/'+id} className="ad-back">‹ BACK TO ANIME</Link><h1>{name} - Episode {episode} <small>{audio.toUpperCase()}</small></h1>{loading?<div className="ad-player-message">Preparing playback...</div>:sources[active]?<><div className="ad-player"><iframe key={sources[active].url} src={sources[active].url} title={sources[active].name||'Episode player'} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div><div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div></>:<p className="ad-error">{error||'No source available.'}</p>}</main><Footer/></>
+ return <><Header/><main className="ad-watch-page"><Link to={'/anime/'+id} className="ad-back">‹ BACK TO ANIME</Link><h1>{name} - Episode {episode} <small>{audio.toUpperCase()}</small></h1><div className="ad-watch-progress"><button type="button" className={markedWatched?'is-watched':''} onClick={()=>{markEpisodeWatched(id,episode);setMarkedWatched(true);}}>{markedWatched?'✓ Episode watched':'Mark episode as watched'}</button><span>Episode progress is saved on this device. Embedded players do not expose their playback position to AnimeDex.</span><Link to={'/watch/'+id+'/'+(Number(episode)+1)+'/'+audio+'/embed?title='+encodeURIComponent(name)}>Next episode →</Link></div>{loading?<div className="ad-player-message">Preparing playback...</div>:sources[active]?<><div className="ad-player"><iframe key={sources[active].url} src={sources[active].url} title={sources[active].name||'Episode player'} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div><div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div></>:<p className="ad-error">{error||'No source available.'}</p>}</main><Footer/></>
 }
 class AppErrorBoundary extends React.Component{
  constructor(props){super(props);this.state={error:null}}
