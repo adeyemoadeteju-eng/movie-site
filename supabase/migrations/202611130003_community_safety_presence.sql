@@ -217,6 +217,7 @@ create policy "Members read comment likes"
     )
   );
 
+drop policy if exists "Members like visible comments" on public.comment_likes;
 create policy "Members like visible comments"
   on public.comment_likes for insert
   to authenticated
