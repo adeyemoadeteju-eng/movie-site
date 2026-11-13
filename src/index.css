@@ -715,3 +715,10 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-report-form>div{grid-column:1}
  .ad-moderation-dialog{padding:16px}
 }
+
+.ad-blocked-list{margin:14px 0 0;padding:11px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:#10131b}
+.ad-blocked-list>b{display:block;margin-bottom:8px;color:#c5c8d4;font-size:10px}
+.ad-blocked-list>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid rgba(255,255,255,.05)}
+.ad-blocked-list span{color:#aeb2c0;font-size:9px}
+.ad-blocked-list button{padding:5px 9px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:#222633;color:#c9ccd7;font-size:8px;cursor:pointer}
+.ad-blocked-list button:disabled{opacity:.5;cursor:wait}
