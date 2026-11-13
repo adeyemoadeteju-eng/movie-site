@@ -591,3 +591,46 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-skip-intro{right:9px;bottom:53px;padding:8px 10px;font-size:9px}
  .ad-direct-player{border-radius:6px}
 }
+
+
+/* AniOrbit account and private profile interface */
+.ad-account-trigger{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ad-auth-unavailable{flex:none;color:#777;font-size:10px}
+.ad-auth-backdrop{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:18px;background:rgba(4,6,12,.76);backdrop-filter:blur(8px)}
+.ad-auth-dialog{width:min(440px,100%);max-height:min(86vh,760px);overflow:auto;padding:22px;border:1px solid rgba(226,229,245,.15);border-radius:14px;background:#151821;color:#eee;box-shadow:0 24px 90px rgba(0,0,0,.55)}
+.ad-auth-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
+.ad-auth-kicker{color:#a9a2df;font-size:8px;font-weight:750;letter-spacing:1.5px}
+.ad-auth-heading h2{margin:6px 0 0;color:#f4f3fa;font-size:21px;font-weight:700;letter-spacing:-.5px}
+.ad-auth-heading>button{width:30px;height:30px;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:#222633;color:#ddd;font-size:21px;cursor:pointer}
+.ad-auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:17px;padding:4px;border-radius:8px;background:#10131b}
+.ad-auth-tabs button{padding:9px;border:0;border-radius:6px;background:transparent;color:#999eae;font-size:11px;font-weight:650;cursor:pointer}
+.ad-auth-tabs button.active{background:#292d3d;color:#f1efff}
+.ad-profile-form{display:flex;flex-direction:column;gap:13px}
+.ad-profile-form>label{display:flex;flex-direction:column;gap:6px;color:#c5c8d4;font-size:10px;font-weight:650}
+.ad-profile-form input:not([type=checkbox]),.ad-profile-form textarea{width:100%;min-height:39px;padding:9px 11px;border:1px solid rgba(255,255,255,.11);border-radius:7px;outline:0;background:#10131b;color:#f1f1f5;font:inherit;font-size:12px;font-weight:450}
+.ad-profile-form textarea{resize:vertical;line-height:1.5}
+.ad-profile-form input:focus,.ad-profile-form textarea:focus{border-color:rgba(169,162,223,.7);box-shadow:0 0 0 3px rgba(145,136,220,.1)}
+.ad-profile-form input:disabled,.ad-profile-form textarea:disabled{opacity:.72}
+.ad-profile-form .ad-profile-privacy{display:flex;flex-direction:row;align-items:flex-start;gap:8px;line-height:1.5;font-weight:500}
+.ad-profile-privacy input{margin:1px 0 0;accent-color:#a9a2df}
+.ad-auth-help{margin:0;color:#9298a8;font-size:9px;line-height:1.6}
+.ad-auth-primary,.ad-auth-actions button{min-height:39px;padding:0 14px;border:1px solid #9189ce;border-radius:7px;background:#8179c2;color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+.ad-auth-primary:disabled,.ad-auth-actions button:disabled{opacity:.6;cursor:wait}
+.ad-auth-actions{display:flex;gap:8px}
+.ad-auth-actions button{flex:1}
+.ad-auth-actions button.secondary{border-color:rgba(255,255,255,.13);background:#222633;color:#ccc}
+.ad-auth-text-button{margin-top:14px;padding:0;border:0;background:transparent;color:#b9b2ee;font-size:10px;cursor:pointer}
+.ad-auth-message,.ad-auth-error{margin:14px 0 0;padding:10px 11px;border-radius:7px;font-size:10px;line-height:1.5}
+.ad-auth-message{border:1px solid rgba(105,190,145,.2);background:rgba(48,130,88,.1);color:#a8e0bd}
+.ad-auth-error{border:1px solid rgba(224,110,110,.22);background:rgba(150,52,52,.12);color:#f0aaaa}
+.ad-auth-signed-in{display:flex;align-items:center;gap:11px;margin-bottom:17px;padding:11px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:#10131b}
+.ad-auth-avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#302d49;color:#d8d2ff;font-size:14px;font-weight:800}
+.ad-auth-signed-in>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.ad-auth-signed-in b{color:#eee;font-size:11px}
+.ad-auth-signed-in small{overflow:hidden;color:#9298a8;font-size:9px;text-overflow:ellipsis}
+.ad-auth-signout{width:100%;margin-top:12px;padding:9px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:#20232d;color:#d2d3dc;font-size:10px;font-weight:650;cursor:pointer}
+@media(max-width:700px){
+ .ad-header-inner{gap:8px}
+ .ad-account-trigger{max-width:84px;padding:8px 9px;font-size:9px}
+ .ad-auth-dialog{padding:18px}
+}
