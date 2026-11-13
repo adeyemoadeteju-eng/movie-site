@@ -7,6 +7,7 @@ const API_CACHE=new Map();
 const API_IN_FLIGHT=new Map();
 
 function apiCacheTtl(path){
+ if(path.startsWith('/anime/dub-finder/'))return 6*60*60*1000;
  if(path==='/anime/home')return 2*60*1000;
  if(path.startsWith('/anime/info/'))return 15*60*1000;
  if(path.startsWith('/anime/search?'))return 90*1000;
@@ -143,6 +144,7 @@ function Home(){
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
+ const [watchOptions,setWatchOptions]=useState(null);const [watchOptionsLoading,setWatchOptionsLoading]=useState(false);
  const loadEpisodes=async()=>{
   setEpisodesLoading(true);setEpisodesError('');
   try{
@@ -182,6 +184,16 @@ function Details(){
   setSimilar([...pool.values()].sort((a,b)=>b.score-a.score).slice(0,10).map(entry=>entry.item));
  },[anime?.id]);
  useEffect(()=>{loadEpisodes();},[id]);
+ useEffect(()=>{
+  let live=true;
+  setWatchOptions(null);
+  setWatchOptionsLoading(true);
+  api('/anime/dub-finder/'+encodeURIComponent(id)+'?region=CA')
+   .then(data=>{if(live)setWatchOptions(data)})
+   .catch(error=>{if(live)setWatchOptions({status:'lookup_failed',error:error.message||'Lookup unavailable'})})
+   .finally(()=>{if(live)setWatchOptionsLoading(false)});
+  return()=>{live=false};
+ },[id]);
  const count=Math.min(Number(anime?.episodes)||0,500);
  const displayedEpisodes=episodeList.length?episodeList:Array.from({length:count},(_,i)=>({number:i+1,title:'Episode '+(i+1)}));
  const seasonNumber=seasonNumberFor(anime);
@@ -189,6 +201,24 @@ function Details(){
  return <><Header/>{loading?<div className="ad-loading">Loading anime...</div>:anime?<main className="ad-detail">
  <div className="ad-detail-backdrop" style={{backgroundImage:'url('+image(anime)+')'}}/>
  <section className="ad-detail-top"><div className="ad-detail-poster"><img src={image(anime)} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
+ <section className="ad-section ad-dub-finder" aria-labelledby="ad-dub-heading">
+  <div className="ad-dub-heading">
+   <div><span className="ad-dub-kicker">OFFICIAL STREAMING LOOKUP · CANADA</span><h2 id="ad-dub-heading">English dub finder</h2></div>
+   <span className="ad-dub-auto">Automatic search</span>
+  </div>
+  {watchOptionsLoading?<p className="ad-dub-message">Checking official streaming listings…</p>:
+   watchOptions?.status==='services_found'?<>
+    <p className="ad-dub-message">These services list this title in Canada. Streaming catalogues do not report audio tracks, so an English dub is not confirmed—check the provider’s audio options.</p>
+    <div className="ad-dub-grid">{watchOptions.providers.map(provider=><div className="ad-dub-provider" key={provider.id}>
+     {provider.logoUrl?<img src={provider.logoUrl} alt="" loading="lazy"/>:<span className="ad-dub-logo-fallback">{provider.name?.slice(0,1)||'?'}</span>}
+     <span className="ad-dub-provider-copy"><b>{provider.name}</b><small>{(provider.availabilityTypes||[]).join(' · ')}</small></span>
+    </div>)}</div>
+    {watchOptions.watchGuideUrl&&<a className="ad-dub-guide" href={watchOptions.watchGuideUrl} target="_blank" rel="noopener noreferrer">See full Canadian availability <span>↗</span></a>}
+   </>:watchOptions?.status==='no_listings'?<p className="ad-dub-message">No official streaming services were listed for Canada. That does not necessarily mean an English dub does not exist.</p>:
+    watchOptions?.status==='unmatched'?<p className="ad-dub-message">The title could not be matched confidently in the streaming catalogue, so no service list is shown rather than risking the wrong series.</p>:
+    <p className="ad-dub-message">The official service lookup is temporarily unavailable. Try again later.</p>}
+  <p className="ad-dub-footnote">This finder points to licensed service listings; it does not extract or host video files.</p>
+ </section>
  <section className="ad-episodes" id="watch"><h2>Season {seasonNumber} Episodes</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>▶</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>

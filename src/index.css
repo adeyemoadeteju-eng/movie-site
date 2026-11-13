@@ -472,3 +472,32 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px 8px}
 }
 @media(prefers-reduced-motion:reduce){.ad-home-search button,.ad-tile,.ad-poster img{transition:none!important}}
+
+
+/* Official streaming and dubbed-audio availability lookup */
+.ad-dub-finder{padding-top:5px}
+.ad-dub-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:10px}
+.ad-dub-heading h2{margin:4px 0 0}
+.ad-dub-kicker{color:#aaa3e7;font-size:9px;font-weight:800;letter-spacing:1.1px}
+.ad-dub-auto{flex:none;padding:6px 9px;border:1px solid rgba(226,229,245,.1);border-radius:4px;color:#aeb2bf;font-size:9px;font-weight:700}
+.ad-dub-message{max-width:900px;margin:0 0 14px;color:#aeb3c1;font-size:11px;line-height:1.7}
+.ad-dub-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px}
+.ad-dub-provider{min-width:0;min-height:62px;display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid rgba(226,229,245,.09);border-radius:6px;background:rgba(255,255,255,.025)}
+.ad-dub-provider>img{width:38px;height:38px;flex:none;object-fit:contain;border-radius:4px;background:#fff}
+.ad-dub-logo-fallback{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:4px;background:#252938;color:#d4d0f6;font-size:16px;font-weight:800}
+.ad-dub-provider-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.ad-dub-provider-copy b{overflow:hidden;color:#e5e6ed;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.ad-dub-provider-copy small{color:#9298a8;font-size:9px;line-height:1.4}
+.ad-dub-guide{display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:9px 12px;border:1px solid rgba(145,136,220,.32);border-radius:5px;background:rgba(129,121,194,.1);color:#c7c1f0;font-size:10px;font-weight:700;transition:background .2s,border-color .2s}
+.ad-dub-guide:hover{border-color:rgba(145,136,220,.58);background:rgba(129,121,194,.17)}
+.ad-dub-footnote{margin:13px 0 0;color:#737b8d;font-size:9px;line-height:1.5}
+@media(max-width:700px){
+ .ad-dub-finder{padding-top:0}
+ .ad-dub-heading{align-items:flex-start}
+ .ad-dub-auto{margin-top:3px}
+ .ad-dub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .ad-dub-provider{min-height:56px;gap:8px;padding:8px}
+ .ad-dub-provider>img,.ad-dub-logo-fallback{width:31px;height:31px}
+ .ad-dub-provider-copy b{font-size:10px}
+ .ad-dub-provider-copy small{font-size:8px}
+}
