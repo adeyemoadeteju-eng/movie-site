@@ -58,6 +58,34 @@ $$;
 
 grant execute on function public.is_community_moderator() to authenticated;
 
+create or replace function public.community_moderation_configured()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (select 1 from public.community_moderators);
+$;
+
+grant execute on function public.community_moderation_configured() to authenticated;
+
+create or replace function public.is_blocked_relationship(target_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1 from public.user_blocks b
+    where (b.blocker_id = auth.uid() and b.blocked_id = target_user_id)
+       or (b.blocker_id = target_user_id and b.blocked_id = auth.uid())
+  );
+$;
+
+grant execute on function public.is_blocked_relationship(uuid) to authenticated;
+
 create or replace function public.maintain_anime_comment()
 returns trigger
 language plpgsql
@@ -126,12 +154,16 @@ create policy "Members read visible comments"
   to authenticated
   using (
     (not is_hidden or public.is_community_moderator())
-    and not exists (
-      select 1 from public.user_blocks b
-      where (b.blocker_id = auth.uid() and b.blocked_id = anime_comments.user_id)
-         or (b.blocker_id = anime_comments.user_id and b.blocked_id = auth.uid())
-    )
+    and not public.is_blocked_relationship(user_id)
   );
+
+-- Posting stays disabled until at least one moderator has been appointed.
+drop policy if exists "Signed-in users create comments" on public.anime_comments;
+drop policy if exists "Members create comments after moderation is enabled" on public.anime_comments;
+create policy "Members create comments after moderation is enabled"
+  on public.anime_comments for insert
+  to authenticated
+  with check (auth.uid() = user_id and public.community_moderation_configured());
 
 drop policy if exists "Moderators update comments" on public.anime_comments;
 create policy "Moderators update comments"
