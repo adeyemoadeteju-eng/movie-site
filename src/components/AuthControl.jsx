@@ -20,6 +20,7 @@ export default function AuthControl(){
  const [showOnline,setShowOnline]=useState(false);
  const [isModerator,setIsModerator]=useState(false);
  const [blockedMembers,setBlockedMembers]=useState([]);
+ const [resendAvailable,setResendAvailable]=useState(false);
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  const [busy,setBusy]=useState(false);
@@ -59,9 +60,11 @@ export default function AuthControl(){
    if(mode==='signup'){
     const {data,error:authError}=await supabase.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
     if(authError)throw authError;
+    setResendAvailable(!data.session);
     if(data.session)setMessage('Your AniOrbit account is ready. You can edit your profile below.');
     else setMessage('Check your email for the confirmation link, then return here to sign in.');
    }else if(mode==='login'){
+    setResendAvailable(false);
     const {error:authError}=await supabase.auth.signInWithPassword({email:email.trim(),password});
     if(authError)throw authError;
     setMessage('You are signed in.');
@@ -72,6 +75,22 @@ export default function AuthControl(){
    }
   }catch(e){setError(e.message||'Authentication could not be completed.')}
   finally{setBusy(false)}
+ };
+
+
+ const resendConfirmation=async()=>{
+  if(!email.trim()){setError('Enter your email address first.');return;}
+  setBusy(true);setError('');setMessage('');
+  try{
+   const {error:resendError}=await supabase.auth.resend({
+    type:'signup',
+    email:email.trim(),
+    options:{emailRedirectTo:window.location.origin+window.location.pathname}
+   });
+   if(resendError)throw resendError;
+   setMessage('A confirmation email has been requested. Check your inbox and spam folder. If it still does not arrive, the project may need a custom SMTP provider.');
+  }catch(e){setError(e.message||'The confirmation email could not be requested.');}
+  finally{setBusy(false);}
  };
 
  const updatePassword=async event=>{
@@ -168,6 +187,7 @@ export default function AuthControl(){
       {mode==='signup'&&<p className="ad-auth-help">Use a password of at least 8 characters. Your public profile starts private; you can choose a username after signing in.</p>}
       <button type="submit" className="ad-auth-primary" disabled={busy}>{busy?'Please wait…':mode==='signup'?'Create account':mode==='reset'?'Send reset link':'Sign in'}</button>
      </form>
+     {mode==='signup'&&resendAvailable&&<button type="button" className="ad-auth-text-button" onClick={resendConfirmation} disabled={busy}>Resend confirmation email</button>}
      {mode==='login'&&<button type="button" className="ad-auth-text-button" onClick={()=>{setMode('reset');setMessage('');setError('')}}>Forgot password?</button>}
      {mode==='reset'&&<button type="button" className="ad-auth-text-button" onClick={()=>{setMode('login');setMessage('');setError('')}}>Back to sign in</button>}
     </>}
