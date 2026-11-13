@@ -43,6 +43,7 @@ AniOrbit is an anime discovery and community platform. Keep the existing React/V
 - Distribute or embed only content the project has permission to provide; prioritize discovery and links to authorized viewing services.
 
 ## Current dependencies / blockers
-- Supabase project URL and public anon/publishable key are not configured yet.
-- No database schema or auth UI should be considered live until the Supabase project is connected and RLS policies are tested.
+- Supabase project URL and publishable key have been supplied and documented for GitHub Actions configuration; the owner must add them as repository Actions variables.
+- Initial schema migration is committed but must be run in the Supabase SQL Editor. Auth UI is not implemented yet.
+- No account, profile, or comment feature should be considered live until the migration is applied, build variables are configured, and RLS policies are tested.
 - Custom domain choice and purchase remain undecided.
