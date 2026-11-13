@@ -464,14 +464,132 @@ function Details(){
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
+const ANISKIP_CACHE=new Map();
+function formatSkipTime(seconds){
+ const value=Math.max(0,Math.floor(Number(seconds)||0));
+ const minutes=Math.floor(value/60),remaining=value%60;
+ return minutes+':'+String(remaining).padStart(2,'0');
+}
+function isDirectMedia(source){
+ const url=String(source?.url||'');
+ const mime=String(source?.type||source?.mimeType||source?.mime_type||'').toLowerCase();
+ return /\.(?:mp4|webm|m3u8)(?:$|[?#])/i.test(url)||/^(?:video\/(?:mp4|webm|x-matroska|mpegurl|vnd\.apple\.mpegurl)|application\/vnd\.apple\.mpegurl)$/.test(mime);
+}
+async function getOpeningSkip(mal,episode,signal){
+ if(!/^\d+$/.test(String(mal||'')))return null;
+ const key=String(mal)+':'+String(episode);
+ const cached=ANISKIP_CACHE.get(key);
+ if(cached&&Date.now()-cached.savedAt<24*60*60*1000)return cached.data;
+ const url='https://api.aniskip.com/v2/skip-times/'+encodeURIComponent(mal)+'/'+encodeURIComponent(episode)+'?types%5B%5D=op&episodeLength=0';
+ const response=await fetch(url,{headers:{Accept:'application/json'},signal});
+ if(!response.ok)throw new Error('Opening timestamps are unavailable ('+response.status+').');
+ const payload=await response.json();
+ const result=(Array.isArray(payload?.results)?payload.results:[]).find(item=>item?.skipType==='op'&&Number.isFinite(Number(item?.interval?.start))&&Number.isFinite(Number(item?.interval?.end))&&Number(item.interval.end)>Number(item.interval.start));
+ const data=payload?.found&&result?{start:Number(result.interval.start),end:Number(result.interval.end)}:null;
+ ANISKIP_CACHE.set(key,{savedAt:Date.now(),data});
+ return data;
+}
+function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip}){
+ const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false);
+ const [currentTime,setCurrentTime]=useState(0),[playerError,setPlayerError]=useState('');
+ const url=source.url;
+ useEffect(()=>{
+  const video=videoRef.current;
+  if(!video)return;
+  let cancelled=false;
+  let hls=null;
+  setPlayerError('');
+  const attach=async()=>{
+   if(/\.m3u8(?:$|[?#])/i.test(url)){
+    if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=url;return;}
+    try{
+     const module=await import('hls.js');
+     if(cancelled)return;
+     const Hls=module.default;
+     if(Hls.isSupported()){
+      hls=new Hls({enableWorker:true,lowLatencyMode:false});
+      hlsRef.current=hls;
+      hls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal&&!cancelled)setPlayerError('This video stream could not be played by the browser.');});
+      hls.loadSource(url);hls.attachMedia(video);
+     }else{video.src=url;}
+    }catch{if(!cancelled)setPlayerError('The HLS player could not be loaded.');}
+   }else{video.src=url;}
+  };
+  attach();
+  return()=>{
+   cancelled=true;
+   if(hls){hls.destroy();if(hlsRef.current===hls)hlsRef.current=null;}
+   video.pause();video.removeAttribute('src');video.load();
+  };
+ },[url]);
+ useEffect(()=>{skippedRef.current=false;setCurrentTime(0);},[url,intro?.start,intro?.end]);
+ const seekToEnd=()=>{
+  const video=videoRef.current;
+  if(!video||!intro)return;
+  try{video.currentTime=intro.end;skippedRef.current=true;setCurrentTime(intro.end);onAutoSkip?.();}catch{setPlayerError('The player is not ready to seek yet.');}
+ };
+ const onTimeUpdate=()=>{
+  const video=videoRef.current;
+  if(!video)return;
+  const now=video.currentTime||0;
+  setCurrentTime(now);
+  if(autoSkip&&intro&&!skippedRef.current&&now>=intro.start&&now<intro.end)seekToEnd();
+ };
+ const canOfferSkip=!!intro&&!skippedRef.current&&currentTime<intro.end;
+ return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={seekToEnd}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}</div>;
+}
 function Watch(){
- const {id,episode,audio}=useParams();const [params]=useSearchParams();const mal=params.get('mal')||'';const name=params.get('title')||'Anime';const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
+ const mal=params.get('mal')||'';const name=params.get('title')||'Anime';
+ const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
+ const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
  const own=fallback(mal,episode,audio);
  const [markedWatched,setMarkedWatched]=useState(()=>((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode))));
+ const episodeNumber=Math.max(1,Number(episode)||1);
+ const previousPath='/watch/'+id+'/'+Math.max(1,episodeNumber-1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
+ const nextPath='/watch/'+id+'/'+(episodeNumber+1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
  useEffect(()=>{recordEpisodeStart(id,episode,audio,name);setMarkedWatched((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode)));},[id,episode,audio]);
- useEffect(()=>{let live=true;setLoading(true);setError('');api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
- return <><Header/><main className="ad-watch-page"><Link to={'/anime/'+id} className="ad-back">‹ BACK TO ANIME</Link><h1>{name} - Episode {episode} <small>{audio.toUpperCase()}</small></h1><div className="ad-watch-progress"><button type="button" className={markedWatched?'is-watched':''} onClick={()=>{markEpisodeWatched(id,episode);setMarkedWatched(true);}}>{markedWatched?'✓ Episode watched':'Mark episode as watched'}</button><span>Episode progress is saved on this device. Embedded players do not expose their playback position to AnimeDex.</span><Link to={'/watch/'+id+'/'+(Number(episode)+1)+'/'+audio+'/embed?title='+encodeURIComponent(name)}>Next episode →</Link></div>{loading?<div className="ad-player-message">Preparing playback...</div>:sources[active]?<><div className="ad-player"><iframe key={sources[active].url} src={sources[active].url} title={sources[active].name||'Episode player'} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div><div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div></>:<p className="ad-error">{error||'No source available.'}</p>}</main><Footer/></>
+ useEffect(()=>{
+  let live=true;
+  const controller=new AbortController();
+  setIntro(null);setIntroStatus('checking');
+  if(!mal){setIntroStatus('unavailable');return()=>{live=false;controller.abort()};}
+  const timer=window.setTimeout(()=>controller.abort(),10000);
+  getOpeningSkip(mal,episode,controller.signal).then(result=>{
+   if(!live)return;
+   setIntro(result);setIntroStatus(result?'found':'not-found');
+  }).catch(()=>{
+   if(live)setIntroStatus('unavailable');
+  }).finally(()=>window.clearTimeout(timer));
+  return()=>{live=false;controller.abort();window.clearTimeout(timer)};
+ },[mal,episode]);
+ useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
+ useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
+ const source=sources[active];
+ const direct=source&&isDirectMedia(source);
+ const skipMessage=introStatus==='found'?'Opening detected: '+formatSkipTime(intro.start)+'–'+formatSkipTime(intro.end):introStatus==='checking'?'Checking opening timestamps…':introStatus==='not-found'?'No verified opening timestamps were found for this episode.':'Opening timestamps are unavailable for this title.';
+ return <><Header/><main className="ad-watch-page"><Link to={'/anime/'+id} className="ad-back">‹ BACK TO ANIME</Link><h1>{name} - Episode {episode} <small>{audio.toUpperCase()}</small></h1>
+ <div className="ad-watch-progress">
+  <div className="ad-episode-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" className="ad-skip-episode" onClick={()=>navigate(nextPath)}>Skip episode <span>→</span></button></div>
+  <button type="button" className={markedWatched?'is-watched':''} onClick={()=>{markEpisodeWatched(id,episode);setMarkedWatched(true);}}>{markedWatched?'✓ Episode watched':'Mark episode as watched'}</button>
+  <span>Progress is saved on this device. Embedded players do not expose their playback position to AnimeDex.</span>
+ </div>
+ <section className="ad-intro-settings" aria-label="Intro skipping settings">
+  <div><b>Automatic intro skip</b><small>{skipMessage}</small></div>
+  <label><input type="checkbox" checked={autoSkip} onChange={event=>setAutoSkip(event.target.checked)}/> Enabled</label>
+ </section>
+ {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
+  {direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
+   <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
+   {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AnimeDex cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
+  </>}
+  <div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div>
+ </>:<p className="ad-error">{error||'No source available.'}</p>}
+ <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
+ </main><Footer/></>
 }
+
 class AppErrorBoundary extends React.Component{
  constructor(props){super(props);this.state={error:null}}
  static getDerivedStateFromError(error){return {error}}

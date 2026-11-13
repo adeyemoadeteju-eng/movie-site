@@ -564,3 +564,30 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-discovery-form{grid-template-columns:1fr}
  .ad-discovery-actions,.ad-discovery-form>p{grid-column:1}
 }
+
+
+/* Episode navigation and intro skipping */
+.ad-episode-nav{display:flex;align-items:center;gap:7px}
+.ad-episode-nav button,.ad-watch-bottom-nav button{padding:8px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#1a1a1a;color:#ddd;font-size:10px;font-weight:600;cursor:pointer}
+.ad-episode-nav button.ad-skip-episode,.ad-watch-bottom-nav button:last-child{background:#e7e7e7;color:#111;border-color:#e7e7e7}
+.ad-episode-nav button:disabled,.ad-watch-bottom-nav button:disabled{opacity:.35;cursor:not-allowed}
+.ad-episode-nav button span{margin-left:5px}
+.ad-intro-settings{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 13px;padding:11px 13px;border:1px solid rgba(255,255,255,.075);border-radius:9px;background:#111}
+.ad-intro-settings>div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.ad-intro-settings b{color:#ddd;font-size:10px;font-weight:650}
+.ad-intro-settings small{color:#858585;font-size:9px;line-height:1.5}
+.ad-intro-settings label{display:flex;align-items:center;gap:6px;flex:none;color:#c9c9c9;font-size:9px}
+.ad-intro-settings input{accent-color:#b0a9ec}
+.ad-direct-player{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:#000}
+.ad-direct-player video{width:100%;height:100%;display:block;background:#000}
+.ad-skip-intro{position:absolute;right:18px;bottom:68px;padding:10px 13px;border:1px solid rgba(255,255,255,.22);border-radius:6px;background:rgba(18,18,18,.9);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.ad-skip-intro span{margin-left:6px;color:#c4bdf1}
+.ad-player-error,.ad-embed-skip-note{margin:9px 0;color:#9298a8;font-size:9px;line-height:1.6}
+.ad-watch-bottom-nav{display:flex;justify-content:space-between;gap:10px;margin:12px 0 20px}
+@media(max-width:760px){
+ .ad-episode-nav{width:100%;justify-content:space-between}
+ .ad-episode-nav button{flex:1}
+ .ad-intro-settings{align-items:flex-start}
+ .ad-skip-intro{right:9px;bottom:53px;padding:8px 10px;font-size:9px}
+ .ad-direct-player{border-radius:6px}
+}

@@ -277,3 +277,63 @@ test('watchlist, continue watching, episode completion and recommendations persi
   await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
   await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Progress Test Anime');
 });
+
+
+test('watch page offers previous/skip episode controls and reports intro support honestly for embeds', async ({ page }) => {
+  await page.route('**/anime/playback/101?episode=2', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Test embed', url: 'https://player.example/embed/101/2' }] })
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9001/2?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ found: true, results: [{ skipType: 'op', interval: { start: 90, end: 180 } }] })
+  }));
+  await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
+  await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
+  await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
+  await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
+  await expect(page.getByText(/external embedded player that does not expose seeking controls/i)).toBeVisible();
+  await page.getByLabel('Enabled').uncheck();
+  await expect(page.getByLabel('Enabled')).not.toBeChecked();
+});
+
+test('watch page gracefully handles missing AniSkip metadata and preserves episode navigation', async ({ page }) => {
+  await page.route('**/anime/playback/101?episode=1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Test embed', url: 'https://player.example/embed/101/1' }] })
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9001/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ found: false, results: [] })
+  }));
+  await page.goto('/movie-site/#/watch/101/1/sub/embed?mal=9001&title=Skip%20Test');
+  await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
+  await expect(page.getByText('No verified opening timestamps were found for this episode.')).toBeVisible();
+});
+
+
+test('direct video player automatically jumps over a verified opening when auto-skip is enabled', async ({ page }) => {
+  await page.route('**/anime/playback/202?episode=1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', url: 'https://media.example/episode.mp4', type: 'video/mp4' }] })
+  }));
+  await page.route('https://media.example/episode.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9202/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ found: true, results: [{ skipType: 'op', interval: { start: 90, end: 180 } }] })
+  }));
+  await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+    element.dispatchEvent(new Event('timeupdate'));
+  });
+  await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
+});
