@@ -33,7 +33,13 @@ jobs:
           VITE_EMBED_NAME: ${{ vars.VITE_EMBED_NAME }}
           VITE_FALLBACK_EMBED_TEMPLATE: ${{ vars.VITE_FALLBACK_EMBED_TEMPLATE }}
           VITE_FALLBACK_EMBED_NAME: ${{ vars.VITE_FALLBACK_EMBED_NAME }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build
+      - name: Install Chromium for browser tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
       - name: Run browser tests against the production build
