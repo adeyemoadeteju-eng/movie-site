@@ -34,17 +34,37 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   expect(pageErrors).toEqual([]);
 });
 
+test('homepage catalogue is reused from the tab cache after refresh', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/anime/home', route => {
+    requests += 1;
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        popular: [{ id: 91, title: { english: 'Cached Home Pick' }, format: 'TV', coverImage: { large: '' } }],
+        recent: []
+      })
+    });
+  });
+
+  await page.goto(pagePath);
+  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Cached Home Pick');
+  await page.reload();
+  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Cached Home Pick');
+  expect(requests).toBe(1);
+});
+
 test('featured YouTube trailers autoplay muted on the home page', async ({ page }) => {
-  await page.route('**/anime/popular?**', route => route.fulfill({
+  await page.route('**/anime/home', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ results: [{
-      id: 55, title: { english: 'Trailer Test' }, format: 'TV', seasonYear: 2026,
-      description: 'A featured series', coverImage: { large: '', extraLarge: '' },
-      trailer: { id: 'abcDEF12345', site: 'youtube' }
-    }] })
-  }));
-  await page.route('**/anime/recent?**', route => route.fulfill({
-    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+    body: JSON.stringify({
+      popular: [{
+        id: 55, title: { english: 'Trailer Test' }, format: 'TV', seasonYear: 2026,
+        description: 'A featured series', coverImage: { large: '', extraLarge: '' },
+        trailer: { id: 'abcDEF12345', site: 'youtube' }
+      }],
+      recent: []
+    })
   }));
   await page.route('**/anime/filter?genre=Action**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
@@ -71,10 +91,7 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
 });
 
 test('catalogue failures show a recovery message instead of an empty or blank page', async ({ page }) => {
-  await page.route('**/anime/popular?**', route => route.fulfill({
-    status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'temporarily unavailable' })
-  }));
-  await page.route('**/anime/recent?**', route => route.fulfill({
+  await page.route('**/anime/home', route => route.fulfill({
     status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'temporarily unavailable' })
   }));
 
@@ -87,23 +104,33 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
 test('search and anime details page load and episode links are present', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ popular: [{ id: 1, title: { english: 'Test Anime' }, format: 'TV' }], recent: [] })
+  }));
+  await page.route('**/anime/search?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ results: [{
+      id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
+      description: 'A test series', coverImage: { large: '', extraLarge: '' }, format: 'TV',
+      seasonYear: 2024, episodes: 3, genres: ['Action', 'Adventure'], status: 'FINISHED'
+    }] })
+  }));
   await page.route('**/anime/info/*', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({
       id: 1, idMal: 1, title: { english: 'Test Anime', romaji: 'Test Anime' },
       description: 'A test series', coverImage: { large: '', extraLarge: '' }, format: 'TV',
       seasonYear: 2024, episodes: 3, genres: ['Action', 'Adventure'], status: 'FINISHED',
+      recommendations: { nodes: [{ rating: 90, mediaRecommendation: {
+        id: 3, title: { english: 'Recommended Pick' }, coverImage: { large: '' }, format: 'TV', genres: ['Action']
+      }}] },
       relations: { edges: [{ relationType: 'SEQUEL', node: { id: 2, type: 'ANIME', format: 'TV', title: { english: 'Test Anime Season 2' }, coverImage: { large: '', extraLarge: '' }, episodes: 12 } }] }
     })
   }));
+  let similarGenreRequests = 0;
   await page.route('**/anime/filter?**', route => {
-    const url = new URL(route.request().url());
-    const genre = url.searchParams.get('genre');
-    return route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ results: genre === 'Action'
-        ? [{ id: 2, title: { english: 'Action Pick' }, genres: ['Action'] }, { id: 3, title: { english: 'Shared Pick' }, genres: ['Action', 'Adventure'] }]
-        : [{ id: 3, title: { english: 'Shared Pick' }, genres: ['Action', 'Adventure'] }, { id: 4, title: { english: 'Adventure Pick' }, genres: ['Adventure'] }] })
-    });
+    similarGenreRequests += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) });
   });
   await page.route('**/anime/episodes/*', route => route.fulfill({
     status: 200,
@@ -136,6 +163,8 @@ test('search and anime details page load and episode links are present', async (
   await expect(page.locator('.ad-episodes h2')).toHaveText('Season 1 Episodes');
   await expect(page.locator('.ad-episode-grid a').first()).toContainText('S1 · EP 1');
   await expect(page.getByRole('link', { name: /Next season Test Anime Season 2/ })).toBeVisible();
+  await expect(page.locator('.ad-section .ad-tile')).toContainText('Recommended Pick');
+  expect(similarGenreRequests).toBe(0);
   expect(errors).toEqual([]);
 });
 
