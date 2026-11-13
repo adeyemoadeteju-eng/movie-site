@@ -284,3 +284,15 @@ grant select, insert, delete on public.comment_likes to authenticated;
 grant select, insert, update on public.comment_reports to authenticated;
 grant select, insert, delete on public.user_blocks to authenticated;
 grant select on public.community_moderators to authenticated;
+
+-- Restrict callable SECURITY DEFINER helpers to authenticated users.
+-- Trigger functions are invoked by their owning triggers, not directly by clients.
+revoke all on function public.snapshot_blocked_username() from public, anon, authenticated;
+revoke all on function public.maintain_anime_comment() from public, anon, authenticated;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+revoke all on function public.is_community_moderator() from public, anon;
+revoke all on function public.community_moderation_configured() from public, anon;
+revoke all on function public.is_blocked_relationship(uuid) from public, anon;
+grant execute on function public.is_community_moderator() to authenticated;
+grant execute on function public.community_moderation_configured() to authenticated;
+grant execute on function public.is_blocked_relationship(uuid) to authenticated;
