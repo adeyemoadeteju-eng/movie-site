@@ -1,13 +1,71 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import Hls from 'hls.js';
 import {HashRouter,Link,Route,Routes,useNavigate,useParams,useSearchParams} from 'react-router-dom';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
+const API_CACHE_KEY='animedex-api-cache-v1';
+const API_CACHE=new Map();
+const API_IN_FLIGHT=new Map();
+
+function apiCacheTtl(path){
+ if(path==='/anime/home')return 2*60*1000;
+ if(path.startsWith('/anime/info/'))return 15*60*1000;
+ if(path.startsWith('/anime/search?'))return 90*1000;
+ if(path.startsWith('/anime/filter?'))return 3*60*1000;
+ if(path==='/anime/genres')return 24*60*60*1000;
+ return 0;
+}
+function readApiCache(path){
+ const memory=API_CACHE.get(path);
+ if(memory)return memory;
+ try{
+  const stored=JSON.parse(sessionStorage.getItem(API_CACHE_KEY)||'{}');
+  const entry=stored[path];
+  if(entry&&entry.data!==undefined){API_CACHE.set(path,entry);return entry;}
+ }catch{}
+ return null;
+}
+function writeApiCache(path,data){
+ const entry={savedAt:Date.now(),data};
+ API_CACHE.set(path,entry);
+ try{
+  const stored=JSON.parse(sessionStorage.getItem(API_CACHE_KEY)||'{}');
+  stored[path]=entry;
+  const compact=Object.fromEntries(Object.entries(stored)
+   .sort((a,b)=>(b[1]?.savedAt||0)-(a[1]?.savedAt||0))
+   .slice(0,16));
+  sessionStorage.setItem(API_CACHE_KEY,JSON.stringify(compact));
+ }catch{}
+}
+function requestApi(path,ttl){
+ const pending=API_IN_FLIGHT.get(path);
+ if(pending)return pending;
+ const request=(async()=>{
+  const response=await fetch(API+path,{cache:'default',headers:{Accept:'application/json'},signal:AbortSignal.timeout(60000)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'Request failed ('+response.status+')');
+  if(ttl>0)writeApiCache(path,data);
+  return data;
+ })();
+ const shared=request.finally(()=>{
+  if(API_IN_FLIGHT.get(path)===shared)API_IN_FLIGHT.delete(path);
+ });
+ API_IN_FLIGHT.set(path,shared);
+ return shared;
+}
 async function api(path){
- const r=await fetch(API+path,{cache:'no-store',headers:{Accept:'application/json'},signal:AbortSignal.timeout(60000)});
- const d=await r.json().catch(()=>({}));
- if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'Request failed ('+r.status+')');
- return d;
+ const ttl=apiCacheTtl(path);
+ if(ttl>0){
+  const cached=readApiCache(path);
+  if(cached){
+   const age=Date.now()-cached.savedAt;
+   if(age<=ttl)return cached.data;
+   if(age<=ttl*5){
+    requestApi(path,ttl).catch(()=>{});
+    return cached.data;
+   }
+  }
+ }
+ return requestApi(path,ttl);
 }
 const title=a=>a?.title?.english||a?.title?.romaji||a?.title?.native||a?.name||'Untitled';
 const image=a=>a?.coverImage?.extraLarge||a?.coverImage?.large||a?.image||a?.poster||'';
@@ -38,8 +96,8 @@ function Header({onSearch,onSettings}){
  return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AnimeDex home"><span className="ad-wordmark">Anime<span>Dex</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
 }
 function Footer(){return <footer className="ad-footer"><div className="ad-footer-inner"><Link to="/" className="ad-footer-brand">Anime<span>Dex</span></Link><p>Discover your next anime.</p><span className="ad-footer-note">ANIMEDEX</span></div></footer>}
-function Tile({item}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading="lazy" src={image(item)} alt={title(item)}/>:<div className="ad-no-image"><span>No artwork</span></div>}<span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
-function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ad-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x}/>):<div className="ad-empty">{loading?'Loading anime...':emptyLabel}</div>}</div>}
+function Tile({item,priority=false}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading={priority?'eager':'lazy'} decoding="async" fetchPriority={priority?'high':'auto'} src={image(item)} alt={title(item)}/>:<div className="ad-no-image"><span>No artwork</span></div>}<span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
+function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ad-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x} priority={i<3}/>):<div className="ad-empty">{loading?'Loading anime...':emptyLabel}</div>}</div>}
 function Home(){
  const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender'};
  const [prefs,setPrefs]=useState(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem('animedex-settings')||'{}')}}catch{return defaults}});
@@ -50,7 +108,7 @@ function Home(){
  const [results,setResults]=useState(null);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
  const [slide,setSlide]=useState(0);const request=useRef(0);
  useEffect(()=>{try{localStorage.setItem('animedex-settings',JSON.stringify(prefs));document.documentElement.dataset.accent=prefs.accent||'lavender'}catch{}},[prefs]);
- useEffect(()=>{let live=true;(async()=>{const [p,r]=await Promise.allSettled([api('/anime/popular?page=1&per_page=20'),api('/anime/recent?page=1&per_page=20')]);if(!live)return;const popular=p.status==='fulfilled'?p.value.results||[]:[];const recent=r.status==='fulfilled'?r.value.results||[]:[];setData({popular,recent,loading:false,error:p.status==='rejected'&&r.status==='rejected'?'Could not connect to catalogue.':''});})();return()=>{live=false}},[]);
+ useEffect(()=>{let live=true;api('/anime/home').then(home=>{if(live)setData({popular:Array.isArray(home.popular)?home.popular:[],recent:Array.isArray(home.recent)?home.recent:[],loading:false,error:''})}).catch(error=>{if(live)setData({popular:[],recent:[],loading:false,error:error.message||'Could not connect to catalogue.'})});return()=>{live=false}},[]);
  const featured=data.popular[slide%Math.max(data.popular.length,1)];
  const search=async (e,term=query)=>{e?.preventDefault();const q=String(term||'').trim();if(!q){setResults(null);setSelectedGenre('');return}setQuery(q);setSelectedGenre('');setFormatFilter('all');const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
  const filterGenre=async genre=>{const id=++request.current;setSelectedGenre(genre);setFormatFilter('all');setQuery(genre);setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=30');if(id===request.current)setResults(d.results||[])}catch(e){if(id===request.current)setErr(e.message)}finally{if(id===request.current)setBusy(false)}};
@@ -69,7 +127,7 @@ function Home(){
 </section>}
  {data.error&&<div className="ad-catalogue-error" role="alert"><span>The catalogue is temporarily unavailable. Your page is still working; try loading the catalogue again.</span><button onClick={()=>window.location.reload()}>Retry</button></div>}
  {results===null?<>
- <section className="ad-hero">{featured?<> {prefs.autoplayTrailer&&trailerEmbed(featured)?<iframe className="ad-hero-trailer" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIMEDEX DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
+ <section className="ad-hero">{featured?<> {prefs.autoplayTrailer&&trailerEmbed(featured)?<iframe className="ad-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIMEDEX DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
  {prefs.quickTags&&<section className="ad-quick-tags" aria-label="Browse by genre"><span>Browse by genre</span>{genres.map(genre=><button key={genre} onClick={()=>filterGenre(genre)}>{genre}</button>)}</section>}
  <section className="ad-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  <section className="ad-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
@@ -106,30 +164,22 @@ function Details(){
  };
  useEffect(()=>{let live=true;setLoading(true);api('/anime/info/'+encodeURIComponent(id)).then(a=>{if(live){setAnime(a);setLoading(false)}}).catch(e=>{if(live){setErr(e.message);setLoading(false)}});return()=>{live=false}},[id]);
  useEffect(()=>{
-  let live=true;
-  if(!anime?.id){setSimilar([]);return()=>{live=false}}
-  const genres=Array.isArray(anime.genres)?anime.genres.filter(Boolean).slice(0,4):[];
-  (async()=>{
-   const requests=await Promise.allSettled(genres.map(genre=>api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=18')));
-   if(!live)return;
-   const pool=new Map();
-   const add=(item,sourceGenre='')=>{
-    if(!item?.id||String(item.id)===String(id))return;
-    const key=String(item.id);
-    const previous=pool.get(key)||{item,score:0};
-    const overlap=(item.genres||[]).filter(g=>genres.includes(g)).length;
-    previous.score=Math.max(previous.score,overlap)+(sourceGenre&&genres.includes(sourceGenre)?1:0);
-    pool.set(key,previous);
-   };
-   requests.forEach((result,index)=>{
-    if(result.status==='fulfilled')(result.value.results||[]).forEach(item=>add(item,genres[index]));
-   });
-   (anime.recommendations?.nodes||[]).forEach(node=>add(node?.mediaRecommendation||node));
-   (anime.relations?.edges||[]).filter(edge=>['PREQUEL','SEQUEL','SIDE_STORY','SPIN_OFF'].includes(edge?.relationType)).forEach(edge=>add(edge?.node));
-   const ranked=[...pool.values()].sort((x,y)=>y.score-x.score).slice(0,10).map(entry=>entry.item);
-   if(live)setSimilar(ranked);
-  })();
-  return()=>{live=false};
+  if(!anime?.id){setSimilar([]);return}
+  const genres=Array.isArray(anime.genres)?anime.genres.filter(Boolean):[];
+  const pool=new Map();
+  const add=(item,boost=0)=>{
+   if(!item?.id||String(item.id)===String(id))return;
+   const key=String(item.id);
+   const overlap=(item.genres||[]).filter(genre=>genres.includes(genre)).length;
+   const score=overlap*100+boost;
+   const previous=pool.get(key);
+   if(!previous||score>previous.score)pool.set(key,{item,score});
+  };
+  (anime.recommendations?.nodes||[]).forEach(node=>add(node?.mediaRecommendation||node,Number(node?.rating)||0));
+  (anime.relations?.edges||[])
+   .filter(edge=>['PREQUEL','SEQUEL','SIDE_STORY','SPIN_OFF'].includes(edge?.relationType))
+   .forEach(edge=>add(edge?.node,35));
+  setSimilar([...pool.values()].sort((a,b)=>b.score-a.score).slice(0,10).map(entry=>entry.item));
  },[anime?.id]);
  useEffect(()=>{loadEpisodes();},[id]);
  const count=Math.min(Number(anime?.episodes)||0,500);
