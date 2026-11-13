@@ -37,6 +37,7 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
  const [reportReason,setReportReason]=useState('spam');
  const [reportDetails,setReportDetails]=useState('');
  const [reportBusy,setReportBusy]=useState(false);
+ const [moderationReady,setModerationReady]=useState(null);
 
  useEffect(()=>{
   if(!supabase)return;
@@ -45,6 +46,16 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
   const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
   return()=>{active=false;subscription.unsubscribe()};
  },[]);
+
+ useEffect(()=>{
+  let active=true;
+  if(!session?.user){setModerationReady(null);return()=>{active=false};}
+  setModerationReady(null);
+  supabase.rpc('community_moderation_configured').then(({data,error:checkError})=>{
+   if(active)setModerationReady(!checkError&&Boolean(data));
+  });
+  return()=>{active=false};
+ },[session?.user?.id]);
 
  const loadComments=useCallback(async(reset=true)=>{
   if(!session?.user||!supabase)return;
@@ -177,17 +188,17 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
  };
 
  const heading=episodeNumber==null?'Community discussion':'Episode discussion';
- if(!isSupabaseConfigured)return <section className="ad-community"><h2>{heading}</h2><p>Community features are not configured yet.</p></section>;
+ if(!isSupabaseConfigured)return <section className="ad-community"><div className="ad-community-heading"><h2>{heading}</h2></div><p>Community features are not configured yet.</p></section>;
 
  return <section className="ad-community" aria-labelledby="ad-community-title">
   <div className="ad-community-heading"><div><span className="ad-community-kicker">ANIORBIT COMMUNITY</span><h2 id="ad-community-title">{heading}</h2><p>{title}{episodeNumber==null?'':' · Episode '+episodeNumber}</p></div><span className="ad-community-count">{comments.length}{hasMore?'+':''} comments</span></div>
   {!session?.user?<div className="ad-community-locked"><p>Sign in to read and join the discussion. Comments are limited to signed-in members.</p></div>:<>
-   <form className="ad-community-compose" onSubmit={submitComment}>
+   {moderationReady===null?<p className="ad-community-locked">Checking whether community posting is available…</p>:moderationReady?<form className="ad-community-compose" onSubmit={submitComment}>
     <label htmlFor={'ad-comment-'+animeId+'-'+(episodeNumber||'anime')}>Add to the discussion</label>
     <textarea id={'ad-comment-'+animeId+'-'+(episodeNumber||'anime')} value={draft} onChange={event=>setDraft(event.target.value)} maxLength={2000} rows={3} placeholder="Share your thoughts respectfully…" required/>
     <div className="ad-community-compose-foot"><label><input type="checkbox" checked={spoiler} onChange={event=>setSpoiler(event.target.checked)}/> Contains spoilers</label><span>{draft.length}/2000</span><button type="submit" disabled={posting||!draft.trim()}>{posting?'Posting…':'Post comment'}</button></div>
     <p className="ad-community-guideline">Be respectful. Don't share personal information. Posts are limited to five every five minutes.</p>
-   </form>
+   </form>:<div className="ad-community-locked"><p>Posting is paused while the AniOrbit moderation team is being set up. You can still read the discussion.</p></div>}
    {loading&&comments.length===0?<p className="ad-community-empty">Loading discussion…</p>:comments.length===0?<p className="ad-community-empty">No comments yet. Start the conversation!</p>:<div className="ad-comment-list">
     {comments.map(comment=>{
      const meta=likes[comment.id]||{count:0,liked:false};
