@@ -155,7 +155,7 @@ export default function AuthControl(){
 
  if(!isSupabaseConfigured)return <span className="ad-auth-unavailable" title="Supabase configuration is missing">Accounts unavailable</span>;
  return <>
-  <button type="button" className="ad-settings-trigger ad-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}}>{session?.user?(profile?.display_name||profile?.username||'Account'):'Sign in'}</button>
+  <button type="button" className="ad-settings-trigger ad-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}} aria-label={session?.user?'Open your AniOrbit profile':'Sign in to AniOrbit'} title={session?.user?'Your account and profile settings':'Sign in'}>{session?.user?<><span className="ad-account-avatar">{avatarUrl?<img src={avatarUrl} alt="" />:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><span className="ad-account-name">{profile?.display_name||profile?.username||'Account'}</span></>:<><span className="ad-account-guest" aria-hidden="true">◉</span><span>Sign in</span></>}</button>
   {open&&<div className="ad-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
    <section className="ad-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-auth-title">
     <div className="ad-auth-heading"><div><span className="ad-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ad-auth-title">{recoveryMode?'Choose a new password':session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
