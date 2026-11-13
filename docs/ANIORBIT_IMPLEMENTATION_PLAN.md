@@ -21,19 +21,21 @@ AniOrbit is an anime discovery and community platform. Keep the existing React/V
 - Privacy defaults: no public email, real name, precise location, or watch activity; users control profile visibility.
 
 ## Phase 4 — Community
-- Anime-level and episode-level comments, replies, likes, spoiler flags, edit/delete-own-comment, report/block controls.
-- Pagination and rate limits; validate lengths and sanitize rendered content.
+- Anime-level and episode-level discussions, likes, spoiler flags, edit/delete-own-comment, report/block controls.
+- Pagination, comment length limits, database posting throttles, and plain-text rendering.
 - Spoiler content hidden until deliberately revealed.
-- RLS: users can only modify their own profile/content; public reads only for content intended to be public.
+- Private report queue and moderator-only hide/unhide controls; comment posting remains disabled until a moderator is appointed.
+- RLS: users can only modify their own profile/content; pseudonymous comment labels avoid exposing private profile fields.
 
 ## Phase 5 — Presence and activity
-- Opt-in pseudonymous online presence using Supabase Realtime Presence.
-- Avoid public last-seen history by default; don't expose private watch history.
+- Opt-in anonymous online count using Supabase Realtime Presence.
+- No public member list, last-seen history, or private watch history.
 - Activity feed only for actions a user chooses to share.
 
 ## Phase 6 — Moderation and launch readiness
 - Community guidelines, report queue, admin/moderator roles, block/mute, spam throttling, and basic abuse monitoring.
 - Test auth/RLS with multiple accounts and anonymous sessions before enabling public comments.
+- Appoint at least one trusted moderator before allowing comment creation.
 - Keep DMs out of the first release; add only after moderation and safety controls are proven.
 
 ## Phase 7 — Domain and growth
@@ -43,7 +45,9 @@ AniOrbit is an anime discovery and community platform. Keep the existing React/V
 - Distribute or embed only content the project has permission to provide; prioritize discovery and links to authorized viewing services.
 
 ## Current dependencies / blockers
-- Supabase project URL and publishable key have been supplied and documented for GitHub Actions configuration; the owner must add them as repository Actions variables.
-- Initial schema migration is committed but must be run in the Supabase SQL Editor. Auth UI is not implemented yet.
-- No account, profile, or comment feature should be considered live until the migration is applied, build variables are configured, and RLS policies are tested.
+- Supabase URL and publishable key are configured as repository Actions variables.
+- Migrations 1 and 2 have been run. Migration 3 must be run before deploying this community build.
+- The owner must appoint their own account as the first moderator after signing up; comment creation is intentionally blocked until then.
+- Accounts, profiles, discussions, avatars, reports, blocks, and online count are implemented on the feature branch but are not live until merge and successful Pages deployment.
+- Run manual Supabase auth/RLS verification with at least two test accounts before inviting other members.
 - Custom domain choice and purchase remain undecided.
