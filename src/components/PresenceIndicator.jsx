@@ -17,9 +17,13 @@ export default function PresenceIndicator(){
  useEffect(()=>{
   if(!session?.user){setOptedIn(false);return}
   let active=true;
-  supabase.from('profiles').select('show_online').eq('id',session.user.id).maybeSingle()
-   .then(({data})=>{if(active)setOptedIn(Boolean(data?.show_online));});
-  return()=>{active=false};
+  const loadPreference=async()=>{
+   const {data,error}=await supabase.from('profiles').select('show_online').eq('id',session.user.id).maybeSingle();
+   if(active&&!error)setOptedIn(Boolean(data?.show_online));
+  };
+  loadPreference();
+  window.addEventListener('aniorbit-presence-setting-change',loadPreference);
+  return()=>{active=false;window.removeEventListener('aniorbit-presence-setting-change',loadPreference)};
  },[session?.user?.id]);
 
  useEffect(()=>{
