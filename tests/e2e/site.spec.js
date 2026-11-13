@@ -290,7 +290,7 @@ test('watch page offers previous/skip episode controls and reports intro support
   }));
   await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
   await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Previous episode/ })).toBeEnabled();
+  await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
   await expect(page.getByText(/external embedded player that does not expose seeking controls/i)).toBeVisible();
@@ -308,7 +308,7 @@ test('watch page gracefully handles missing AniSkip metadata and preserves episo
     body: JSON.stringify({ found: false, results: [] })
   }));
   await page.goto('/movie-site/#/watch/101/1/sub/embed?mal=9001&title=Skip%20Test');
-  await expect(page.getByRole('button', { name: /Previous episode/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeDisabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('No verified opening timestamps were found for this episode.')).toBeVisible();
 });
