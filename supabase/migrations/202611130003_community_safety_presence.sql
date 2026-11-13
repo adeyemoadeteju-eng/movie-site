@@ -42,6 +42,31 @@ create table if not exists public.user_blocks (
   check (blocker_id <> blocked_id)
 );
 
+alter table public.user_blocks
+  add column if not exists blocked_username text not null default 'AniOrbit member';
+
+create or replace function public.snapshot_blocked_username()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $fn$
+begin
+  select p.username into new.blocked_username
+  from public.profiles p
+  where p.id = new.blocked_id;
+  if new.blocked_username is null then
+    new.blocked_username := 'AniOrbit member';
+  end if;
+  return new;
+end;
+$fn$;
+
+drop trigger if exists snapshot_blocked_username on public.user_blocks;
+create trigger snapshot_blocked_username
+  before insert on public.user_blocks
+  for each row execute function public.snapshot_blocked_username();
+
 create or replace function public.is_community_moderator()
 returns boolean
 language sql
