@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const pagePath='/movie-site/';
 
-test('AnimeDex boots without a blank screen and loads its catalogue assets', async ({ page }) => {
+test('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
   const pageErrors = [];
   const assetFailures = [];
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -16,10 +16,10 @@ test('AnimeDex boots without a blank screen and loads its catalogue assets', asy
   await page.goto(pagePath);
   await expect(page.locator('.ad-header')).toBeVisible();
   await expect(page.locator('.ad-home-intro')).toBeVisible();
-  await expect(page.locator('.ad-home-intro-brand')).toContainText('AnimeDex');
+  await expect(page.locator('.ad-home-intro-brand')).toContainText('AniOrbit');
   await expect(page.locator('.ad-home-search')).toHaveCSS('border-radius', '999px');
   await expect(page.locator('.ad-header .ad-search')).toBeHidden();
-  await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
+  await expect(page.locator('.ad-brand')).toContainText('AniOrbit');
   await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
   await expect(page.locator('.ad-brand')).toHaveCSS('align-items', 'center');
   await expect(page.getByRole('heading', { name: 'Most Popular' })).toBeVisible();
@@ -173,14 +173,14 @@ test('a failed JavaScript bundle leaves a visible reload screen instead of a bla
 
   await page.goto(pagePath);
   await expect(page.locator('#boot-screen')).toBeVisible();
-  await expect(page.locator('#boot-status')).toContainText('Starting AnimeDex');
+  await expect(page.locator('#boot-status')).toContainText('Starting AniOrbit');
   await expect(page.getByRole('button', { name: 'Reload site' })).toBeVisible({ timeout: 15000 });
 });
 
 test('poster catalogue stays usable on mobile without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(pagePath);
-  await expect(page.locator('.ad-brand')).toContainText('AnimeDex');
+  await expect(page.locator('.ad-brand')).toContainText('AniOrbit');
   await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
   await expect(page.getByRole('searchbox', { name: 'Search Anime' })).toBeVisible();
   await expect(page.locator('.ad-tile').first()).toBeVisible({ timeout: 60000 });
