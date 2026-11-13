@@ -1,6 +1,8 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {HashRouter,Link,Route,Routes,useNavigate,useParams,useSearchParams} from 'react-router-dom';
 import AuthControl from './components/AuthControl.jsx';
+import CommunitySection from './components/CommunitySection.jsx';
+import PresenceIndicator from './components/PresenceIndicator.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 const API_CACHE_KEY='animedex-api-cache-v1';
@@ -186,7 +188,7 @@ function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
- return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><AuthControl/>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
+ return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><AuthControl/>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
 }
 function Footer(){return <footer className="ad-footer"><div className="ad-footer-inner"><Link to="/" className="ad-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ad-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster">{image(item)?<img loading={priority?'eager':'lazy'} decoding="async" fetchPriority={priority?'high':'auto'} src={image(item)} alt={title(item)}/>:<div className="ad-no-image"><span>No artwork</span></div>}<span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
@@ -462,7 +464,7 @@ function Details(){
   <p className="ad-dub-footnote">This finder points to licensed service listings; it does not extract or host video files.</p>
  </section>
  <section className="ad-episodes" id="watch"><h2>Season {seasonNumber} Episodes</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/sub/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>{(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))?'✓':'▶'}</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
- <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section>
+ <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><CommunitySection animeId={String(id)} title={title(anime)}/>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
 const ANISKIP_CACHE=new Map();
@@ -588,6 +590,7 @@ function Watch(){
   <div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
+ <CommunitySection animeId={String(id)} title={name} episodeNumber={episodeNumber}/>
  </main><Footer/></>
 }
 
