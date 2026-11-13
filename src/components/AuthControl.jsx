@@ -57,7 +57,7 @@ export default function AuthControl(){
   event.preventDefault();setBusy(true);setError('');setMessage('');
   try{
    if(mode==='signup'){
-    const {data,error:authError}=await supabase.auth.signUp({email:email.trim(),password});
+    const {data,error:authError}=await supabase.auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+window.location.pathname}});
     if(authError)throw authError;
     if(data.session)setMessage('Your AniOrbit account is ready. You can edit your profile below.');
     else setMessage('Check your email for the confirmation link, then return here to sign in.');
