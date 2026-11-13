@@ -501,3 +501,66 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-dub-provider-copy b{font-size:10px}
  .ad-dub-provider-copy small{font-size:8px}
 }
+
+
+/* AnimeDex discovery, personal library and airing reminders */
+.ad-discovery-panel,.ad-personal-section{width:min(1160px,calc(100% - 44px));margin:0 auto 30px;padding:17px 19px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:#101010}
+.ad-discovery-heading,.ad-personal-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.ad-discovery-heading h2,.ad-personal-heading h2{margin:4px 0 0;color:#eee;font-size:16px;font-weight:550;letter-spacing:-.3px}
+.ad-discovery-kicker{color:#858585;font-size:8px;font-weight:650;letter-spacing:1.3px}
+.ad-discovery-toggle,.ad-alert-button{flex:none;padding:9px 13px;border:1px solid rgba(255,255,255,.11);border-radius:999px;background:#1a1a1a;color:#ddd;font-size:10px;font-weight:600;cursor:pointer}
+.ad-discovery-toggle:hover,.ad-alert-button:hover{border-color:rgba(255,255,255,.23);background:#222}
+.ad-discovery-toggle span{margin-left:7px;color:#999}
+.ad-discovery-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:17px;padding-top:16px;border-top:1px solid rgba(255,255,255,.07)}
+.ad-discovery-form label{min-width:0;display:flex;flex-direction:column;gap:6px;color:#aaa;font-size:10px;font-weight:550}
+.ad-discovery-form input,.ad-discovery-form select{width:100%;height:38px;min-width:0;padding:0 10px;border:1px solid rgba(255,255,255,.09);border-radius:7px;background:#191919;color:#eee;font-size:11px;outline:none}
+.ad-discovery-form input:focus,.ad-discovery-form select:focus{border-color:rgba(255,255,255,.28)}
+.ad-discovery-actions{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:2px}
+.ad-discovery-actions button{padding:10px 15px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#e7e7e7;color:#111;font-size:10px;font-weight:650;cursor:pointer}
+.ad-discovery-actions button+button{background:#1b1b1b;color:#ccc}
+.ad-discovery-actions button:disabled{opacity:.6;cursor:wait}
+.ad-discovery-form>p{grid-column:1/-1;margin:0;color:#777;font-size:9px;line-height:1.5}
+.ad-personal-section{padding:18px 19px 20px}
+.ad-personal-heading>span{color:#777;font-size:9px}
+.ad-continue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:9px;margin-top:15px}
+.ad-continue-card{min-width:0;display:flex;align-items:center;gap:11px;padding:9px;border:1px solid rgba(255,255,255,.075);border-radius:10px;background:#151515;transition:border-color .2s,background .2s}
+.ad-continue-card:hover{border-color:rgba(255,255,255,.19);background:#1c1c1c}
+.ad-continue-card>img{width:45px;height:64px;flex:none;object-fit:cover;border-radius:5px;background:#222}
+.ad-continue-card>span{min-width:0;display:flex;flex-direction:column;gap:4px}
+.ad-continue-card b{overflow:hidden;color:#e8e8e8;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.ad-continue-card small{color:#999;font-size:9px}
+.ad-continue-card em{color:#c4c4c4;font-size:9px;font-style:normal}
+.ad-recommendations{padding-top:0}
+.ad-my-list{padding-top:18px}
+.ad-my-list .ad-grid{margin-top:15px}
+.ad-alert-note,.ad-alert-message{margin:12px 0 0;color:#777;font-size:9px;line-height:1.6}
+.ad-alert-message{color:#c8c8c8}
+.ad-airing-list{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)}
+.ad-airing-list h3{margin:0 0 9px;color:#ddd;font-size:11px;font-weight:600}
+.ad-airing-item{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:10px}
+.ad-airing-item b{color:#ddd;font-weight:550}
+.ad-airing-item span{color:#929292;text-align:right}
+.ad-follow-button{min-height:36px;margin-left:8px;padding:0 14px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:#171717;color:#ddd;font-size:10px;font-weight:600;cursor:pointer}
+.ad-follow-button:hover{border-color:rgba(255,255,255,.25);background:#222}
+.ad-watch-progress{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-5px 0 14px;padding:10px 12px;border:1px solid rgba(255,255,255,.075);border-radius:10px;background:#111}
+.ad-watch-progress button{padding:8px 11px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#e7e7e7;color:#111;font-size:10px;font-weight:650;cursor:pointer}
+.ad-watch-progress button.is-watched{background:#242424;color:#ddd}
+.ad-watch-progress span{flex:1;min-width:190px;color:#858585;font-size:9px;line-height:1.45}
+.ad-watch-progress>a{color:#ddd;font-size:10px;font-weight:600;white-space:nowrap}
+@media(max-width:760px){
+ .ad-discovery-panel,.ad-personal-section{width:calc(100% - 26px);margin-bottom:22px;padding:14px}
+ .ad-discovery-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .ad-personal-heading{align-items:flex-start}
+ .ad-personal-heading h2{font-size:14px}
+ .ad-personal-heading>span{max-width:110px;text-align:right;line-height:1.4}
+ .ad-continue-grid{grid-template-columns:1fr}
+ .ad-airing-item{flex-direction:column;gap:3px}
+ .ad-airing-item span{text-align:left}
+ .ad-watch-progress{align-items:flex-start;gap:9px}
+ .ad-watch-progress span{flex-basis:100%;order:3}
+ .ad-follow-button{margin:9px 0 0}
+}
+@media(max-width:390px){
+ .ad-discovery-form{grid-template-columns:1fr}
+ .ad-discovery-actions,.ad-discovery-form>p{grid-column:1}
+}

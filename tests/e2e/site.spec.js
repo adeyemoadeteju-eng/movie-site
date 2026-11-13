@@ -190,3 +190,90 @@ test('poster catalogue stays usable on mobile without horizontal overflow', asyn
   }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
 });
+
+
+test('advanced discovery combines catalogue filters and local studio, rating and popularity refinements', async ({ page }) => {
+  let requestedUrl = '';
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ popular: [], recent: [] })
+  }));
+  await page.route('**/anime/genres', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ genres: ['Action','Comedy'] })
+  }));
+  await page.route('**/anime/filter?**', route => {
+    requestedUrl = route.request().url();
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [
+      { id: 801, title: { english: 'Qualified Filter Pick' }, coverImage: { large: '' }, format: 'TV', averageScore: 86, popularity: 120000, studios: { nodes: [{ name: 'Bones' }] } },
+      { id: 802, title: { english: 'Low Score Pick' }, coverImage: { large: '' }, format: 'TV', averageScore: 62, popularity: 120000, studios: { nodes: [{ name: 'Bones' }] } },
+      { id: 803, title: { english: 'Wrong Studio Pick' }, coverImage: { large: '' }, format: 'TV', averageScore: 91, popularity: 150000, studios: { nodes: [{ name: 'Madhouse' }] } }
+    ] }) });
+  });
+  await page.goto(pagePath);
+  await page.getByRole('button', { name: 'Open filters' }).click();
+  await page.locator('.ad-discovery-form label').nth(0).locator('select').selectOption('Action');
+  await page.locator('.ad-discovery-form label').nth(1).locator('input').fill('2024');
+  await page.locator('.ad-discovery-form label').nth(2).locator('select').selectOption('FALL');
+  await page.locator('.ad-discovery-form label').nth(4).locator('select').selectOption('FINISHED');
+  await page.locator('.ad-discovery-form label').nth(5).locator('select').selectOption('80');
+  await page.locator('.ad-discovery-form label').nth(6).locator('select').selectOption('100000');
+  await page.locator('.ad-discovery-form label').nth(7).locator('input').fill('Bones');
+  await page.getByRole('button', { name: 'Apply filters' }).click();
+  await expect(page.locator('.ad-results .ad-tile')).toHaveCount(1);
+  await expect(page.locator('.ad-results .ad-tile')).toContainText('Qualified Filter Pick');
+  const requested = new URL(requestedUrl);
+  expect(requested.searchParams.get('genre')).toBe('Action');
+  expect(requested.searchParams.get('year')).toBe('2024');
+  expect(requested.searchParams.get('season')).toBe('FALL');
+  expect(requested.searchParams.get('status')).toBe('FINISHED');
+});
+
+test('watchlist, continue watching, episode completion and recommendations persist locally', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ popular: [{ id: 901, title: { english: 'Progress Test Anime' }, format: 'TV', coverImage: { large: '' } }], recent: [] })
+  }));
+  await page.route('**/anime/info/901', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      id: 901, idMal: 901, title: { english: 'Progress Test Anime', romaji: 'Progress Test Anime' },
+      description: 'A progress tracking test.', coverImage: { large: '', extraLarge: '' }, format: 'TV',
+      seasonYear: 2025, episodes: 4, genres: ['Comedy'], status: 'RELEASING',
+      recommendations: { nodes: [{ rating: 95, mediaRecommendation: {
+        id: 902, title: { english: 'Because You Watched This' }, coverImage: { large: '' }, format: 'TV', genres: ['Comedy']
+      }}] }
+    })
+  }));
+  await page.route('**/anime/episodes/901', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { demo: { episodes: { sub: [
+      { number: 1, title: 'First Episode' }, { number: 2, title: 'Second Episode' },
+      { number: 3, title: 'Third Episode' }, { number: 4, title: 'Fourth Episode' }
+    ], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/901**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.route('**/anime/playback/901?episode=1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Test player', url: 'https://player.example.test/embed/901/1' }] })
+  }));
+  await page.route('**/anime/schedule?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
+  }));
+  await page.goto(pagePath);
+  await page.locator('.ad-section .ad-tile').first().click();
+  await expect(page.locator('.ad-detail-top')).toBeVisible();
+  await page.getByRole('button', { name: '+ Add to watchlist' }).click();
+  await expect(page.getByRole('button', { name: '✓ In your watchlist' })).toBeVisible();
+  await page.locator('.ad-episode-grid a').first().click();
+  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await page.getByRole('button', { name: 'Mark episode as watched' }).click();
+  await expect(page.getByRole('button', { name: '✓ Episode watched' })).toBeVisible();
+  await page.goto(pagePath);
+  await expect(page.getByRole('heading', { name: 'Continue Watching' })).toBeVisible();
+  await expect(page.locator('.ad-continue-card').first()).toContainText('Episode 2');
+  await expect(page.getByRole('heading', { name: 'Picked for You' })).toBeVisible();
+  await expect(page.locator('.ad-recommendations .ad-tile').first()).toContainText('Because You Watched This');
+  await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
+  await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Progress Test Anime');
+});
