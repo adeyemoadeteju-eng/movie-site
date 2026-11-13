@@ -10,6 +10,8 @@ export default function AuthControl(){
  const [avatarUrl,setAvatarUrl]=useState('');
  const [email,setEmail]=useState('');
  const [password,setPassword]=useState('');
+ const [newPassword,setNewPassword]=useState('');
+ const [recoveryMode,setRecoveryMode]=useState(false);
  const [username,setUsername]=useState('');
  const [displayName,setDisplayName]=useState('');
  const [bio,setBio]=useState('');
@@ -28,7 +30,7 @@ export default function AuthControl(){
   if(!supabase)return;
   let active=true;
   supabase.auth.getSession().then(({data})=>{if(active)setSession(data.session)});
-  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);setMessage('');setError('')});
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((event,next)=>{setSession(next);setMessage('');setError('');if(event==='PASSWORD_RECOVERY'){setRecoveryMode(true);setOpen(true)}});
   return()=>{active=false;subscription.unsubscribe()};
  },[]);
 
@@ -70,6 +72,18 @@ export default function AuthControl(){
    }
   }catch(e){setError(e.message||'Authentication could not be completed.')}
   finally{setBusy(false)}
+ };
+
+ const updatePassword=async event=>{
+  event.preventDefault();
+  if(newPassword.length<8){setError('Your new password must be at least 8 characters.');return;}
+  setBusy(true);setError('');setMessage('');
+  try{
+   const {error:updateError}=await supabase.auth.updateUser({password:newPassword});
+   if(updateError)throw updateError;
+   setRecoveryMode(false);setNewPassword('');setMessage('Your password has been updated.');
+  }catch(e){setError(e.message||'Your password could not be updated.');}
+  finally{setBusy(false);}
  };
 
  const saveProfile=async event=>{
