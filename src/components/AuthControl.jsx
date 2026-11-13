@@ -17,6 +17,7 @@ export default function AuthControl(){
  const [isPublic,setIsPublic]=useState(false);
  const [showOnline,setShowOnline]=useState(false);
  const [isModerator,setIsModerator]=useState(false);
+ const [blockedMembers,setBlockedMembers]=useState([]);
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  const [busy,setBusy]=useState(false);
@@ -32,7 +33,7 @@ export default function AuthControl(){
  },[]);
 
  useEffect(()=>{
-  if(!session?.user||!supabase){setProfile(null);setAvatarUrl('');setIsModerator(false);return}
+  if(!session?.user||!supabase){setProfile(null);setAvatarUrl('');setIsModerator(false);setBlockedMembers([]);return}
   let active=true;
   supabase.from('profiles').select('username,display_name,bio,favorite_anime,is_public,avatar_path,show_online').eq('id',session.user.id).single()
    .then(async({data,error:loadError})=>{
@@ -44,6 +45,8 @@ export default function AuthControl(){
      if(active)setAvatarUrl(signed?.signedUrl||'');
     }else setAvatarUrl('');
    });
+  supabase.from('user_blocks').select('blocked_id,blocked_username,created_at').eq('blocker_id',session.user.id).order('created_at',{ascending:false})
+   .then(({data})=>{if(active)setBlockedMembers(data||[]);});
   supabase.rpc('is_community_moderator').then(({data})=>{if(active)setIsModerator(Boolean(data));});
   return()=>{active=false};
  },[session?.user?.id]);
@@ -105,7 +108,17 @@ export default function AuthControl(){
   finally{setBusy(false);}
  };
 
- const signOut=async()=>{setBusy(true);setError('');try{const {error:signOutError}=await supabase.auth.signOut();if(signOutError)throw signOutError;setProfile(null);setMessage('You are signed out.')}catch(e){setError(e.message||'Could not sign out.')}finally{setBusy(false)}};
+ const unblockMember=async member=>{
+  setBusy(true);setError('');setMessage('');
+  try{
+   const {error:removeError}=await supabase.from('user_blocks').delete().eq('blocker_id',session.user.id).eq('blocked_id',member.blocked_id);
+   if(removeError)throw removeError;
+   setBlockedMembers(current=>current.filter(item=>item.blocked_id!==member.blocked_id));
+   setMessage(member.blocked_username+' was unblocked.');
+  }catch(e){setError(e.message||'The member could not be unblocked.');}
+  finally{setBusy(false);}
+ };
+ const signOut=async()=>{setBusy(true);setError('');try{const {error:signOutError}=await supabase.auth.signOut();if(signOutError)throw signOutError;setProfile(null);setBlockedMembers([]);setMessage('You are signed out.')}catch(e){setError(e.message||'Could not sign out.')}finally{setBusy(false)}};
 
  if(!isSupabaseConfigured)return <span className="ad-auth-unavailable" title="Supabase configuration is missing">Accounts unavailable</span>;
  return <>
@@ -126,6 +139,7 @@ export default function AuthControl(){
       <p className="ad-auth-help">Your profile is private by default. The online count never shows names or last-seen times. Don't add your real name, school, location, or other personal details.</p>
       {editing?<div className="ad-auth-actions"><button type="submit" disabled={busy}>{busy?'Saving…':'Save profile'}</button><button type="button" className="secondary" onClick={()=>{setEditing(false);if(profile){setUsername(profile.username||'');setDisplayName(profile.display_name||'');setBio(profile.bio||'');setFavoriteAnime(profile.favorite_anime||'');setIsPublic(Boolean(profile.is_public));setShowOnline(Boolean(profile.show_online))}}}>Cancel</button></div>:<button type="button" className="ad-auth-primary" onClick={()=>setEditing(true)}>Edit profile</button>}
      </form>}
+     {blockedMembers.length>0&&<div className="ad-blocked-list"><b>Blocked members</b>{blockedMembers.map(member=><div key={member.blocked_id}><span>{member.blocked_username||'AniOrbit member'}</span><button type="button" disabled={busy} onClick={()=>unblockMember(member)}>Unblock</button></div>)}</div>}
      {isModerator&&<button type="button" className="ad-auth-signout" onClick={()=>setModerationOpen(true)}>Open moderation queue</button>}
      <button type="button" className="ad-auth-signout" onClick={signOut} disabled={busy}>Sign out</button>
     </>:<>
