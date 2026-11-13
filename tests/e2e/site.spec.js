@@ -340,3 +340,65 @@ test('direct video player automatically jumps over a verified opening when auto-
   });
   await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
 });
+
+test('Continue Watching repairs stale posters from the catalogue and can dismiss entries', async ({ page }) => {
+  const brokenUrl = 'https://images.example.test/cyberpunk-old.jpg';
+  const freshUrl = 'https://images.example.test/cyberpunk-current.png';
+  const savedAnime = {
+    id: 156822,
+    title: { english: 'Cyberpunk: Edgerunners', romaji: 'Cyberpunk: Edgerunners' },
+    coverImage: { large: brokenUrl, extraLarge: brokenUrl },
+    format: 'TV',
+    seasonYear: 2022,
+    genres: ['Action', 'Sci-Fi'],
+    lastEpisode: 4,
+    audio: 'sub',
+    recommendations: []
+  };
+
+  await page.addInitScript(library => {
+    localStorage.setItem('animedex-library-v1', JSON.stringify({
+      watchlist: [library],
+      history: [library],
+      watchedEpisodes: {},
+      notifiedEpisodes: []
+    }));
+  }, savedAnime);
+
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ popular: [], recent: [] })
+  }));
+  await page.route('**/anime/info/156822', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      id: 156822,
+      title: { english: 'Cyberpunk: Edgerunners', romaji: 'Cyberpunk: Edgerunners' },
+      coverImage: { large: freshUrl, extraLarge: freshUrl },
+      format: 'TV',
+      seasonYear: 2022,
+      genres: ['Action', 'Sci-Fi']
+    })
+  }));
+  await page.route(brokenUrl, route => route.fulfill({ status: 404, body: 'not found' }));
+  await page.route(freshUrl, route => route.fulfill({
+    status: 200,
+    contentType: 'image/png',
+    body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/S2cAAAAASUVORK5CYII=', 'base64')
+  }));
+
+  await page.goto(pagePath);
+  const card = page.locator('.ad-continue-card').filter({ hasText: 'Cyberpunk: Edgerunners' });
+  await expect(page.getByRole('heading', { name: 'Continue Watching' })).toBeVisible();
+  await expect(card.locator('img')).toHaveAttribute('src', freshUrl);
+  await expect.poll(() => card.locator('img').evaluate(img => img.naturalWidth)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.history?.[0]?.coverImage?.large || '';
+  })).toBe(freshUrl);
+
+  await card.getByRole('button', { name: 'Remove Cyberpunk: Edgerunners from Continue Watching' }).click();
+  await expect(page.getByRole('heading', { name: 'Continue Watching' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
+  await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Cyberpunk: Edgerunners');
+});
