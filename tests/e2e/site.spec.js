@@ -157,6 +157,8 @@ test('search and anime details page load and episode links are present', async (
   await expect(first).toBeVisible({ timeout: 60000 });
   await first.click();
   await expect(page.locator('.ad-detail-top')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator('.ad-community')).toBeVisible();
+  await expect(page.locator('.ad-community-heading h2')).toHaveText('Community discussion');
   await expect(page.locator('.ad-detail-copy h1')).not.toBeEmpty();
   await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
@@ -290,6 +292,7 @@ test('watch page offers previous/skip episode controls and reports intro support
   }));
   await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
   await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
+  await expect(page.locator('.ad-community-heading h2')).toHaveText('Episode discussion');
   await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
