@@ -180,6 +180,7 @@ create policy "Moderators delete comments"
 
 drop policy if exists "Members read comment likes" on public.comment_likes;
 drop policy if exists "Signed-in users read likes" on public.comment_likes;
+drop policy if exists "Users like as themselves" on public.comment_likes;
 create policy "Members read comment likes"
   on public.comment_likes for select
   to authenticated
@@ -188,6 +189,19 @@ create policy "Members read comment likes"
       select 1 from public.anime_comments c
       where c.id = comment_likes.comment_id
         and (not c.is_hidden or public.is_community_moderator())
+    )
+  );
+
+create policy "Members like visible comments"
+  on public.comment_likes for insert
+  to authenticated
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.anime_comments c
+      where c.id = comment_likes.comment_id
+        and not c.is_hidden
+        and not public.is_blocked_relationship(c.user_id)
     )
   );
 
