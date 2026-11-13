@@ -12,6 +12,7 @@ function apiCacheTtl(path){
  if(path.startsWith('/anime/info/'))return 15*60*1000;
  if(path.startsWith('/anime/search?'))return 90*1000;
  if(path.startsWith('/anime/filter?'))return 3*60*1000;
+ if(path.startsWith('/anime/schedule?'))return 60*1000;
  if(path==='/anime/genres')return 24*60*60*1000;
  return 0;
 }
@@ -203,7 +204,6 @@ function Home(){
  const [airingAlerts,setAiringAlerts]=useState([]);
  const [alertMessage,setAlertMessage]=useState('');
  const [notificationPermission,setNotificationPermission]=useState(()=>('Notification' in window?Notification.permission:'unsupported'));
- const alertTimers=useRef(new Map());
  const followedKey=libraryData.watchlist.map(item=>String(item.id)).sort().join(',');
 
  const [data,setData]=useState({popular:[],recent:[],loading:true,error:''});
@@ -220,35 +220,19 @@ function Home(){
     const data=await api('/anime/schedule?page=1&per_page=50');
     if(!live)return;
     const followed=new Set(followedKey.split(','));
-    const matching=(data.results||[]).filter(item=>followed.has(String(item.id))&&item.next_episode&&item.airingAt);
-    setAiringAlerts(matching);
-    if(notificationPermission==='granted'&&'Notification' in window){
-     const library=readLibrary(),delivered=new Set(library.notifiedEpisodes||[]);
-     for(const item of matching){
-      const key=String(item.id)+':'+String(item.next_episode);
-      if(delivered.has(key)||alertTimers.current.has(key))continue;
-      const when=Number(item.airingAt)*1000,delay=when-Date.now();
-      if(!Number.isFinite(when)||delay>7*24*60*60*1000)continue;
-      const timer=window.setTimeout(()=>{
-       try{new Notification('New episode airing',{body:title(item)+' · Episode '+item.next_episode+' is scheduled now.'});}catch{}
-       const latest=readLibrary();
-       writeLibrary({...latest,notifiedEpisodes:[...(latest.notifiedEpisodes||[]),key].slice(-150)});
-       alertTimers.current.delete(key);
-      },Math.max(0,delay));
-      alertTimers.current.set(key,timer);
-     }
-    }
+    setAiringAlerts((data.results||[]).filter(item=>followed.has(String(item.id))&&item.next_episode&&item.airingAt));
    }catch{if(live)setAlertMessage('The airing schedule is temporarily unavailable.');}
   };
   refreshSchedule();
   const interval=window.setInterval(refreshSchedule,15*60*1000);
-  return()=>{live=false;window.clearInterval(interval);for(const timer of alertTimers.current.values())window.clearTimeout(timer);alertTimers.current.clear();};
- },[followedKey,notificationPermission]);
+  return()=>{live=false;window.clearInterval(interval);};
+ },[followedKey]);
  const enableEpisodeAlerts=async()=>{
   if(!('Notification' in window)){setNotificationPermission('unsupported');setAlertMessage('Browser notifications are not supported here. Your in-site airing list will still work.');return;}
   try{
    const permission=await Notification.requestPermission();
    setNotificationPermission(permission);
+   window.dispatchEvent(new Event('animedex-notification-permission-change'));
    setAlertMessage(permission==='granted'?'Episode alerts are enabled while AnimeDex is open.':permission==='denied'?'Notifications are blocked in your browser settings.':'Notification permission was not granted.');
   }catch{setAlertMessage('Could not request notification permission in this browser.');}
  };
@@ -336,6 +320,60 @@ function Home(){
  <button className="ad-reset" onClick={()=>{setResults(null);setErr('');setSelectedGenre('');setFormatFilter('all')}}>Back to Home</button></section>}
  </main><Footer/></>
 }
+
+function EpisodeAlertScheduler(){
+ const libraryData=useLibraryData();
+ const followedKey=libraryData.watchlist.map(item=>String(item.id)).sort().join(',');
+ const [permissionVersion,setPermissionVersion]=useState(0);
+ useEffect(()=>{
+  const refresh=()=>setPermissionVersion(value=>value+1);
+  window.addEventListener('animedex-notification-permission-change',refresh);
+  return()=>window.removeEventListener('animedex-notification-permission-change',refresh);
+ },[]);
+ useEffect(()=>{
+  if(!followedKey||!('Notification' in window)||Notification.permission!=='granted')return;
+  let live=true;
+  const timers=new Map();
+  const scheduleUpcoming=async()=>{
+   try{
+    const data=await api('/anime/schedule?page=1&per_page=50');
+    if(!live)return;
+    const followed=new Set(followedKey.split(','));
+    const current=readLibrary();
+    const delivered=new Set(current.notifiedEpisodes||[]);
+    for(const item of data.results||[]){
+     if(!followed.has(String(item.id))||!item.next_episode||!item.airingAt)continue;
+     const key=String(item.id)+':'+String(item.next_episode);
+     if(delivered.has(key)||timers.has(key))continue;
+     const when=Number(item.airingAt)*1000,delay=when-Date.now();
+     if(!Number.isFinite(when)||delay>7*24*60*60*1000)continue;
+     const timer=window.setTimeout(()=>{
+      timers.delete(key);
+      if(!live||Notification.permission!=='granted')return;
+      try{
+       new Notification('New episode airing',{body:title(item)+' · Episode '+item.next_episode+' is scheduled now.'});
+       const latest=readLibrary();
+       if(!(latest.notifiedEpisodes||[]).includes(key)){
+        writeLibrary({...latest,notifiedEpisodes:[...(latest.notifiedEpisodes||[]),key].slice(-150)});
+       }
+      }catch{}
+     },Math.max(0,delay));
+     timers.set(key,timer);
+    }
+   }catch{}
+  };
+  scheduleUpcoming();
+  const interval=window.setInterval(scheduleUpcoming,15*60*1000);
+  return()=>{
+   live=false;
+   window.clearInterval(interval);
+   for(const timer of timers.values())window.clearTimeout(timer);
+   timers.clear();
+  };
+ },[followedKey,permissionVersion]);
+ return null;
+}
+
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
@@ -444,5 +482,5 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ad-fatal"><div><h1>Page not found</h1><p>This AnimeDex page does not exist.</p><Link className="ad-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><EpisodeAlertScheduler/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
