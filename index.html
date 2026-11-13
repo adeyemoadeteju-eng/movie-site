@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#11141b"/>
     <meta name="color-scheme" content="dark"/>
-    <meta name="description" content="Browse anime, discover new series, and explore episode details on AnimeDex."/>
-    <title>AnimeDex</title>
+    <meta name="description" content="Discover anime, track your watchlist, and join the AniOrbit community."/>
+    <title>AniOrbit</title>
     <style>
       html,body{margin:0;min-height:100%;background:#0d0f14;color:#e9eaf0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
       #boot-screen{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#0d0f14;text-align:center;padding:24px}
@@ -21,12 +21,12 @@
     <div id="root"></div>
     <div id="boot-screen" role="status" aria-live="polite">
       <div class="boot-card">
-        <div class="boot-lockup"><span>Anime<b>Dex</b></span></div>
-        <p id="boot-status">Starting AnimeDex…</p>
+        <div class="boot-lockup"><span>Ani<b>Orbit</b></span></div>
+        <p id="boot-status">Starting AniOrbit…</p>
         <button id="boot-retry" type="button" onclick="window.__animeDexRetry()">Reload site</button>
       </div>
     </div>
-    <noscript><p style="padding:24px;color:#fff">AnimeDex needs JavaScript enabled to display the catalogue.</p></noscript>
+    <noscript><p style="padding:24px;color:#fff">AniOrbit needs JavaScript enabled to display the catalogue.</p></noscript>
     <script>
       window.__animeDexRetry=function(){
         var next=new URL(window.location.href);
