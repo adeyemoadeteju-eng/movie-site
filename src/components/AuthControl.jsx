@@ -95,7 +95,7 @@ export default function AuthControl(){
    const payload={username:cleanUsername,display_name:displayName.trim().slice(0,40),bio:bio.trim().slice(0,240),favorite_anime:favoriteAnime.trim().slice(0,120)||null,is_public:isPublic,show_online:showOnline,updated_at:new Date().toISOString()};
    const {data,error:saveError}=await supabase.from('profiles').update(payload).eq('id',session.user.id).select('username,display_name,bio,favorite_anime,is_public,avatar_path,show_online').single();
    if(saveError)throw saveError;
-   setProfile(data);setEditing(false);setMessage('Profile saved.');
+   setProfile(data);setEditing(false);window.dispatchEvent(new Event('aniorbit-presence-setting-change'));setMessage('Profile saved.');
   }catch(e){setError(e.message||'Your profile could not be saved.')}
   finally{setBusy(false)}
  };
