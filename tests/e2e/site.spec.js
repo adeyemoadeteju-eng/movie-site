@@ -312,3 +312,28 @@ test('watch page gracefully handles missing AniSkip metadata and preserves episo
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('No verified opening timestamps were found for this episode.')).toBeVisible();
 });
+
+
+test('direct video player automatically jumps over a verified opening when auto-skip is enabled', async ({ page }) => {
+  await page.route('**/anime/playback/202?episode=1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', url: 'https://media.example/episode.mp4', type: 'video/mp4' }] })
+  }));
+  await page.route('https://media.example/episode.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9202/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ found: true, results: [{ skipType: 'op', interval: { start: 90, end: 180 } }] })
+  }));
+  await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+    element.dispatchEvent(new Event('timeupdate'));
+  });
+  await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
+});
