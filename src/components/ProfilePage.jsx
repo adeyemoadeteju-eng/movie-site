@@ -39,6 +39,17 @@ export default function ProfilePage(){
   return()=>{active=false;};
  },[username]);
 
+
+ useEffect(()=>{
+  if(!profile?.id||!supabase)return;
+  const refresh=async()=>{
+   const {data}=await supabase.from('profile_stats').select('watchlist_count,history_count,continue_count,episodes_watched_count,updated_at').eq('user_id',profile.id).maybeSingle();
+   if(data)setStats(data);
+  };
+  window.addEventListener('aniorbit-profile-stats-updated',refresh);
+  return()=>window.removeEventListener('aniorbit-profile-stats-updated',refresh);
+ },[profile?.id]);
+
  if(loading)return <main className="ad-profile-page"><p>Loading member profile…</p></main>;
  if(error)return <main className="ad-profile-page"><Link to="/">← AniOrbit</Link><section className="ad-profile-card"><h1>Profile unavailable</h1><p>{error}</p>{!signedIn&&<p><Link to="/">Return to AniOrbit and sign in using the account menu.</Link></p>}</section></main>;
  const name=profile.display_name||profile.username;
