@@ -615,8 +615,6 @@ function Watch(){
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
  const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setShowAdWarning(false);setDontShowAdWarning(false)};
  const selectServer=index=>{setActive(index);if(!hasHiddenAdWarning()){setDontShowAdWarning(false);setShowAdWarning(true)}};
- const [blockEmbedPopups,setBlockEmbedPopups]=useState(()=>{try{return JSON.parse(localStorage.getItem('animedex-settings')||'{}').blockEmbedPopups!==false}catch{return true}});
- const saveEmbedProtection=value=>{setBlockEmbedPopups(value);try{const saved=JSON.parse(localStorage.getItem('animedex-settings')||'{}');localStorage.setItem('animedex-settings',JSON.stringify({...saved,blockEmbedPopups:value}));}catch{}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
  const own=fallback(mal,episode,audio);
@@ -658,26 +656,23 @@ function Watch(){
   <label><input type="checkbox" checked={autoSkip} onChange={event=>setAutoSkip(event.target.checked)}/> Enabled</label>
  </section>
  {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
-  {direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
-   {showAdWarning?<section className="ad-ad-warning" role="dialog" aria-modal="true" aria-labelledby="ad-ad-warning-title">
-    <div className="ad-ad-warning-card">
-     <span className="ad-ad-warning-kicker">PLAYER SAFETY NOTICE</span>
-     <h2 id="ad-ad-warning-title">Before you watch</h2>
-     <p>This video is hosted by a third-party player. It may show pop-ups, redirects, or misleading download buttons. For safer browsing, consider using a reputable ad blocker or content blocker. Never download files, install extensions, or enter personal details because a video player asks you to.</p>
-     <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
-     <button type="button" onClick={continueToVideo}>Continue to video</button>
-    </div>
-   </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
-    <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
-    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
-   </>}
+  {showAdWarning?<section className="ad-ad-warning" role="dialog" aria-modal="true" aria-labelledby="ad-ad-warning-title">
+   <div className="ad-ad-warning-card">
+    <span className="ad-ad-warning-kicker">PLAYER SAFETY NOTICE</span>
+    <h2 id="ad-ad-warning-title">Before you watch</h2>
+    <p>This video is hosted by a third-party player. It may show pop-ups, redirects, or misleading download buttons. For safer browsing, consider using a reputable ad blocker or content blocker. Never download files, install extensions, or enter personal details because a video player asks you to.</p>
+    <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
+    <button type="button" onClick={continueToVideo}>Continue to video</button>
+   </div>
+  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
+   <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
-   <div className="ad-servers">
-    <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
-    <div className="ad-server-grid">{sources.slice(0,3).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
-    {sources.length>3&&<details className="ad-server-more" open={active>=3}><summary><span>More servers</span><small>{sources.length-3} additional options</small></summary><div className="ad-server-secondary">{sources.slice(3).map((s,offset)=>{const i=offset+3;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
-   </div>
+  <div className="ad-servers">
+   <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
+   <div className="ad-server-grid">{sources.slice(0,3).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
+   {sources.length>3&&<details className="ad-server-more" open={active>=3}><summary><span>More servers</span><small>{sources.length-3} additional options</small></summary><div className="ad-server-secondary">{sources.slice(3).map((s,offset)=>{const i=offset+3;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+  </div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
  <CommunitySection animeId={String(id)} title={name} episodeNumber={episodeNumber}/>
