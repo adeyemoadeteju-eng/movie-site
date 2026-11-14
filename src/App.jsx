@@ -949,7 +949,7 @@ function Watch(){
   <div><b>Automatic intro skip</b><small>{skipMessage}</small></div>
   <label><input type="checkbox" checked={autoSkip} onChange={event=>setAutoSkip(event.target.checked)}/> Auto-skip intro</label>
   <label><input type="checkbox" checked={autoNext} onChange={event=>setAutoNext(event.target.checked)}/> Auto-next (direct videos only)</label>
-  <label className="ad-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>
+  {direct&&<label className="ad-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>}
  </section>
  {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
   {showAdWarning?<section className="ad-ad-warning" role="dialog" aria-modal="true" aria-labelledby="ad-ad-warning-title">
