@@ -491,42 +491,43 @@ test('anime detail pages use the saved default audio preference for episode link
 });
 
 
-test('watch page warns before playback, remembers opt-out, and groups preferred servers first', async ({ page }) => {
-  await page.route('**/anime/playback/4242?episode=1**', route => route.fulfill({
+test('watch page warns before playback, remembers opt-out, and puts VidSrc, VidLink, and 2Embed first for the selected episode', async ({ page }) => {
+  await page.route('**/anime/playback/4242?episode=7**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
-      { name: 'AnimeEmbed', provider: 'animeembed', url: 'https://animeembed.com/embed/ani/4242/1?track=sub' },
-      { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4242/1?lang=sub' },
-      { name: 'Vidy', provider: 'vidy', url: 'https://www.vidy.st/anime/4242/1?color=9b87ff' },
-      { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/1' },
-      { name: 'VidSrc', url: 'https://vidsrc.mov/embed/tv/5/1/1' }
+      { name: 'AnimeEmbed', provider: 'animeembed', url: 'https://animeembed.com/embed/ani/4242/7?track=sub' },
+      { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4242/7?lang=sub' },
+      { name: 'Vidy', provider: 'vidy', url: 'https://www.vidy.st/anime/4242/7?color=9b87ff' },
+      { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/7' },
+      { name: 'VidSrc', url: 'https://vidsrc.mov/embed/tv/5/2/7' },
+      { name: 'VidLink', url: 'https://vidlink.pro/tv/5/2/7' },
+      { name: '2Embed', url: 'https://www.2embed.cc/embedtv/5&s=2&e=7' },
+      { name: 'VidCore', url: 'https://vidcore.org/embed/tv/5/2/7' }
     ] })
   }));
   await page.route('https://api.aniskip.com/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
   }));
-  await page.goto('/movie-site/#/watch/4242/1/sub/embed?title=Player%20Safety%20Test');
+  await page.goto('/movie-site/#/watch/4242/7/sub/embed?title=Player%20Safety%20Test');
   await expect(page.locator('.ad-ad-warning')).toBeVisible();
   await expect(page.locator('.ad-player iframe')).toHaveCount(0);
-  await expect(page.locator('.ad-server-grid button').nth(0)).toContainText('AniEmbed');
-  await expect(page.locator('.ad-server-grid button').nth(1)).toContainText('AnimeEmbed');
-  await expect(page.locator('.ad-server-grid button').nth(2)).toContainText('Vidy');
-  await expect(page.locator('.ad-server-more')).toContainText('Aanikoto API');
-  await expect(page.locator('.ad-server-more')).toContainText('VidSrc');
+  await expect(page.locator('.ad-server-grid button').nth(0)).toContainText('VidSrc');
+  await expect(page.locator('.ad-server-grid button').nth(1)).toContainText('VidLink');
+  await expect(page.locator('.ad-server-grid button').nth(2)).toContainText('2Embed');
+  await expect(page.locator('.ad-server-more')).toContainText('AniEmbed');
+  await expect(page.locator('.ad-server-more')).toContainText('AnimeEmbed');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ad-player iframe');
   await expect(frame).toBeVisible();
   await expect(frame).not.toHaveAttribute('sandbox');
-  await expect(frame).toHaveAttribute('src', /aniembed\.se/);
-  await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(frame).toHaveAttribute('src', /vidy\.st/);
-  await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
-  await page.getByRole('button', { name: 'AnimeEmbed' }).click();
-  await expect(frame).toHaveAttribute('src', /animeembed\.com/);
+  await expect(frame).toHaveAttribute('src', /vidsrc\.mov\/embed\/tv\/5\/2\/7/);
+  await page.getByRole('button', { name: /VidLink/ }).click();
+  await expect(frame).toHaveAttribute('src', /vidlink\.pro\/tv\/5\/2\/7/);
+  await page.getByRole('button', { name: /2Embed/ }).click();
+  await expect(frame).toHaveAttribute('src', /2embed\.cc\/embedtv\/5&s=2&e=7/);
   await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
 });
-
 test('player warning appears again when switching servers unless the user opts out', async ({ page }) => {
   await page.route('**/anime/playback/4243?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
