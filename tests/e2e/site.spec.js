@@ -402,3 +402,84 @@ test('Continue Watching repairs stale posters from the catalogue and can dismiss
   await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
   await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Cyberpunk: Edgerunners');
 });
+
+
+test('custom anime lists can be created and filled from an anime page', async ({ page }) => {
+  await page.goto('/movie-site/#/lists');
+  await expect(page.getByRole('heading', { name: 'Custom anime lists' })).toBeVisible();
+  await page.getByLabel('List name').fill('Favourites');
+  await page.getByLabel(/Description/).fill('Shows I want to keep close');
+  await page.getByRole('button', { name: 'Create list' }).click();
+  await expect(page.getByRole('heading', { name: 'Favourites' })).toBeVisible();
+
+  await page.route('**/anime/info/1', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      id: 1, idMal: 1, title: { english: 'List Test Anime', romaji: 'List Test Anime' },
+      coverImage: { large: '', extraLarge: '' }, format: 'TV', seasonYear: 2025,
+      status: 'FINISHED', episodes: 2, genres: ['Adventure']
+    })
+  }));
+  await page.route('**/anime/episodes/1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { anineko: { episodes: { sub: [{ number: 1 }, { number: 2 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+
+  await page.goto('/movie-site/#/anime/1');
+  await expect(page.locator('.ad-detail-top')).toBeVisible();
+  await page.locator('#ad-add-to-list').selectOption({ label: 'Favourites' });
+  await page.getByRole('button', { name: '+ Add to list' }).click();
+  await expect(page.getByRole('button', { name: '✓ In this list' })).toBeVisible();
+  await page.goto('/movie-site/#/lists');
+  await expect(page.locator('.ad-custom-list-card').filter({ hasText: 'Favourites' })).toContainText('List Test Anime');
+});
+
+test('release schedule displays upcoming catalogue episodes and supports date filters', async ({ page }) => {
+  const now = Math.floor(Date.now() / 1000);
+  await page.route('**/anime/schedule?**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      results: [
+        { id: 701, title: { english: 'Schedule Test Show' }, coverImage: { large: '' }, next_episode: 5, airingAt: now + 3600 },
+        { id: 702, title: { english: 'Schedule Later Show' }, coverImage: { large: '' }, next_episode: 2, airingAt: now + 9 * 24 * 3600 }
+      ]
+    })
+  }));
+  await page.goto('/movie-site/#/schedule');
+  await expect(page.getByRole('heading', { name: 'Upcoming episodes' })).toBeVisible();
+  await expect(page.getByText('Schedule Test Show')).toBeVisible();
+  await expect(page.getByText('Episode 5')).toBeVisible();
+  await page.getByRole('button', { name: 'Today' }).click();
+  await expect(page.getByText('Schedule Test Show')).toBeVisible();
+  await expect(page.getByText('Schedule Later Show')).toHaveCount(0);
+});
+
+test('anime detail pages use the saved default audio preference for episode links', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('animedex-settings', JSON.stringify({ defaultAudio: 'dub' }));
+  });
+  await page.route('**/anime/info/1', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      id: 1, idMal: 1, title: { english: 'Audio Preference Test' },
+      coverImage: { large: '' }, format: 'TV', episodes: 1, genres: []
+    })
+  }));
+  await page.route('**/anime/episodes/1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { anineko: { episodes: { sub: [{ number: 1 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.goto('/movie-site/#/anime/1');
+  await expect(page.locator('.ad-detail-top')).toBeVisible();
+  await expect(page.locator('.ad-detail-copy a.ad-watch')).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
+  await expect(page.locator('.ad-episode-grid a').first()).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
+});
