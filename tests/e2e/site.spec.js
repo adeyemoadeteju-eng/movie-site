@@ -79,6 +79,7 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   const trailer = page.locator('.ad-hero-trailer');
   await expect(trailer).toBeVisible();
   await expect(trailer).toHaveAttribute('src', /autoplay=1.*mute=1/);
+  await expect(trailer).toHaveAttribute('allow', /autoplay/);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('Autoplay muted trailers').uncheck();
   await page.getByLabel('Accent colour').selectOption('blue');
