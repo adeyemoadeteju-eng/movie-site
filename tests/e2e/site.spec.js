@@ -503,7 +503,6 @@ test('watch page offers new embed servers and blocks pop-ups by default', async 
   await expect(page.locator('.ad-servers')).toContainText('AniEmbed');
   await expect(page.locator('.ad-servers')).toContainText('Vidy');
   await expect(page.locator('.ad-servers')).toContainText('Aanikoto API');
-  await expect(page.locator('.ad-player iframe')).toHaveAttribute('allow', /autoplay \*; fullscreen \*/);
   const frame = page.locator('.ad-player iframe');
   await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
   await expect(frame).not.toHaveAttribute('sandbox', /allow-popups/);
@@ -511,7 +510,7 @@ test('watch page offers new embed servers and blocks pop-ups by default', async 
   await expect(frame).not.toHaveAttribute('sandbox');
   await page.getByLabel('Block pop-ups & redirects').check();
   await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(frame).toHaveAttribute('src', /vidy\\.st/);
-  await expect(trailer).toHaveAttribute('allow', /autoplay/);
+  await expect(frame).toHaveAttribute('src', /vidy\.st/);
+  await expect(frame).toHaveAttribute('allow', /autoplay \*; fullscreen \*/);
   await expect(frame).toHaveAttribute('sandbox', /allow-same-origin/);
 });
