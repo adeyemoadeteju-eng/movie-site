@@ -886,7 +886,7 @@ function Watch(){
    if(!live)return;
    const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
    setSources(ranked);
-   if(ranked.length){const preferred=readPreferredServers()[audio==='dub'?'dub':'sub'];const preferredIndex=preferred?ranked.findIndex(item=>sourceServerId(item)===preferred):-1;setActive(preferredIndex>=0?preferredIndex:0);setLoading(false);setError('');return;}
+   if(ranked.length){const preferred=readPreferredServers()[audio==='dub'?'dub':'sub'];const preferredIndex=preferred?ranked.findIndex(item=>sourceServerId(item)===preferred&&!isServerReportedUnreliable(item)):-1;setActive(preferredIndex>=0?preferredIndex:0);setLoading(false);setError('');return;}
    if(primaryDone&&anivexaDone){
     setLoading(false);
     setError(primaryError||'No playback source is available from either server.');
