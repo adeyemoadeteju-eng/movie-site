@@ -24,14 +24,14 @@ export default function ProfilePage(){
     .eq('username',username).maybeSingle();
    if(!active)return;
    if(profileError||!data){setError('This profile could not be found.');setLoading(false);return;}
-   if(!profile.is_public&&profile.id!==sessionData.session.user.id){setError('This member keeps their profile private.');setLoading(false);return;}
-   setProfile(profile);
+   if(!data.is_public&&data.id!==sessionData.session.user.id){setError('This member keeps their profile private.');setLoading(false);return;}
+   setProfile(data);
    const {data:statsData}=await supabase.from('profile_stats')
     .select('watchlist_count,history_count,continue_count,episodes_watched_count,updated_at')
-    .eq('user_id',profile.id).maybeSingle();
+    .eq('user_id',data.id).maybeSingle();
    if(active)setStats(statsData||{watchlist_count:0,history_count:0,continue_count:0,episodes_watched_count:0});
-   if(profile.avatar_path){
-    const {data:signed}=await supabase.storage.from('avatars').createSignedUrl(profile.avatar_path,3600);
+   if(data.avatar_path){
+    const {data:signed}=await supabase.storage.from('avatars').createSignedUrl(data.avatar_path,3600);
     if(active)setAvatar(signed?.signedUrl||'');
    }
    if(active)setLoading(false);
