@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {isSupabaseConfigured,supabase} from '../lib/supabase.js';
 import ModerationPanel from './ModerationPanel.jsx';
+import CloudLibrarySync from './CloudLibrarySync.jsx';
 
 export default function AuthControl(){
  const [open,setOpen]=useState(false);
@@ -157,7 +158,7 @@ export default function AuthControl(){
  if(!isSupabaseConfigured)return <span className="ad-auth-unavailable" title="Supabase configuration is missing">Accounts unavailable</span>;
  return <>
   <button type="button" className="ad-settings-trigger ad-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}} aria-label={session?.user?'Open your AniOrbit profile':'Sign in to AniOrbit'} title={session?.user?'Your account and profile settings':'Sign in'}>{session?.user?<><span className="ad-account-avatar">{avatarUrl?<img src={avatarUrl} alt="" />:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><span className="ad-account-name">{profile?.display_name||profile?.username||'Account'}</span></>:<><span className="ad-account-guest" aria-hidden="true">◉</span><span>Sign in</span></>}</button>
-  {open&&<div className="ad-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
+  <div className="ad-auth-backdrop" hidden={!open} role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
    <section className="ad-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-auth-title">
     <div className="ad-auth-heading"><div><span className="ad-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ad-auth-title">{recoveryMode?'Choose a new password':session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
     {session?.user&&recoveryMode?<form className="ad-profile-form" onSubmit={updatePassword}>
@@ -178,6 +179,7 @@ export default function AuthControl(){
       {editing?<div className="ad-auth-actions"><button type="submit" disabled={busy}>{busy?'Saving…':'Save profile'}</button><button type="button" className="secondary" onClick={()=>{setEditing(false);if(profile){setUsername(profile.username||'');setDisplayName(profile.display_name||'');setBio(profile.bio||'');setFavoriteAnime(profile.favorite_anime||'');setIsPublic(Boolean(profile.is_public));setShowOnline(Boolean(profile.show_online))}}}>Cancel</button></div>:<button type="button" className="ad-auth-primary" onClick={()=>setEditing(true)}>Edit profile</button>}
      </form>}
      {profile&&<Link className="ad-auth-profile-link" to={'/user/'+encodeURIComponent(profile.username)}>View my AniOrbit profile →</Link>}
+     <CloudLibrarySync userId={session.user.id}/>
      {blockedMembers.length>0&&<div className="ad-blocked-list"><b>Blocked members</b>{blockedMembers.map(member=><div key={member.blocked_id}><span>{member.blocked_username||'AniOrbit member'}</span><button type="button" disabled={busy} onClick={()=>unblockMember(member)}>Unblock</button></div>)}</div>}
      {isModerator&&<button type="button" className="ad-auth-signout" onClick={()=>setModerationOpen(true)}>Open moderation queue</button>}
      <button type="button" className="ad-auth-signout" onClick={signOut} disabled={busy}>Sign out</button>
@@ -196,7 +198,7 @@ export default function AuthControl(){
     {message&&<p className="ad-auth-message" role="status">{message}</p>}
     {error&&<p className="ad-auth-error" role="alert">{error}</p>}
    </section>
-  </div>}
+  </div>
   {moderationOpen&&<ModerationPanel onClose={()=>setModerationOpen(false)}/>}
  </>;
 }
