@@ -12,6 +12,10 @@ import SchedulePage from './components/SchedulePage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
+const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
+const ANIVEXA_PROVIDER_ORDER=['reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','anipm','mkissa','animenosub'];
+const API_WARMUP_KEY='aniorbit-api-warmup-v1';
+const API_WARMUP_INTERVAL=20*60*1000;
 const API_CACHE_KEY='animedex-api-cache-v1';
 const API_CACHE=new Map();
 const API_IN_FLIGHT=new Map();
@@ -78,6 +82,25 @@ async function api(path){
   }
  }
  return requestApi(path,ttl);
+}
+function ApiWarmup(){
+ useEffect(()=>{
+  const ping=()=>{
+   const now=Date.now();
+   let last=0;
+   try{last=Number(localStorage.getItem(API_WARMUP_KEY)||0)}catch{}
+   if(now-last<API_WARMUP_INTERVAL)return;
+   try{localStorage.setItem(API_WARMUP_KEY,String(now))}catch{}
+   fetch(API+'/docs',{method:'GET',mode:'no-cors',cache:'no-store',keepalive:true}).catch(()=>{});
+   fetch(ANIVEXA_API+'/',{method:'GET',mode:'no-cors',cache:'no-store',keepalive:true}).catch(()=>{});
+  };
+  ping();
+  const timer=window.setInterval(ping,API_WARMUP_INTERVAL);
+  const onVisibility=()=>{if(document.visibilityState==='visible')ping()};
+  document.addEventListener('visibilitychange',onVisibility);
+  return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
+ },[]);
+ return null;
 }
 const title=a=>a?.title?.english||a?.title?.romaji||a?.title?.native||a?.name||'Untitled';
 const imageCandidates=a=>[...new Set([a?.coverImage?.extraLarge,a?.coverImage?.large,a?.image,a?.poster].filter(value=>typeof value==='string'&&value.trim()))];
@@ -532,17 +555,97 @@ function isDirectMedia(source){
 const AD_WARNING_KEY='aniorbit-hide-third-party-warning-v1';
 function hasHiddenAdWarning(){try{return localStorage.getItem(AD_WARNING_KEY)==='true'}catch{return false}}
 function playbackSourceRank(source){
- if(isDirectMedia(source))return -1;
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
  if(key.includes('vidsrc'))return 0;
  if(key.includes('vidlink'))return 1;
  if(key.includes('2embed'))return 2;
+ if(key.includes('anivexa'))return 3;
+ if(isDirectMedia(source))return 4;
  if(key.includes('vidcore'))return 10;
  if(key.includes('anikoto'))return 11;
  if(key.includes('vidy'))return 12;
- if(key.includes('animeembed'))return 20;
- if(key.includes('aniembed'))return 21;
  return 50;
+}
+function isBrokenPlaybackEmbed(source){
+ const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
+ return key.includes('aniembed')||key.includes('animeembed');
+}
+function rankPlaybackSources(primary,secondary,own){
+ const unique=new Set();
+ return [...(primary||[]),...(secondary||[]),...(own?[own]:[])]
+  .filter(source=>source?.url&&/^https:\/\//i.test(String(source.url))&&!isBrokenPlaybackEmbed(source))
+  .map((source,index)=>({source:{...source,url:String(source.url).trim()},index}))
+  .filter(({source})=>{
+   if(unique.has(source.url))return false;
+   unique.add(source.url);
+   return true;
+  })
+  .sort((a,b)=>playbackSourceRank(a.source)-playbackSourceRank(b.source)||a.index-b.index)
+  .map(item=>item.source);
+}
+function normalizeAnivexaWatchPayload(payload,provider){
+ const providerName=provider.charAt(0).toUpperCase()+provider.slice(1);
+ const rows=[];
+ if(Array.isArray(payload?.streams))rows.push(...payload.streams.map(item=>({item,kind:'stream'})));
+ if(payload?.stream_url)rows.unshift({item:{url:payload.stream_url,type:'hls',server:payload.server||providerName},kind:'stream'});
+ if(Array.isArray(payload?.embeds))rows.push(...payload.embeds.map(item=>({item,kind:'embed'})));
+ if(Array.isArray(payload?.allServers))rows.push(...payload.allServers.map(item=>({item:{url:item.embed,name:item.name},kind:'embed'})));
+ const output=[];
+ const seen=new Set();
+ for(const row of rows){
+  const item=row.item||{};
+  const url=String(item.url||item.src||item.file||item.embed||'').trim();
+  if(!/^https:\/\//i.test(url)||seen.has(url))continue;
+  if(item.headers&&Object.keys(item.headers).length)continue;
+  const rawType=String(item.type||item.mimeType||item.mime_type||'').toLowerCase();
+  if(rawType.includes('dash')||/\.mpd(?:$|[?#])/i.test(url))continue;
+  const hls=rawType==='hls'||rawType==='m3u8'||/\.m3u8(?:$|[?#])/i.test(url);
+  const media=/\.(?:mp4|webm)(?:$|[?#])/i.test(url)||rawType.startsWith('video/');
+  const type=hls?'application/vnd.apple.mpegurl':media?(rawType||'video/mp4'):'embed';
+  const serverName=item.server||item.name||providerName;
+  output.push({name:'Anivexa · '+providerName+' · '+serverName,provider:'anivexa',type,url});
+  seen.add(url);
+ }
+ output.sort((a,b)=>Number(isDirectMedia(b))-Number(isDirectMedia(a)));
+ return output;
+}
+async function fetchAnivexaPlayback(anilistId,episode,audio,signal){
+ const providerPath=ANIVEXA_PROVIDER_ORDER.join('/');
+ const response=await fetch(ANIVEXA_API+'/episodes/'+providerPath+'/'+encodeURIComponent(anilistId)+'?map=false',{
+  cache:'no-store',headers:{Accept:'application/json'},signal
+ });
+ if(!response.ok)throw new Error('Anivexa episodes request failed ('+response.status+')');
+ const payload=await response.json();
+ const candidates=[];
+ const routePattern=/^watch\/(mkissa|reanime|anikoto|animegg|animenosub|anizone|aniwaves|senshi|kaa|animedunya|animeonsen|anipm)\/\d+\/(sub|dub)\/\1-\d+$/i;
+ for(const provider of ANIVEXA_PROVIDER_ORDER){
+  const episodes=payload?.[provider]?.episodes?.[audio];
+  if(!Array.isArray(episodes))continue;
+  const item=episodes.find(row=>Number(row?.number)===Number(episode));
+  const route=String(item?.id||'').replace(/^\/+/, '');
+  if(item&&routePattern.test(route))candidates.push({provider,route});
+ }
+ if(!candidates.length)return [];
+ const localController=new AbortController();
+ const combinedSignal=signal?AbortSignal.any([signal,localController.signal]):localController.signal;
+ const jobs=candidates.map(async candidate=>{
+  const result=await fetch(ANIVEXA_API+'/'+candidate.route,{
+   cache:'no-store',headers:{Accept:'application/json'},signal:combinedSignal
+  });
+  const body=await result.json().catch(()=>null);
+  if(!result.ok||!body||body.error)throw new Error(body?.error||'Anivexa provider unavailable');
+  const sources=normalizeAnivexaWatchPayload(body,candidate.provider);
+  if(!sources.length)throw new Error('Anivexa provider returned no browser-playable source');
+  return sources[0];
+ });
+ try{
+  const firstUsable=await Promise.any(jobs);
+  localController.abort();
+  return [firstUsable];
+ }catch{
+  localController.abort();
+  return [];
+ }
 }
 async function getOpeningSkip(mal,episode,signal){
  if(!/^\d+$/.test(String(mal||'')))return null;
@@ -640,7 +743,49 @@ function Watch(){
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
  useEffect(()=>{setDontShowAdWarning(false);setShowAdWarning(!hasHiddenAdWarning())},[id,episode,audio]);
- useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));const ranked=[...list,...(own?[own]:[])].map((source,index)=>({source,index})).sort((a,b)=>playbackSourceRank(a.source)-playbackSourceRank(b.source)||a.index-b.index).map(item=>item.source);setSources(ranked);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
+ useEffect(()=>{
+  let live=true;
+  let primaryDone=false;
+  let anivexaDone=false;
+  let primaryError='';
+  let primarySources=[];
+  let anivexaSources=[];
+  const anivexaController=new AbortController();
+  const anivexaTimer=window.setTimeout(()=>anivexaController.abort(),40000);
+  setLoading(true);setError('');setSources([]);setActive(0);
+  const refresh=()=>{
+   if(!live)return;
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
+   setSources(ranked);
+   if(ranked.length){setLoading(false);setError('');return;}
+   if(primaryDone&&anivexaDone){
+    setLoading(false);
+    setError(primaryError||'No playback source is available from either server.');
+   }
+  };
+  api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio))
+   .then(data=>{
+    if(!live)return;
+    primarySources=Array.isArray(data?.sources)?data.sources:[];
+    primaryDone=true;
+    refresh();
+   })
+   .catch(error=>{
+    if(!live)return;
+    primaryError=error?.message||'The main playback API is unavailable.';
+    primaryDone=true;
+    refresh();
+   });
+  fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
+   .then(list=>{if(live)anivexaSources=list})
+   .catch(()=>{})
+   .finally(()=>{anivexaDone=true;window.clearTimeout(anivexaTimer);refresh()});
+  return()=>{
+   live=false;
+   anivexaController.abort();
+   window.clearTimeout(anivexaTimer);
+  };
+ },[id,episode,audio,mal]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  const skipMessage=introStatus==='found'?'Opening detected: '+formatSkipTime(intro.start)+'–'+formatSkipTime(intro.end):introStatus==='checking'?'Checking opening timestamps…':introStatus==='not-found'?'No verified opening timestamps were found for this episode.':'Opening timestamps are unavailable for this title.';
@@ -670,8 +815,8 @@ function Watch(){
   </>}
   <div className="ad-servers">
    <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
-   <div className="ad-server-grid">{sources.slice(0,3).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
-   {sources.length>3&&<details className="ad-server-more" open={active>=3}><summary><span>More servers</span><small>{sources.length-3} additional options</small></summary><div className="ad-server-secondary">{sources.slice(3).map((s,offset)=>{const i=offset+3;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+   <div className="ad-server-grid">{sources.slice(0,4).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
+   {sources.length>4&&<details className="ad-server-more" open={active>=4}><summary><span>More servers</span><small>{sources.length-4} additional options</small></summary><div className="ad-server-secondary">{sources.slice(4).map((s,offset)=>{const i=offset+4;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
   </div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
@@ -689,5 +834,5 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ad-fatal"><div><h1>Page not found</h1><p>This AniOrbit page does not exist.</p><Link className="ad-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
