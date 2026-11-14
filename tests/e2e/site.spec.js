@@ -79,7 +79,6 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   const trailer = page.locator('.ad-hero-trailer');
   await expect(trailer).toBeVisible();
   await expect(trailer).toHaveAttribute('src', /autoplay=1.*mute=1/);
-  await expect(trailer).toHaveAttribute('allow', /autoplay/);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('Autoplay muted trailers').uncheck();
   await page.getByLabel('Accent colour').selectOption('blue');
@@ -511,5 +510,8 @@ test('watch page offers new embed servers and blocks pop-ups by default', async 
   await page.getByLabel('Block pop-ups & redirects').uncheck();
   await expect(frame).not.toHaveAttribute('sandbox');
   await page.getByLabel('Block pop-ups & redirects').check();
+  await page.getByRole('button', { name: 'Vidy' }).click();
+  await expect(frame).toHaveAttribute('src', /vidy\\.st/);
+  await expect(trailer).toHaveAttribute('allow', /autoplay/);
   await expect(frame).toHaveAttribute('sandbox', /allow-same-origin/);
 });
