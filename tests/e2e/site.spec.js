@@ -88,7 +88,7 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByLabel('Autoplay muted trailers')).not.toBeChecked();
   await expect(page.getByLabel('Accent colour')).toHaveValue('blue');
-  await expect(page.getByLabel('Block pop-ups and full-page redirects in embeds')).toBeChecked();
+  await expect(page.getByLabel('Block pop-ups and full-page redirects in embeds')).toHaveCount(0);
 });
 
 test('catalogue failures show a recovery message instead of an empty or blank page', async ({ page }) => {
@@ -269,6 +269,8 @@ test('watchlist, continue watching, episode completion and recommendations persi
   await page.getByRole('button', { name: '+ Add to watchlist' }).click();
   await expect(page.getByRole('button', { name: '✓ In your watchlist' })).toBeVisible();
   await page.locator('.ad-episode-grid a').first().click();
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ad-player iframe')).toBeVisible();
   await page.getByRole('button', { name: 'Mark episode as watched' }).click();
   await expect(page.getByRole('button', { name: '✓ Episode watched' })).toBeVisible();
@@ -293,6 +295,7 @@ test('watch page offers previous/skip episode controls and reports intro support
   }));
   await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
   await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ad-community-heading h2')).toHaveText('Episode discussion');
   await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
@@ -331,6 +334,8 @@ test('direct video player automatically jumps over a verified opening when auto-
     body: JSON.stringify({ found: true, results: [{ skipType: 'op', interval: { start: 90, end: 180 } }] })
   }));
   await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
   const video = page.locator('.ad-direct-player video');
   await expect(video).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
@@ -486,38 +491,57 @@ test('anime detail pages use the saved default audio preference for episode link
 });
 
 
-test('watch page offers new embed servers and blocks pop-ups by default', async ({ page }) => {
+test('watch page warns before playback, remembers opt-out, and groups preferred servers first', async ({ page }) => {
   await page.route('**/anime/playback/4242?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
       { name: 'AnimeEmbed', provider: 'animeembed', url: 'https://animeembed.com/embed/ani/4242/1?track=sub' },
       { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4242/1?lang=sub' },
       { name: 'Vidy', provider: 'vidy', url: 'https://www.vidy.st/anime/4242/1?color=9b87ff' },
-      { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/1' }
+      { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/1' },
+      { name: 'VidSrc', url: 'https://vidsrc.mov/embed/tv/5/1/1' }
     ] })
   }));
   await page.route('https://api.aniskip.com/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
   }));
-  await page.goto('/movie-site/#/watch/4242/1/sub/embed?title=Embed%20Protection%20Test');
-  await expect(page.locator('.ad-servers')).toContainText('AnimeEmbed');
-  await expect(page.locator('.ad-servers')).toContainText('AniEmbed');
-  await expect(page.locator('.ad-servers')).toContainText('Vidy');
-  await expect(page.locator('.ad-servers')).toContainText('Aanikoto API');
+  await page.goto('/movie-site/#/watch/4242/1/sub/embed?title=Player%20Safety%20Test');
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ad-server-grid button').nth(0)).toContainText('AniEmbed');
+  await expect(page.locator('.ad-server-grid button').nth(1)).toContainText('AnimeEmbed');
+  await expect(page.locator('.ad-server-grid button').nth(2)).toContainText('Vidy');
+  await expect(page.locator('.ad-server-more')).toContainText('Aanikoto API');
+  await expect(page.locator('.ad-server-more')).toContainText('VidSrc');
+  await page.getByLabel('Do not show this warning again').check();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ad-player iframe');
-  await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
-  await expect(frame).not.toHaveAttribute('sandbox', /allow-popups/);
-  await page.getByLabel('Sandbox pop-ups & redirects').uncheck();
+  await expect(frame).toBeVisible();
   await expect(frame).not.toHaveAttribute('sandbox');
-  await page.getByLabel('Sandbox pop-ups & redirects').check();
+  await expect(frame).toHaveAttribute('src', /aniembed\\.se/);
   await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(frame).toHaveAttribute('src', /vidy\.st/);
-  await expect(frame).toHaveAttribute('allow', /autoplay \*; fullscreen \*/);
-  await expect(frame).toHaveAttribute('sandbox', /allow-same-origin/);
-  await expect(frame).toHaveAttribute('sandbox', /allow-popups/);
-  await expect(frame).not.toHaveAttribute('sandbox', /allow-popups-to-escape-sandbox/);
-  await page.getByRole('button', { name: 'AniEmbed' }).click();
-  await expect(frame).toHaveAttribute('src', /aniembed\.se/);
-  await expect(frame).toHaveAttribute('sandbox', /allow-popups/);
-  await expect(frame).not.toHaveAttribute('sandbox', /allow-popups-to-escape-sandbox/);
+  await expect(frame).toHaveAttribute('src', /vidy\\.st/);
+  await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
+  await page.getByRole('button', { name: 'AnimeEmbed' }).click();
+  await expect(frame).toHaveAttribute('src', /animeembed\\.com/);
+  await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
+});
+
+test('player warning appears again when switching servers unless the user opts out', async ({ page }) => {
+  await page.route('**/anime/playback/4243?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4243/1?lang=sub' },
+      { name: 'Vidy', provider: 'vidy', url: 'https://www.vidy.st/anime/4243/1?color=9b87ff' }
+    ] })
+  }));
+  await page.route('https://api.aniskip.com/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
+  }));
+  await page.goto('/movie-site/#/watch/4243/1/sub/embed?title=Warning%20Repeat%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await page.getByRole('button', { name: 'Vidy' }).click();
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
 });

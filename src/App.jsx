@@ -243,8 +243,8 @@ function ContinuePoster({item}){
 }
 function Home(){
  const navigate=useNavigate();
- const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub',blockEmbedPopups:true};
- const [prefs,setPrefs]=useState(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem('animedex-settings')||'{}')}}catch{return defaults}});
+ const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub'};
+ const [prefs,setPrefs]=useState(()=>{try{const {blockEmbedPopups:_legacyEmbedSetting,...saved}=JSON.parse(localStorage.getItem('animedex-settings')||'{}');return {...defaults,...saved}}catch{return defaults}});
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [selectedGenre,setSelectedGenre]=useState('');const [formatFilter,setFormatFilter]=useState('all');
  const [filtersOpen,setFiltersOpen]=useState(false);
@@ -318,7 +318,7 @@ function Home(){
  async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults(d.results||[])}catch(e){setErr(e.message)}finally{setBusy(false)}}
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE'));
- return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label><label><input type="checkbox" checked={prefs.blockEmbedPopups!==false} onChange={e=>setPrefs(p=>({...p,blockEmbedPopups:e.target.checked}))}/> Block pop-ups and full-page redirects in embeds</label><p>Embed protection blocks pop-up windows and attempts to take over AniOrbit. Ads displayed inside a third-party player may still appear.</p></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
+ return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
  <div className="ad-home-intro-brand"><span>Ani</span><span>Orbit</span></div>
  <p className="ad-home-intro-subtitle">Find your next watch.</p>
  <form className="ad-home-search" onSubmit={search}>
@@ -529,6 +529,21 @@ function isDirectMedia(source){
  const mime=String(source?.type||source?.mimeType||source?.mime_type||'').toLowerCase();
  return /\.(?:mp4|webm|m3u8)(?:$|[?#])/i.test(url)||/^(?:video\/(?:mp4|webm|x-matroska|mpegurl|vnd\.apple\.mpegurl)|application\/vnd\.apple\.mpegurl)$/.test(mime);
 }
+const AD_WARNING_KEY='aniorbit-hide-third-party-warning-v1';
+function hasHiddenAdWarning(){try{return localStorage.getItem(AD_WARNING_KEY)==='true'}catch{return false}}
+function playbackSourceRank(source){
+ if(isDirectMedia(source))return -1;
+ const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
+ if(key.includes('aniembed'))return 0;
+ if(key.includes('animeembed'))return 1;
+ if(key.includes('vidy'))return 2;
+ if(key.includes('anikoto'))return 3;
+ if(key.includes('vidsrc'))return 4;
+ if(key.includes('vidcore'))return 5;
+ if(key.includes('2embed'))return 6;
+ if(key.includes('vidlink'))return 7;
+ return 50;
+}
 async function getOpeningSkip(mal,episode,signal){
  if(!/^\d+$/.test(String(mal||'')))return null;
  const key=String(mal)+':'+String(episode);
@@ -596,6 +611,10 @@ function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
  const mal=params.get('mal')||'';const name=params.get('title')||'Anime';
  const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ const [showAdWarning,setShowAdWarning]=useState(()=>!hasHiddenAdWarning());
+ const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
+ const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setShowAdWarning(false);setDontShowAdWarning(false)};
+ const selectServer=index=>{setActive(index);if(!hasHiddenAdWarning()){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [blockEmbedPopups,setBlockEmbedPopups]=useState(()=>{try{return JSON.parse(localStorage.getItem('animedex-settings')||'{}').blockEmbedPopups!==false}catch{return true}});
  const saveEmbedProtection=value=>{setBlockEmbedPopups(value);try{const saved=JSON.parse(localStorage.getItem('animedex-settings')||'{}');localStorage.setItem('animedex-settings',JSON.stringify({...saved,blockEmbedPopups:value}));}catch{}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
@@ -622,7 +641,8 @@ function Watch(){
   return()=>{live=false;controller.abort();window.clearTimeout(timer)};
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
- useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
+ useEffect(()=>{setDontShowAdWarning(false);setShowAdWarning(!hasHiddenAdWarning())},[id,episode,audio]);
+ useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));const ranked=[...list,...(own?[own]:[])].map((source,index)=>({source,index})).sort((a,b)=>playbackSourceRank(a.source)-playbackSourceRank(b.source)||a.index-b.index).map(item=>item.source);setSources(ranked);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  const skipMessage=introStatus==='found'?'Opening detected: '+formatSkipTime(intro.start)+'–'+formatSkipTime(intro.end):introStatus==='checking'?'Checking opening timestamps…':introStatus==='not-found'?'No verified opening timestamps were found for this episode.':'Opening timestamps are unavailable for this title.';
@@ -639,10 +659,25 @@ function Watch(){
  </section>
  {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
   {direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
-   <section className="ad-embed-protection" aria-label="Embedded player protection"><label><input type="checkbox" checked={blockEmbedPopups} onChange={event=>saveEmbedProtection(event.target.checked)}/> Sandbox pop-ups &amp; redirects</label><small>Vidy and AniEmbed may open restricted pop-up windows, but those windows stay sandboxed and cannot escape into AniOrbit. Ads inside the player may still appear.</small></section><div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} sandbox={blockEmbedPopups?`allow-scripts allow-same-origin allow-forms allow-presentation${['vidy','aniembed'].includes(source.provider)?' allow-popups':''}`:undefined} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
+   {showAdWarning?<section className="ad-ad-warning" role="dialog" aria-modal="true" aria-labelledby="ad-ad-warning-title">
+    <div className="ad-ad-warning-card">
+     <span className="ad-ad-warning-kicker">PLAYER SAFETY NOTICE</span>
+     <h2 id="ad-ad-warning-title">Before you watch</h2>
+     <p>This video is hosted by a third-party player. It may show pop-ups, redirects, or misleading download buttons. For safer browsing, consider using a reputable ad blocker or content blocker. Never download files, install extensions, or enter personal details because a video player asks you to.</p>
+     <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
+     <button type="button" onClick={continueToVideo}>Continue to video</button>
+    </div>
+   </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
+    <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
+    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
+   </>}
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
-  <div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div>
+   <div className="ad-servers">
+    <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
+    <div className="ad-server-grid">{sources.slice(0,3).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
+    {sources.length>3&&<details className="ad-server-more" open={active>=3}><summary><span>More servers</span><small>{sources.length-3} additional options</small></summary><div className="ad-server-secondary">{sources.slice(3).map((s,offset)=>{const i=offset+3;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+   </div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
  <CommunitySection animeId={String(id)} title={name} episodeNumber={episodeNumber}/>
