@@ -837,15 +837,17 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
     });
   });
 
+  await page.addInitScript(() => localStorage.setItem('animedex-auto-skip-intro', 'false'));
   await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const video = page.locator('.ad-direct-player video');
   await expect(video).toBeVisible();
-  await expect(page.getByRole('button', { name: /Skip outro · 5:00–5:20/ })).toBeVisible();
   await page.evaluate(() => {
     const element = document.querySelector('.ad-direct-player video');
-    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 300 });
+    element.dispatchEvent(new Event('timeupdate'));
   });
+  await expect(page.getByRole('button', { name: /Skip outro · 5:00–5:20/ })).toBeVisible();
   await page.getByRole('button', { name: /Skip outro/ }).click();
   await expect.poll(() => video.evaluate(element => element.currentTime)).toBe(320);
 });
