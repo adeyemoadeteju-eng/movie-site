@@ -32,7 +32,7 @@ function updateStatus(id, entry, status) {
     tracking[String(id)] = { ...entry, status, updatedAt: Date.now() };
   }
   try {
-    localStorage.setItem(LIBRARY_KEY, JSON.stringify({ ...library, tracking }));
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify({ ...library, tracking, updatedAt: Date.now() }));
     window.dispatchEvent(new Event('animedex-library-change'));
   } catch (error) {
     console.warn('AniOrbit tracking changes could not be saved:', error);
