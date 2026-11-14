@@ -10,6 +10,7 @@ import CustomListsPage from './components/CustomListsPage.jsx';
 import CustomListActions from './components/CustomListActions.jsx';
 import SchedulePage from './components/SchedulePage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
+import TrackingPage from './components/TrackingPage.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
@@ -148,11 +149,11 @@ function seasonNumberFor(anime){
 }
 
 const LIBRARY_KEY='animedex-library-v1';
-function emptyLibrary(){return {watchlist:[],history:[],watchedEpisodes:{},notifiedEpisodes:[]};}
+function emptyLibrary(){return {watchlist:[],history:[],watchedEpisodes:{},notifiedEpisodes:[],tracking:{},episodeProgress:{}};}
 function readLibrary(){
  try{
   const saved=JSON.parse(localStorage.getItem(LIBRARY_KEY)||'{}');
-  return {...emptyLibrary(),...saved,watchlist:Array.isArray(saved.watchlist)?saved.watchlist:[],history:Array.isArray(saved.history)?saved.history:[],watchedEpisodes:saved.watchedEpisodes&&typeof saved.watchedEpisodes==='object'?saved.watchedEpisodes:{},notifiedEpisodes:Array.isArray(saved.notifiedEpisodes)?saved.notifiedEpisodes:[]};
+  return {...emptyLibrary(),...saved,watchlist:Array.isArray(saved.watchlist)?saved.watchlist:[],history:Array.isArray(saved.history)?saved.history:[],watchedEpisodes:saved.watchedEpisodes&&typeof saved.watchedEpisodes==='object'?saved.watchedEpisodes:{},notifiedEpisodes:Array.isArray(saved.notifiedEpisodes)?saved.notifiedEpisodes:[],tracking:saved.tracking&&typeof saved.tracking==='object'?saved.tracking:{},episodeProgress:saved.episodeProgress&&typeof saved.episodeProgress==='object'?saved.episodeProgress:{}};
  }catch{return emptyLibrary();}
 }
 function writeLibrary(next){
@@ -177,6 +178,8 @@ function libraryAnime(anime){
   title:{english:anime?.title?.english||anime?.title?.romaji||anime?.title?.native||anime?.name||'Untitled',romaji:anime?.title?.romaji||'',native:anime?.title?.native||''},
   coverImage:{large:anime?.coverImage?.large||anime?.image||anime?.poster||anime?.coverImage?.extraLarge||'',extraLarge:anime?.coverImage?.extraLarge||anime?.coverImage?.large||anime?.image||anime?.poster||''},
   genres:Array.isArray(anime?.genres)?anime.genres.slice(0,8):[],
+  studios:Array.isArray(anime?.studios?.nodes)?anime.studios.nodes.map(studio=>studio?.name).filter(Boolean).slice(0,8):[],
+  meanScore:Number(anime?.meanScore||anime?.averageScore)||null,
   isAdult:anime?.isAdult===true,
   format:anime?.format||'TV',
   seasonYear:anime?.seasonYear||null,
@@ -206,18 +209,45 @@ function recordEpisodeStart(id,episode,audio,name){
   return {...data,history:[{...old,lastEpisode:number,audio:audio==='dub'?'dub':'sub',lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
  });
 }
-function markEpisodeWatched(id,episode){
- const key=String(id),number=Math.max(1,Number(episode)||1);
+function episodeProgressKey(id,episode,audio='sub'){return [String(id),String(Math.max(1,Number(episode)||1)),audio==='dub'?'dub':'sub'].join(':');}
+function getEpisodeProgress(library,id,episode,audio='sub'){return library?.episodeProgress?.[episodeProgressKey(id,episode,audio)]||null;}
+function saveEpisodeProgress(id,episode,audio,currentTime=0,duration=0,manualPercent=null){
+ const key=String(id),number=Math.max(1,Number(episode)||1),progressKey=episodeProgressKey(id,number,audio);
+ const safeDuration=Math.max(0,Number(duration)||0),safeTime=Math.max(0,Number(currentTime)||0);
+ const percent=manualPercent===null?(safeDuration>0?Math.min(100,Math.max(0,safeTime/safeDuration*100)):0):Math.min(99,Math.max(0,Number(manualPercent)||0));
+ updateLibrary(data=>{
+  const old=data.history.find(item=>String(item.id)===key)||{...libraryAnime({id:Number(id)}),recommendations:[]};
+  const entry={currentTime:safeTime,duration:safeDuration,percent,manual:manualPercent!==null,updatedAt:Date.now()};
+  return {...data,episodeProgress:{...data.episodeProgress,[progressKey]:entry},history:[{...old,lastEpisode:number,audio:audio==='dub'?'dub':'sub',progressPercent:percent,lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
+ });
+}
+function markEpisodeWatched(id,episode,audio='sub',duration=0){
+ const key=String(id),number=Math.max(1,Number(episode)||1),progressKey=episodeProgressKey(id,number,audio);
  updateLibrary(data=>{
   const watched=Array.isArray(data.watchedEpisodes[key])?data.watchedEpisodes[key]:[];
   const nextWatched=[...new Set([...watched,number])].sort((a,b)=>a-b);
   const old=data.history.find(item=>String(item.id)===key)||{...libraryAnime({id:Number(id)}),recommendations:[]};
-  return {...data,watchedEpisodes:{...data.watchedEpisodes,[key]:nextWatched},history:[{...old,lastEpisode:number,lastCompletedEpisode:number,lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
+  const previous=data.episodeProgress[progressKey]||{};
+  const completed={...previous,currentTime:Math.max(Number(previous.currentTime)||0,Number(duration)||0),duration:Math.max(Number(previous.duration)||0,Number(duration)||0),percent:100,manual:false,updatedAt:Date.now()};
+  return {...data,watchedEpisodes:{...data.watchedEpisodes,[key]:nextWatched},episodeProgress:{...data.episodeProgress,[progressKey]:completed},history:[{...old,lastEpisode:number,lastCompletedEpisode:number,progressPercent:100,lastUpdated:Date.now()},...data.history.filter(item=>String(item.id)!==key)].slice(0,30)};
+ });
+}
+const TRACKING_STATUSES=['Watching','Completed','On Hold','Plan to Watch'];
+function updateTrackingStatus(anime,status){
+ if(!anime?.id||isAdultAnime(anime))return;
+ const key=String(anime.id);
+ updateLibrary(data=>{
+  const tracking={...data.tracking};
+  if(!TRACKING_STATUSES.includes(status))delete tracking[key];
+  else tracking[key]={status,anime:libraryAnime(anime),updatedAt:Date.now()};
+  return {...data,tracking};
  });
 }
 function continueEpisode(item,library){
  const last=Math.max(1,Number(item?.lastEpisode)||1);
  const watched=library?.watchedEpisodes?.[String(item?.id)]||[];
+ const progress=getEpisodeProgress(library,item?.id,last,item?.audio);
+ if(progress&&Number(progress.percent)>=5&&Number(progress.percent)<95&&!watched.includes(last))return last;
  return watched.includes(last)?last+1:last;
 }
 function getPersonalRecommendations(library){
@@ -242,15 +272,22 @@ function defaultAudio(){
  try{return JSON.parse(localStorage.getItem('animedex-settings')||'{}').defaultAudio==='dub'?'dub':'sub'}catch{return 'sub'}
 }
 
+function sourceServerId(source){return String(source?.provider||source?.name||'unknown').split(/[·|]/)[0].trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');}
+const PREFERRED_SERVER_KEY='aniorbit-preferred-servers-v1';
+const UNRELIABLE_SERVER_KEY='aniorbit-unreliable-servers-v1';
+function readPreferredServers(){try{return JSON.parse(localStorage.getItem(PREFERRED_SERVER_KEY)||'{}')}catch{return {}}}
+function savePreferredServer(audio,source){try{const current=readPreferredServers();localStorage.setItem(PREFERRED_SERVER_KEY,JSON.stringify({...current,[audio==='dub'?'dub':'sub']:sourceServerId(source)}));}catch{}}
+function isServerReportedUnreliable(source){try{return (JSON.parse(localStorage.getItem(UNRELIABLE_SERVER_KEY)||'[]')).includes(sourceServerId(source))}catch{return false}}
+function reportServerUnreliable(source){try{const current=JSON.parse(localStorage.getItem(UNRELIABLE_SERVER_KEY)||'[]');localStorage.setItem(UNRELIABLE_SERVER_KEY,JSON.stringify([...new Set([...current,sourceServerId(source)])]));}catch{}}
 function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
- return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link><Link to="/community">Community</Link><Link to="/schedule">Schedule</Link><Link to="/lists">My Lists</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
+ return <header className="ad-header"><div className="ad-header-inner"><Link to="/" className="ad-brand" aria-label="AniOrbit home"><span className="ad-wordmark">Ani<span>Orbit</span></span></Link><nav className="ad-nav" aria-label="Main navigation"><Link to="/">Discover</Link><Link to="/community">Community</Link><Link to="/schedule">Schedule</Link><Link to="/lists">My Lists</Link><Link to="/tracking">Tracking</Link></nav><form className="ad-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ad-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
 }
 function Footer(){return <footer className="ad-footer"><div className="ad-footer-inner"><Link to="/" className="ad-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ad-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ad-tile" to={'/anime/'+item.id}><div className="ad-poster"><AnimePoster item={item} priority={priority}/><span className="ad-tag">{item?.format||'TV'}</span></div><div className="ad-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
-function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ad-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x} priority={i<3}/>):<div className="ad-empty">{loading?'Loading anime...':emptyLabel}</div>}</div>}
+function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ad-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x} priority={i<3}/>):loading?Array.from({length:8},(_,i)=><div className="ad-tile ad-skeleton" key={'skeleton-'+i} role="status" aria-label="Loading anime"><div className="ad-poster"/><div className="ad-tile-info"><span/><span/></div></div>):<div className="ad-empty">{emptyLabel}</div>}</div>}
 function ContinuePoster({item}){
  const candidates=imageCandidates(item);
  const [src,setSrc]=useState(candidates[0]||'');
@@ -399,7 +436,7 @@ function Home(){
 
  {continueList.length>0&&<section className="ad-personal-section" aria-label="Continue watching">
   <div className="ad-personal-heading"><div><span className="ad-discovery-kicker">PICK UP WHERE YOU LEFT OFF</span><h2>Continue Watching</h2></div><span>Saved on this device</span></div>
-  <div className="ad-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);return <div className="ad-continue-card" key={item.id}><Link className="ad-continue-main" to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><ContinuePoster item={item}/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}</small><em>Continue watching ↗</em></span></Link><button className="ad-continue-remove" type="button" title="Remove from Continue Watching" aria-label={'Remove '+title(item)+' from Continue Watching'} onClick={()=>updateLibrary(data=>({...data,history:data.history.filter(entry=>String(entry.id)!==String(item.id))}))}>×</button></div>})}</div>
+  <div className="ad-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);const checkpoint=getEpisodeProgress(libraryData,item.id,episode,item.audio);const percent=Math.round(Number(checkpoint?.percent)||0);return <div className="ad-continue-card" key={item.id}><Link className="ad-continue-main" to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><ContinuePoster item={item}/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}{percent>0?' · '+percent+'% saved':''}</small>{percent>0&&<span className="ad-continue-progress" role="progressbar" aria-label={'Episode progress '+percent+' percent'} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percent}><i style={{width:percent+'%'}}/></span>}<em>Continue watching ↗</em></span></Link><button className="ad-continue-remove" type="button" title="Remove from Continue Watching" aria-label={'Remove '+title(item)+' from Continue Watching'} onClick={()=>updateLibrary(data=>({...data,history:data.history.filter(entry=>String(entry.id)!==String(item.id))}))}>×</button></div>})}</div>
  </section>}
  {libraryData.history.some(item=>!isAdultAnime(item))&&<section className="ad-section ad-recently-viewed"><div className="ad-personal-heading"><div><span className="ad-discovery-kicker">YOUR RECENT ACTIVITY</span><h2>Recently Viewed</h2></div></div><TileGrid items={libraryData.history.filter(item=>!isAdultAnime(item)).slice(0,8)} loading={false}/></section>}
   <section className="ad-personal-section ad-custom-list-promo"><div><span className="ad-discovery-kicker">MAKE IT YOURS</span><h2>Organise your anime</h2><p>Create collections for favourites, watch-later picks, hidden gems and anything else.</p></div><Link to="/lists">Manage custom lists →</Link></section>
@@ -481,6 +518,9 @@ function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
  const libraryData=useLibraryData();
+ const [hideWatchedEpisodes,setHideWatchedEpisodes]=useState(()=>{try{return localStorage.getItem('aniorbit-hide-watched-episodes')==='true'}catch{return false}});
+ useEffect(()=>{try{localStorage.setItem('aniorbit-hide-watched-episodes',String(hideWatchedEpisodes))}catch{}},[hideWatchedEpisodes]);
+ const trackingStatus=libraryData.tracking?.[String(id)]?.status||'';
  const [watchOptions,setWatchOptions]=useState(null);const [watchOptionsLoading,setWatchOptionsLoading]=useState(false);
  const loadEpisodes=async()=>{
   setEpisodesLoading(true);setEpisodesError('');
@@ -539,6 +579,7 @@ function Details(){
  },[id,anime?.id,anime?.isAdult,anime?.genres?.join('|')]);
  const count=Math.min(Number(anime?.episodes)||0,500);
  const displayedEpisodes=episodeList.length?episodeList:Array.from({length:count},(_,i)=>({number:i+1,title:'Episode '+(i+1)}));
+ const visibleEpisodes=hideWatchedEpisodes?displayedEpisodes.filter(ep=>!(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))):displayedEpisodes;
 
  const isFollowing=libraryData.watchlist.some(item=>String(item.id)===String(id));
  const toggleFollow=()=>{
@@ -549,7 +590,7 @@ function Details(){
  const seasonLinks=(anime?.relations?.edges||[]).filter(edge=>['PREQUEL','SEQUEL'].includes(edge?.relationType)&&edge?.node?.type==='ANIME'&&['TV','ONA'].includes(edge?.node?.format)&&edge?.node?.id).filter((edge,index,all)=>all.findIndex(other=>String(other.node.id)===String(edge.node.id))===index).sort((a,b)=>(a.relationType==='PREQUEL'?-1:1)-(b.relationType==='PREQUEL'?-1:1));
  return <><Header/>{loading?<div className="ad-loading">Loading anime...</div>:anime&&isAdultAnime(anime)?<main className="ad-detail ad-adult-blocked"><section><span className="ad-discovery-kicker">CONTENT FILTER</span><h1>Title not available</h1><p>Adult and hentai titles are excluded from AniOrbit.</p><Link className="ad-watch" to="/">Back to Discover</Link></section></main>:anime?<main className="ad-detail">
  <div className="ad-detail-backdrop" style={{backgroundImage:'url('+image(anime)+')'}}/>
- <section className="ad-detail-top"><div className="ad-detail-poster"><AnimePoster item={anime} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><button className="ad-follow-button" type="button" onClick={toggleFollow}>{isFollowing?'✓ In your watchlist':'+ Add to watchlist'}</button><CustomListActions anime={anime}/><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
+ <section className="ad-detail-top"><div className="ad-detail-poster"><AnimePoster item={anime} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><button className="ad-follow-button" type="button" onClick={toggleFollow}>{isFollowing?'✓ In your watchlist':'+ Add to watchlist'}</button><label className="ad-tracking-control"><span>My anime status</span><select aria-label="My anime status" value={trackingStatus} onChange={event=>updateTrackingStatus(anime,event.target.value)}><option value="">Not tracking</option>{TRACKING_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</select></label><CustomListActions anime={anime}/><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—'],['Rating',anime.meanScore||anime.averageScore?((Number(anime.meanScore||anime.averageScore)/10).toFixed(1)+'/10'):'—'],['Studio',(anime.studios?.nodes||[]).filter(studio=>studio?.isAnimationStudio!==false).map(studio=>studio?.name).filter(Boolean).join(', ')||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
  <section className="ad-section ad-dub-finder" aria-labelledby="ad-dub-heading">
   <div className="ad-dub-heading">
    <div><span className="ad-dub-kicker">OFFICIAL STREAMING LOOKUP · CANADA</span><h2 id="ad-dub-heading">English dub finder</h2></div>
@@ -568,7 +609,7 @@ function Details(){
     <p className="ad-dub-message">The official service lookup is temporarily unavailable. Try again later.</p>}
   <p className="ad-dub-footnote">This finder points to licensed service listings; it does not extract or host video files.</p>
  </section>
- <section className="ad-episodes" id="watch"><h2>Season {seasonNumber} Episodes</h2>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:displayedEpisodes.length?<><div className="ad-episode-grid">{displayedEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>{(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))?'✓':'▶'}</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
+ <section className="ad-episodes" id="watch"><div className="ad-episodes-heading"><h2>Season {seasonNumber} Episodes</h2><label><input type="checkbox" checked={hideWatchedEpisodes} onChange={event=>setHideWatchedEpisodes(event.target.checked)}/> Hide watched</label></div>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:visibleEpisodes.length?<><div className="ad-episode-grid">{visibleEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>{(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))?'✓':'▶'}</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:displayedEpisodes.length?<p className="ad-episodes-empty">All episodes in this list are marked watched. Turn off “Hide watched” to see them again.</p>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><CommunitySection animeId={String(id)} title={title(anime)}/>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
@@ -611,7 +652,7 @@ function rankPlaybackSources(primary,secondary,own){
    unique.add(source.url);
    return true;
   })
-  .sort((a,b)=>playbackSourceRank(a.source)-playbackSourceRank(b.source)||a.index-b.index)
+  .sort((a,b)=>(playbackSourceRank(a.source)+(isServerReportedUnreliable(a.source)?100:0))-(playbackSourceRank(b.source)+(isServerReportedUnreliable(b.source)?100:0))||a.index-b.index)
   .map(item=>item.source);
 }
 function normalizeAnivexaWatchPayload(payload,provider){
@@ -692,9 +733,11 @@ async function getOpeningSkip(mal,episode,signal){
  ANISKIP_CACHE.set(key,{savedAt:Date.now(),data});
  return data;
 }
-function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip}){
+function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,autoNext,onEnded,speed}){
  const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false);
  const [currentTime,setCurrentTime]=useState(0),[playerError,setPlayerError]=useState('');
+ const [resumeAt,setResumeAt]=useState(null);
+ const lastSavedAt=useRef(0);
  const url=source.url;
  useEffect(()=>{
   const video=videoRef.current;
@@ -702,6 +745,12 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip}){
   let cancelled=false;
   let hls=null;
   setPlayerError('');
+  const onMetadata=()=>{
+   const saved=getEpisodeProgress(readLibrary(),id,episode,audio);
+   if(saved&&Number(saved.currentTime)>8&&Number(saved.percent)<95&&video.duration>Number(saved.currentTime)+10)setResumeAt(Number(saved.currentTime));
+   video.playbackRate=Number(speed)||1;
+  };
+  video.addEventListener('loadedmetadata',onMetadata);
   const attach=async()=>{
    if(/\.m3u8(?:$|[?#])/i.test(url)){
     if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=url;return;}
@@ -721,11 +770,14 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip}){
   attach();
   return()=>{
    cancelled=true;
+   video.removeEventListener('loadedmetadata',onMetadata);
+   if(video.duration>0&&video.currentTime>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration);
    if(hls){hls.destroy();if(hlsRef.current===hls)hlsRef.current=null;}
    video.pause();video.removeAttribute('src');video.load();
   };
- },[url]);
- useEffect(()=>{skippedRef.current=false;setCurrentTime(0);},[url,intro?.start,intro?.end]);
+ },[url,id,episode,audio,speed]);
+ useEffect(()=>{skippedRef.current=false;setCurrentTime(0);setResumeAt(null);lastSavedAt.current=0;},[url,intro?.start,intro?.end]);
+ useEffect(()=>{const video=videoRef.current;if(video)video.playbackRate=Number(speed)||1;},[speed]);
  const seekToEnd=()=>{
   const video=videoRef.current;
   if(!video||!intro)return;
@@ -736,10 +788,20 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip}){
   if(!video)return;
   const now=video.currentTime||0;
   setCurrentTime(now);
+  if(video.duration>0&&Date.now()-lastSavedAt.current>=5000){saveEpisodeProgress(id,episode,audio,now,video.duration);lastSavedAt.current=Date.now();}
   if(autoSkip&&intro&&!skippedRef.current&&now>=intro.start&&now<intro.end)seekToEnd();
  };
  const canOfferSkip=!!intro&&!skippedRef.current&&currentTime<intro.end;
- return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={seekToEnd}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}</div>;
+ const handleKeys=event=>{
+  const video=videoRef.current;
+  if(!video||event.target!==video)return;
+  if(event.code==='Space'){event.preventDefault();if(video.paused)video.play().catch(()=>{});else video.pause();}
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();video.currentTime=Math.max(0,Math.min(video.duration||Infinity,video.currentTime+(event.key==='ArrowRight'?10:-10)));}
+  if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();video.volume=Math.min(1,Math.max(0,video.volume+(event.key==='ArrowUp'?.05:-.05)));}
+ };
+ const resume=()=>{const video=videoRef.current;if(video&&resumeAt!==null){video.currentTime=Math.min(resumeAt,Math.max(0,(video.duration||resumeAt)-2));video.play().catch(()=>{});}setResumeAt(null);};
+ const restart=()=>{const video=videoRef.current;if(video)video.currentTime=0;setResumeAt(null);};
+ return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{resumeAt!==null&&<div className="ad-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={seekToEnd}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}<small className="ad-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
 }
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
@@ -753,10 +815,23 @@ function Watch(){
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
  const own=fallback(mal,episode,audio);
  const [markedWatched,setMarkedWatched]=useState(()=>((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode))));
+ const libraryData=useLibraryData();
  const episodeNumber=Math.max(1,Number(episode)||1);
+ const episodeProgress=getEpisodeProgress(libraryData,id,episodeNumber,audio);
+ const [manualCheckpoint,setManualCheckpoint]=useState(()=>Math.round(Number(getEpisodeProgress(readLibrary(),id,episodeNumber,audio)?.percent)||0));
+ const [checkpointMessage,setCheckpointMessage]=useState('');
+ const [autoNext,setAutoNext]=useState(()=>{try{return localStorage.getItem('aniorbit-auto-next')!=='false'}catch{return true}});
+ const [playbackSpeed,setPlaybackSpeed]=useState(()=>{try{const value=Number(localStorage.getItem('aniorbit-playback-speed')||1);return [0.75,1,1.25,1.5,1.75,2].includes(value)?value:1}catch{return 1}});
+ const [preferredMessage,setPreferredMessage]=useState('');
  const previousPath='/watch/'+id+'/'+Math.max(1,episodeNumber-1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
  const nextPath='/watch/'+id+'/'+(episodeNumber+1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
   const switchAudio=mode=>{if(mode===audio)return;try{const saved=JSON.parse(localStorage.getItem('animedex-settings')||'{}');localStorage.setItem('animedex-settings',JSON.stringify({...saved,defaultAudio:mode}));}catch{}navigate('/watch/'+id+'/'+episodeNumber+'/'+mode+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name));};
+ useEffect(()=>{try{localStorage.setItem('aniorbit-auto-next',String(autoNext))}catch{}},[autoNext]);
+ useEffect(()=>{try{localStorage.setItem('aniorbit-playback-speed',String(playbackSpeed))}catch{}},[playbackSpeed]);
+ const saveEmbedCheckpoint=()=>{saveEpisodeProgress(id,episodeNumber,audio,0,0,manualCheckpoint);setCheckpointMessage('Checkpoint saved on this device. This is a manual estimate for embedded players.');};
+ const handleDirectEnded=()=>{markEpisodeWatched(id,episodeNumber,audio);setMarkedWatched(true);if(autoNext)navigate(nextPath);};
+ const makePreferred=()=>{if(source){savePreferredServer(audio,source);setPreferredMessage((source.name||'This server')+' is now your preferred '+audio+' server.');}};
+ const reportUnreliable=()=>{if(source){reportServerUnreliable(source);setPreferredMessage((source.name||'This server')+' is marked as unreliable on this device and will be ranked lower.');}};
  useEffect(()=>{recordEpisodeStart(id,episode,audio,name);setMarkedWatched((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode)));},[id,episode,audio]);
  useEffect(()=>{
   let live=true;
@@ -788,7 +863,7 @@ function Watch(){
    if(!live)return;
    const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
    setSources(ranked);
-   if(ranked.length){setLoading(false);setError('');return;}
+   if(ranked.length){const preferred=readPreferredServers()[audio==='dub'?'dub':'sub'];const preferredIndex=preferred?ranked.findIndex(item=>sourceServerId(item)===preferred):-1;setActive(preferredIndex>=0?preferredIndex:0);setLoading(false);setError('');return;}
    if(primaryDone&&anivexaDone){
     setLoading(false);
     setError(primaryError||'No playback source is available from either server.');
@@ -843,12 +918,15 @@ function Watch(){
  <div className="ad-watch-audio" role="group" aria-label="Audio preference"><span>Audio</span><button type="button" className={audio==='sub'?'active':''} aria-pressed={audio==='sub'} onClick={()=>switchAudio('sub')}>Subtitles</button><button type="button" className={audio==='dub'?'active':''} aria-pressed={audio==='dub'} onClick={()=>switchAudio('dub')}>Dub</button><small>Saved as your default for future episodes.</small></div>
   <div className="ad-watch-progress">
   <div className="ad-episode-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" className="ad-skip-episode" onClick={()=>navigate(nextPath)}>Skip episode <span>→</span></button></div>
-  <button type="button" className={markedWatched?'is-watched':''} onClick={()=>{markEpisodeWatched(id,episode);setMarkedWatched(true);}}>{markedWatched?'✓ Episode watched':'Mark episode as watched'}</button>
-  <span>Progress is saved on this device. Embedded players do not expose their playback position to AniOrbit.</span>
+  <button type="button" className={markedWatched?'is-watched':''} onClick={()=>{markEpisodeWatched(id,episode,audio);setMarkedWatched(true);}}>{markedWatched?'✓ Episode watched':'Mark episode as watched'}</button>
+  <span>{episodeProgress?.percent>0?Math.round(episodeProgress.percent)+'% saved on this device'+(episodeProgress.manual?' · manual embed checkpoint':' · automatic video progress'):'Progress is saved on this device. Embedded players do not expose their playback position to AniOrbit.'}</span>
+  {episodeProgress?.percent>0&&<div className="ad-watch-progress-bar" role="progressbar" aria-label="Saved episode progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(episodeProgress.percent)}><i style={{width:Math.min(100,episodeProgress.percent)+'%'}}/></div>}
  </div>
  <section className="ad-intro-settings" aria-label="Intro skipping settings">
   <div><b>Automatic intro skip</b><small>{skipMessage}</small></div>
-  <label><input type="checkbox" checked={autoSkip} onChange={event=>setAutoSkip(event.target.checked)}/> Enabled</label>
+  <label><input type="checkbox" checked={autoSkip} onChange={event=>setAutoSkip(event.target.checked)}/> Auto-skip intro</label>
+  <label><input type="checkbox" checked={autoNext} onChange={event=>setAutoNext(event.target.checked)}/> Auto-next (direct videos only)</label>
+  <label className="ad-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>
  </section>
  {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
   {showAdWarning?<section className="ad-ad-warning" role="dialog" aria-modal="true" aria-labelledby="ad-ad-warning-title">
@@ -859,14 +937,16 @@ function Watch(){
     <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
     <button type="button" onClick={continueToVideo}>Continue to video</button>
    </div>
-  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
+  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} speed={playbackSpeed}/>:<>
    <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
+  {!direct&&!showAdWarning&&<section className="ad-embed-checkpoint" aria-label="Manual embedded playback checkpoint"><div><b>Save your place in this episode</b><small>Embedded players do not share their timeline with AniOrbit. Move this slider to roughly match the player, then save it manually.</small></div><label><span>{manualCheckpoint}%</span><input aria-label="Manual episode progress" type="range" min="0" max="95" step="5" value={manualCheckpoint} onChange={event=>setManualCheckpoint(Number(event.target.value))}/></label><button type="button" onClick={saveEmbedCheckpoint}>Save checkpoint</button>{checkpointMessage&&<p role="status">{checkpointMessage}</p>}</section>}
   <div className="ad-servers">
    <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
    <div className="ad-server-grid">{sources.slice(0,4).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
    {sources.length>4&&<details className="ad-server-more" open={active>=4}><summary><span>More servers</span><small>{sources.length-4} additional options</small></summary><div className="ad-server-secondary">{sources.slice(4).map((s,offset)=>{const i=offset+4;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+   {source&&<div className="ad-server-tools"><button type="button" onClick={makePreferred}>Use as preferred server</button><button type="button" onClick={reportUnreliable}>Mark as not working</button><span>{isServerReportedUnreliable(source)?'Marked unreliable on this device. ':''}{preferredMessage}</span></div>}
   </div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
@@ -884,5 +964,5 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ad-fatal"><div><h1>Page not found</h1><p>This AniOrbit page does not exist.</p><Link className="ad-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
