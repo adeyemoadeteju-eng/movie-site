@@ -807,7 +807,7 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
   if(autoSkip&&outro&&!outroSkippedRef.current&&now>=outro.start&&now<outro.end)seekToEnd(outro,outroSkippedRef);
  };
  const canOfferSkip=!!intro&&!skippedRef.current&&currentTime<intro.end;
- const canOfferOutro=!!outro&&!outroSkippedRef.current&&currentTime<outro.end;
+ const canOfferOutro=!!outro&&!outroSkippedRef.current&&currentTime>=outro.start&&currentTime<outro.end;
  const handleKeys=event=>{
   const video=videoRef.current;
   if(!video||event.target!==video)return;
