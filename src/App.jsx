@@ -157,9 +157,10 @@ function readLibrary(){
  }catch{return emptyLibrary();}
 }
 function writeLibrary(next){
- try{localStorage.setItem(LIBRARY_KEY,JSON.stringify(next));}catch{}
+ const saved={...next,updatedAt:Date.now()};
+ try{localStorage.setItem(LIBRARY_KEY,JSON.stringify(saved));}catch{}
  try{window.dispatchEvent(new Event('animedex-library-change'));}catch{}
- return next;
+ return saved;
 }
 function updateLibrary(update){return writeLibrary(update(readLibrary()));}
 function useLibraryData(){
