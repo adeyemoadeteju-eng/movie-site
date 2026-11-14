@@ -708,3 +708,110 @@ test('player warning appears again when switching servers unless the user opts o
   await expect(page.locator('.ad-ad-warning')).toBeVisible();
   await expect(page.locator('.ad-player iframe')).toHaveCount(0);
 });
+
+
+test('anime tracking status is saved and can be managed from the tracking page', async ({ page }) => {
+  await page.route('**/anime/episodes/1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { test: { episodes: { sub: [{ number: 1 }, { number: 2 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+
+  await page.goto('/movie-site/#/anime/1');
+  await expect(page.getByLabel('My anime status')).toBeVisible();
+  await page.getByLabel('My anime status').selectOption('Watching');
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.tracking?.['1']?.status || '';
+  })).toBe('Watching');
+
+  await page.goto('/movie-site/#/tracking');
+  await expect(page.getByRole('heading', { name: 'Anime tracking' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Safe Test Anime' })).toBeVisible();
+  await expect(page.getByLabel('Status for Safe Test Anime')).toHaveValue('Watching');
+  await page.getByLabel('Status for Safe Test Anime').selectOption('Completed');
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.tracking?.['1']?.status || '';
+  })).toBe('Completed');
+});
+
+test('embedded player saves an explicitly manual checkpoint without claiming automatic progress', async ({ page }) => {
+  await page.route('**/anime/playback/8080?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Checkpoint Embed', provider: 'test-embed', url: 'https://embed.example.test/8080/1' }] })
+  }));
+  await page.goto('/movie-site/#/watch/8080/1/sub/embed?title=Checkpoint%20Test');
+  await expect(page.getByRole('heading', { name: /Checkpoint Test - Episode 1/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Manual embedded playback checkpoint' })).toBeVisible();
+  await page.getByLabel('Manual episode progress').fill('45');
+  await page.getByRole('button', { name: 'Save checkpoint' }).click();
+  await expect(page.getByText(/Checkpoint saved on this device/)).toBeVisible();
+  await expect(page.getByText(/45% saved on this device · manual embed checkpoint/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.episodeProgress?.['8080:1:sub']?.percent || 0;
+  })).toBe(45);
+  expect(await page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.episodeProgress?.['8080:1:sub']?.manual;
+  })).toBe(true);
+});
+
+test('direct video playback automatically stores its current progress', async ({ page }) => {
+  await page.route('**/anime/playback/8081?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/episode.mp4' }] })
+  }));
+  await page.route('https://media.example.test/episode.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.goto('/movie-site/#/watch/8081/1/sub/embed?title=Progress%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 37 });
+    element.dispatchEvent(new Event('timeupdate'));
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return Math.round(library.episodeProgress?.['8081:1:sub']?.percent || 0);
+  })).toBe(37);
+  await expect(page.getByText(/37% saved on this device · automatic video progress/)).toBeVisible();
+});
+
+test('hide watched preference filters the episode list and persists', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('animedex-library-v1', JSON.stringify({
+      watchlist: [], history: [], watchedEpisodes: { '8082': [1, 2] }, notifiedEpisodes: [], tracking: {}, episodeProgress: {}
+    }));
+  });
+  await page.route('**/anime/info/8082', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8082, title: { english: 'Hide Watched Test' }, episodes: 3, format: 'TV', genres: ['Action'], coverImage: { large: '' } })
+  }));
+  await page.route('**/anime/episodes/8082', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { test: { episodes: { sub: [{ number: 1 }, { number: 2 }, { number: 3 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/8082?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.goto('/movie-site/#/anime/8082');
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
+  await page.getByLabel('Hide watched').check();
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
+  await expect(page.locator('.ad-episode-grid a').first()).toContainText('EP 3');
+  await page.reload();
+  await expect(page.getByLabel('Hide watched')).toBeChecked();
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
+});
