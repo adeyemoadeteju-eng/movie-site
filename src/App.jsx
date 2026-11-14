@@ -733,8 +733,22 @@ async function getOpeningSkip(mal,episode,signal){
  ANISKIP_CACHE.set(key,{savedAt:Date.now(),data});
  return data;
 }
-function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,autoNext,onEnded,speed}){
- const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false);
+ async function getEndingSkip(mal,episode,signal){
+ if(!/^\\d+$/.test(String(mal||'')))return null;
+ const key='ending:'+String(mal)+':'+String(episode);
+ const cached=ANISKIP_CACHE.get(key);
+ if(cached&&Date.now()-cached.savedAt<24*60*60*1000)return cached.data;
+ const url='https://api.aniskip.com/v2/skip-times/'+encodeURIComponent(mal)+'/'+encodeURIComponent(episode)+'?types%5B%5D=ed&episodeLength=0';
+ const response=await fetch(url,{headers:{Accept:'application/json'},signal});
+ if(!response.ok)throw new Error('Ending timestamps are unavailable ('+response.status+').');
+ const payload=await response.json();
+ const result=(Array.isArray(payload?.results)?payload.results:[]).find(item=>item?.skipType==='ed'&&Number.isFinite(Number(item?.interval?.start))&&Number.isFinite(Number(item?.interval?.end))&&Number(item.interval.end)>Number(item.interval.start));
+ const data=payload?.found&&result?{start:Number(result.interval.start),end:Number(result.interval.end)}:null;
+ ANISKIP_CACHE.set(key,{savedAt:Date.now(),data});
+ return data;
+}
+function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,audio,autoNext,onEnded,speed}){
+ const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false),outroSkippedRef=useRef(false);
  const [currentTime,setCurrentTime]=useState(0),[playerError,setPlayerError]=useState('');
  const [resumeAt,setResumeAt]=useState(null);
  const lastSavedAt=useRef(0);
@@ -776,12 +790,12 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,au
    video.pause();video.removeAttribute('src');video.load();
   };
  },[url,id,episode,audio]);
- useEffect(()=>{skippedRef.current=false;setCurrentTime(0);setResumeAt(null);lastSavedAt.current=0;},[url,intro?.start,intro?.end]);
+ useEffect(()=>{skippedRef.current=false;outroSkippedRef.current=false;setCurrentTime(0);setResumeAt(null);lastSavedAt.current=0;},[url,intro?.start,intro?.end,outro?.start,outro?.end]);
  useEffect(()=>{const video=videoRef.current;if(video)video.playbackRate=Number(speed)||1;},[speed]);
- const seekToEnd=()=>{
+ const seekToEnd=(segment=intro,flag=skippedRef)=>{
   const video=videoRef.current;
-  if(!video||!intro)return;
-  try{video.currentTime=intro.end;skippedRef.current=true;setCurrentTime(intro.end);onAutoSkip?.();}catch{setPlayerError('The player is not ready to seek yet.');}
+  if(!video||!segment)return;
+  try{video.currentTime=segment.end;flag.current=true;setCurrentTime(segment.end);onAutoSkip?.();}catch{setPlayerError('The player is not ready to seek yet.');}
  };
  const onTimeUpdate=()=>{
   const video=videoRef.current;
@@ -789,9 +803,11 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,au
   const now=video.currentTime||0;
   setCurrentTime(now);
   if(video.duration>0&&Date.now()-lastSavedAt.current>=5000){saveEpisodeProgress(id,episode,audio,now,video.duration);lastSavedAt.current=Date.now();}
-  if(autoSkip&&intro&&!skippedRef.current&&now>=intro.start&&now<intro.end)seekToEnd();
+  if(autoSkip&&intro&&!skippedRef.current&&now>=intro.start&&now<intro.end)seekToEnd(intro,skippedRef);
+  if(autoSkip&&outro&&!outroSkippedRef.current&&now>=outro.start&&now<outro.end)seekToEnd(outro,outroSkippedRef);
  };
  const canOfferSkip=!!intro&&!skippedRef.current&&currentTime<intro.end;
+ const canOfferOutro=!!outro&&!outroSkippedRef.current&&currentTime<outro.end;
  const handleKeys=event=>{
   const video=videoRef.current;
   if(!video||event.target!==video)return;
@@ -801,7 +817,7 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,au
  };
  const resume=()=>{const video=videoRef.current;if(video&&resumeAt!==null){video.currentTime=Math.min(resumeAt,Math.max(0,(video.duration||resumeAt)-2));video.play().catch(()=>{});}setResumeAt(null);};
  const restart=()=>{const video=videoRef.current;if(video)video.currentTime=0;setResumeAt(null);};
- return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{resumeAt!==null&&<div className="ad-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={seekToEnd}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}<small className="ad-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
+ return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{resumeAt!==null&&<div className="ad-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={()=>seekToEnd(intro,skippedRef)}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{canOfferOutro&&<button className="ad-skip-intro ad-skip-outro" type="button" onClick={()=>seekToEnd(outro,outroSkippedRef)}>Skip outro · {formatSkipTime(outro.start)}–{formatSkipTime(outro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}<small className="ad-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
 }
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
@@ -812,6 +828,7 @@ function Watch(){
  const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setShowAdWarning(false);setDontShowAdWarning(false)};
  const selectServer=index=>{setActive(index);if(!hasHiddenAdWarning()){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
+ const [outro,setOutro]=useState(null);
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
  const own=fallback(mal,episode,audio);
  const [markedWatched,setMarkedWatched]=useState(()=>((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode))));
@@ -837,7 +854,7 @@ function Watch(){
  useEffect(()=>{
   let live=true;
   const controller=new AbortController();
-  setIntro(null);setIntroStatus('checking');
+  setIntro(null);setOutro(null);setIntroStatus('checking');
   if(!mal){setIntroStatus('unavailable');return()=>{live=false;controller.abort()};}
   const timer=window.setTimeout(()=>controller.abort(),10000);
   getOpeningSkip(mal,episode,controller.signal).then(result=>{
@@ -845,7 +862,8 @@ function Watch(){
    setIntro(result);setIntroStatus(result?'found':'not-found');
   }).catch(()=>{
    if(live)setIntroStatus('unavailable');
-  }).finally(()=>window.clearTimeout(timer));
+  });
+  getEndingSkip(mal,episode,controller.signal).then(result=>{if(live)setOutro(result)}).catch(()=>{}).finally(()=>window.clearTimeout(timer));
   return()=>{live=false;controller.abort();window.clearTimeout(timer)};
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
@@ -938,7 +956,7 @@ function Watch(){
     <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
     <button type="button" onClick={continueToVideo}>Continue to video</button>
    </div>
-  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} speed={playbackSpeed}/>:<>
+  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} outro={outro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} speed={playbackSpeed}/>:<>
    <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
