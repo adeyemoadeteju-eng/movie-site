@@ -24,7 +24,7 @@ export default function ProfileStatsSync(){
   const sync=async()=>{
    if(!userId||busy)return;
    busy=true;
-   try{const {error}=await supabase.from('profile_stats').upsert({user_id:userId,...readCounts()},{onConflict:'user_id'});if(error)console.warn('AniOrbit profile stats sync:',error.message);}
+   try{const {error}=await supabase.from('profile_stats').upsert({user_id:userId,...readCounts()},{onConflict:'user_id'});if(error)console.warn('AniOrbit profile stats sync:',error.message);else window.dispatchEvent(new Event('aniorbit-profile-stats-updated'));}
    finally{busy=false;if(queued){queued=false;sync();}}
   };
   const refresh=()=>{if(busy){queued=true;return;}sync();};
