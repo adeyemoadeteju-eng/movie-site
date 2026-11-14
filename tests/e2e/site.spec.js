@@ -106,6 +106,8 @@ test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwor
 test('slash focuses the header search and Escape clears it', async ({ page }) => {
   await page.goto(pagePath);
   const search = page.locator('.ad-search input');
+  await page.locator('body').click({ position: { x: 8, y: 8 } });
+  await page.evaluate(() => document.activeElement?.blur());
   await page.keyboard.press('/');
   await expect(search).toBeFocused();
   await page.keyboard.type('cyberpunk');
