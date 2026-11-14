@@ -518,12 +518,12 @@ test('watch page warns before playback, remembers opt-out, and groups preferred 
   const frame = page.locator('.ad-player iframe');
   await expect(frame).toBeVisible();
   await expect(frame).not.toHaveAttribute('sandbox');
-  await expect(frame).toHaveAttribute('src', /aniembed\\.se/);
+  await expect(frame).toHaveAttribute('src', /aniembed\.se/);
   await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(frame).toHaveAttribute('src', /vidy\\.st/);
+  await expect(frame).toHaveAttribute('src', /vidy\.st/);
   await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
   await page.getByRole('button', { name: 'AnimeEmbed' }).click();
-  await expect(frame).toHaveAttribute('src', /animeembed\\.com/);
+  await expect(frame).toHaveAttribute('src', /animeembed\.com/);
   await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
 });
 
