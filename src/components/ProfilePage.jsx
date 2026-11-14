@@ -23,7 +23,7 @@ export default function ProfilePage(){
     .select('id,username,display_name,bio,favorite_anime,is_public,avatar_path,created_at')
     .eq('username',username).maybeSingle();
    if(!active)return;
-   if(profileError||!profile){setError('This profile could not be found.');setLoading(false);return;}
+   if(profileError||!data){setError('This profile could not be found.');setLoading(false);return;}
    if(!profile.is_public&&profile.id!==sessionData.session.user.id){setError('This member keeps their profile private.');setLoading(false);return;}
    setProfile(profile);
    const {data:statsData}=await supabase.from('profile_stats')
