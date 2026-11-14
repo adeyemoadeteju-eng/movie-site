@@ -904,3 +904,39 @@ test('direct video auto-next advances to the next episode when enabled', async (
   await expect(page).toHaveURL(/#\/watch\/9101\/2\/sub\/embed/);
   await expect(page.getByRole('heading', { name: 'Auto Next Test - Episode 2' })).toBeVisible();
 });
+
+
+test('anime detail page loads and locally searches characters and voice actors', async ({ page }) => {
+  await page.route('**/anime/episodes/8084', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ providers: {} })
+  }));
+  await page.route('**/anime/dub-finder/8084?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.route('**/anime/anime/8084/characters?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ characters: [
+      {
+        role: 'MAIN',
+        node: { id: 51, name: { full: 'Mina Ashido' }, image: { large: 'https://images.example.test/mina.jpg' } },
+        voiceActors: [{ id: 52, name: { full: 'Megumi Hayashibara' }, languageV2: 'Japanese' }]
+      },
+      {
+        role: 'SUPPORTING',
+        node: { id: 53, name: { full: 'Kirishima Eijiro' }, image: {} },
+        voiceActors: [{ id: 54, name: { full: 'Toshiki Masuda' }, languageV2: 'Japanese' }]
+      }
+    ] })
+  }));
+
+  await page.goto('/movie-site/#/anime/8084');
+  await expect(page.getByRole('heading', { name: 'Characters & voice actors' })).toBeVisible();
+  await expect(page.locator('.ad-character-card')).toHaveCount(2);
+  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
+  await expect(page.locator('.ad-character-card').first()).toContainText('Megumi Hayashibara');
+  await page.getByLabel('Search characters and voice actors').fill('Megumi Hayashibara');
+  await expect(page.locator('.ad-character-card')).toHaveCount(1);
+  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
+  await page.getByLabel('Search characters and voice actors').fill('Nobody Here');
+  await expect(page.getByText(/No characters or voice actors match/)).toBeVisible();
+});
