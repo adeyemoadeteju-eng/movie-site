@@ -775,7 +775,7 @@ function DirectMediaPlayer({source,intro,autoSkip,onAutoSkip,id,episode,audio,au
    if(hls){hls.destroy();if(hlsRef.current===hls)hlsRef.current=null;}
    video.pause();video.removeAttribute('src');video.load();
   };
- },[url,id,episode,audio,speed]);
+ },[url,id,episode,audio]);
  useEffect(()=>{skippedRef.current=false;setCurrentTime(0);setResumeAt(null);lastSavedAt.current=0;},[url,intro?.start,intro?.end]);
  useEffect(()=>{const video=videoRef.current;if(video)video.playbackRate=Number(speed)||1;},[speed]);
  const seekToEnd=()=>{
@@ -823,6 +823,7 @@ function Watch(){
  const [autoNext,setAutoNext]=useState(()=>{try{return localStorage.getItem('aniorbit-auto-next')!=='false'}catch{return true}});
  const [playbackSpeed,setPlaybackSpeed]=useState(()=>{try{const value=Number(localStorage.getItem('aniorbit-playback-speed')||1);return [0.75,1,1.25,1.5,1.75,2].includes(value)?value:1}catch{return 1}});
  const [preferredMessage,setPreferredMessage]=useState('');
+ useEffect(()=>{setManualCheckpoint(Math.round(Number(getEpisodeProgress(readLibrary(),id,episodeNumber,audio)?.percent)||0));setCheckpointMessage('');},[id,episodeNumber,audio]);
  const previousPath='/watch/'+id+'/'+Math.max(1,episodeNumber-1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
  const nextPath='/watch/'+id+'/'+(episodeNumber+1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
   const switchAudio=mode=>{if(mode===audio)return;try{const saved=JSON.parse(localStorage.getItem('animedex-settings')||'{}');localStorage.setItem('animedex-settings',JSON.stringify({...saved,defaultAudio:mode}));}catch{}navigate('/watch/'+id+'/'+episodeNumber+'/'+mode+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name));};
