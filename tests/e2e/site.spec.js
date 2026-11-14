@@ -2,6 +2,18 @@ import { test, expect } from '@playwright/test';
 
 const pagePath='/movie-site/';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('https://anime-api-jqpp.onrender.com/docs', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>API docs mock</title>'
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>Anivexa mock</title>'
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: '{}'
+  }));
+});
+
 test('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
   const pageErrors = [];
   const assetFailures = [];
@@ -491,7 +503,7 @@ test('anime detail pages use the saved default audio preference for episode link
 });
 
 
-test('watch page warns before playback, remembers opt-out, and puts VidSrc, VidLink, and 2Embed first for the selected episode', async ({ page }) => {
+test('watch page shows VidSrc, VidLink, 2Embed, and Anivexa as its top four and hides broken embeds', async ({ page }) => {
   await page.route('**/anime/playback/4242?episode=7**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
@@ -505,17 +517,30 @@ test('watch page warns before playback, remembers opt-out, and puts VidSrc, VidL
       { name: 'VidCore', url: 'https://vidcore.org/embed/tv/5/2/7' }
     ] })
   }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      reanime: { episodes: { sub: [{ id: 'watch/reanime/4242/sub/reanime-7', number: 7 }], dub: [] } }
+    })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/watch/reanime/4242/sub/reanime-7', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ streams: [{ url: 'https://streams.example.test/aot-7.m3u8', type: 'hls', server: 'ReAnime' }] })
+  }));
   await page.route('https://api.aniskip.com/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
   }));
   await page.goto('/movie-site/#/watch/4242/7/sub/embed?title=Player%20Safety%20Test');
   await expect(page.locator('.ad-ad-warning')).toBeVisible();
   await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ad-server-grid button')).toHaveCount(4);
   await expect(page.locator('.ad-server-grid button').nth(0)).toContainText('VidSrc');
   await expect(page.locator('.ad-server-grid button').nth(1)).toContainText('VidLink');
   await expect(page.locator('.ad-server-grid button').nth(2)).toContainText('2Embed');
-  await expect(page.locator('.ad-server-more')).toContainText('AniEmbed');
-  await expect(page.locator('.ad-server-more')).toContainText('AnimeEmbed');
+  await expect(page.locator('.ad-server-grid button').nth(3)).toContainText('Anivexa');
+  await expect(page.locator('.ad-server-more')).not.toContainText('AniEmbed');
+  await expect(page.locator('.ad-server-more')).not.toContainText('AnimeEmbed');
+  await expect(page.locator('.ad-server-more')).toContainText('VidCore');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ad-player iframe');
@@ -527,6 +552,52 @@ test('watch page warns before playback, remembers opt-out, and puts VidSrc, VidL
   await page.getByRole('button', { name: /2Embed/ }).click();
   await expect(frame).toHaveAttribute('src', /2embed\.cc\/embedtv\/5&s=2&e=7/);
   await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
+});
+
+test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
+  await page.route('**/anime/playback/99001?episode=1**', route => route.fulfill({
+    status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Kuhi unavailable' })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      reanime: { episodes: { sub: [{ id: 'watch/reanime/99001/sub/reanime-1', number: 1 }], dub: [] } }
+    })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/watch/reanime/99001/sub/reanime-1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ stream_url: 'https://streams.example.test/fallback.m3u8', streams: [] })
+  }));
+  await page.goto('/movie-site/#/watch/99001/1/sub/embed?title=Anivexa%20Fallback');
+  await expect(page.locator('.ad-server-grid button').first()).toContainText('Anivexa');
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ad-direct-player video')).toBeVisible();
+  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+});
+
+test('site visits warm both APIs once per 20-minute window', async ({ page }) => {
+  let kuhiPings = 0;
+  let anivexaPings = 0;
+  await page.route('https://anime-api-jqpp.onrender.com/docs', route => {
+    kuhiPings += 1;
+    return route.fulfill({ status: 200, contentType: 'text/html', body: '<title>docs</title>' });
+  });
+  await page.route('https://anivexa-api-ypbr.onrender.com/', route => {
+    anivexaPings += 1;
+    return route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Anivexa</title>' });
+  });
+  await page.goto(pagePath);
+  await expect.poll(() => kuhiPings).toBe(1);
+  await expect.poll(() => anivexaPings).toBe(1);
+  await page.reload();
+  await page.waitForTimeout(100);
+  expect(kuhiPings).toBe(1);
+  expect(anivexaPings).toBe(1);
+  await page.evaluate(() => localStorage.setItem('aniorbit-api-warmup-v1', String(Date.now() - 21 * 60 * 1000)));
+  await page.reload();
+  await expect.poll(() => kuhiPings).toBe(2);
+  await expect.poll(() => anivexaPings).toBe(2);
 });
 test('player warning appears again when switching servers unless the user opts out', async ({ page }) => {
   await page.route('**/anime/playback/4243?episode=1**', route => route.fulfill({
