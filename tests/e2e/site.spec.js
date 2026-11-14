@@ -103,7 +103,7 @@ test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwor
   await expect.poll(() => poster.evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
 });
 
-Remove unverified keyboard shortcut testtest('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
+test('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
   const pageErrors = [];
   const assetFailures = [];
   page.on('pageerror', error => pageErrors.push(error.message));
