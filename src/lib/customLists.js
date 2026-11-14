@@ -36,7 +36,8 @@ export function toggleAnimeInCustomList(listId, anime) {
     image: anime.coverImage?.extraLarge || anime.coverImage?.large || anime.image || anime.poster || '',
     format: anime.format || 'TV',
     seasonYear: anime.seasonYear || null,
-    genres: Array.isArray(anime.genres) ? anime.genres.slice(0, 8) : []
+    genres: Array.isArray(anime.genres) ? anime.genres.slice(0, 8) : [],
+    isAdult: anime.isAdult === true
   };
   const next = readCustomLists().map(list => {
     if (list.id !== listId) return list;

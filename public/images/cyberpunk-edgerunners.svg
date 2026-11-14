@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900" role="img" aria-labelledby="title desc">
+<title id="title">Cyberpunk: Edgerunners — neon city poster</title>
+<desc id="desc">Original neon-night city artwork with glowing towers, rain, and a lone futuristic silhouette.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080d24"/><stop offset=".48" stop-color="#28134a"/><stop offset="1" stop-color="#071b32"/></linearGradient>
+ <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffeb85"/><stop offset=".42" stop-color="#ff5a9f"/><stop offset="1" stop-color="#7c42d8"/></linearGradient>
+ <linearGradient id="neon" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#31e5ff"/><stop offset="1" stop-color="#ff3cbf"/></linearGradient>
+ <linearGradient id="coat" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#253a62"/><stop offset="1" stop-color="#080b1b"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="8"/></filter>
+ <pattern id="rain" width="42" height="72" patternUnits="userSpaceOnUse"><path d="M7 0L0 36M31 22L23 63" stroke="#7edfff" stroke-opacity=".2" stroke-width="2"/></pattern>
+</defs>
+<rect width="600" height="900" fill="url(#bg)"/>
+<circle cx="418" cy="330" r="145" fill="#ff45bd" opacity=".25" filter="url(#glow)"/>
+<circle cx="418" cy="300" r="120" fill="url(#sun)" opacity=".92"/>
+<path d="M0 420L600 285V900H0Z" fill="#10142d" opacity=".5"/>
+<g fill="#0a1028">
+ <path d="M0 350H55V650H0ZM66 286H125V680H66ZM140 390H190V700H140ZM202 250H265V688H202ZM278 360H331V706H278ZM344 230H408V690H344ZM420 390H477V700H420ZM493 280H560V694H493ZM568 365H600V720H568Z"/>
+</g>
+<g stroke="url(#neon)" stroke-width="4" fill="none" opacity=".85">
+ <path d="M70 318V590M92 310V590M216 278V600M244 278V600M360 252V600M388 252V600M516 302V610M542 302V610"/>
+ <path d="M0 470L600 360M0 500L600 390" opacity=".35"/>
+</g>
+<g fill="#42eaff" opacity=".9">
+ <path d="M19 380h17v6H19zM82 340h15v7H82zM155 432h19v6h-19zM225 324h20v7h-20zM362 306h18v6h-18zM511 352h22v7h-22z"/>
+</g>
+<g fill="#ff4abf" opacity=".9">
+ <path d="M31 525h14v6H31zM109 465h17v6h-17zM234 460h20v6h-20zM380 420h18v7h-18zM540 490h16v7h-16z"/>
+</g>
+<path d="M0 630L600 520V900H0Z" fill="#080d20"/>
+<path d="M0 660L600 550M0 710L600 600" stroke="#34e8ff" stroke-opacity=".28" stroke-width="3"/>
+<g opacity=".22" stroke="#d8f7ff" stroke-width="2"><path d="M44 0L2 245M120 0L70 260M180 40L132 320M288 0L240 300M535 0L485 260M586 80L542 300"/></g>
+<rect width="600" height="900" fill="url(#rain)"/>
+<g transform="translate(294 540)">
+ <path d="M-84 270L-78 152Q-67 94 -18 64L0 43L39 58Q82 84 96 146L120 286Z" fill="url(#coat)" stroke="#41dff5" stroke-width="4"/>
+ <path d="M-22 62Q-17 4 20 0Q60 10 66 65L45 100H-10Z" fill="#0a1024" stroke="#ff49c4" stroke-width="4"/>
+ <path d="M-26 29Q12 -12 60 25L65 49Q18 32 -29 54Z" fill="#1b2a4b"/>
+ <path d="M-12 73L52 73L40 91L-4 91Z" fill="#31dff7" opacity=".78"/>
+ <path d="M-70 140L-120 255L-91 272L-35 188M80 145L130 245L105 269L43 182" fill="#101a36" stroke="#ff48c1" stroke-width="4"/>
+ <path d="M-53 150L42 125" stroke="#38e5ff" stroke-width="8" opacity=".8"/>
+</g>
+<path d="M0 748H600V900H0Z" fill="#070b18" opacity=".88"/>
+<text x="42" y="782" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" letter-spacing="8" fill="#39e4ff">NIGHT CITY STORIES</text>
+<text x="36" y="842" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="900" letter-spacing="1" fill="#fff">CYBERPUNK</text>
+<text x="37" y="890" font-family="Arial,Helvetica,sans-serif" font-size="52" font-weight="900" letter-spacing="2" fill="#ff4fc7">EDGERUNNERS</text>
+</svg>

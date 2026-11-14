@@ -12,6 +12,95 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: '{}'
   }));
+  await page.route('**/anime/info/*', route => {
+    const id = Number(new URL(route.request().url()).pathname.split('/').pop());
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ id, isAdult: false, genres: ['Action'], title: { english: 'Safe Test Anime' }, coverImage: { large: '' } })
+    });
+  });
+});
+
+test('adult and hentai titles stay out of discovery, search, and direct title pages', async ({ page }) => {
+  let episodeRequests = 0;
+  let dubRequests = 0;
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [
+        { id: 7011, title: { english: 'Safe Home Pick' }, format: 'TV', genres: ['Action'], isAdult: false },
+        { id: 7012, title: { english: 'Adult Home Pick' }, format: 'TV', genres: ['Hentai'], isAdult: true }
+      ],
+      recent: [{ id: 7012, title: { english: 'Adult Home Pick' }, format: 'TV', genres: ['Hentai'], isAdult: true }]
+    })
+  }));
+  await page.route('**/anime/search?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ results: [
+      { id: 7021, title: { english: 'Safe Search Pick' }, genres: ['Adventure'], isAdult: false },
+      { id: 7022, title: { english: 'Hentai Search Pick' }, genres: ['Hentai'], isAdult: true }
+    ] })
+  }));
+  await page.route('**/anime/info/7099', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 7099, title: { english: 'Blocked Adult Title' }, genres: ['Hentai'], isAdult: true, format: 'TV', episodes: 12 })
+  }));
+  await page.route('**/anime/episodes/7099', route => {
+    episodeRequests += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ providers: {} }) });
+  });
+  await page.route('**/anime/dub-finder/7099?**', route => {
+    dubRequests += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] }) });
+  });
+
+  await page.goto(pagePath);
+  await expect(page.locator('.ad-tile').filter({ hasText: 'Safe Home Pick' })).toBeVisible();
+  await expect(page.getByText('Adult Home Pick')).toHaveCount(0);
+  await page.locator('.ad-home-search input').fill('test');
+  await page.locator('.ad-home-search button').click();
+  await expect(page.locator('.ad-tile').filter({ hasText: 'Safe Search Pick' })).toBeVisible();
+  await expect(page.getByText('Hentai Search Pick')).toHaveCount(0);
+
+  await page.goto('/movie-site/#/anime/7099');
+  await expect(page.getByRole('heading', { name: 'Title not available' })).toBeVisible();
+  expect(episodeRequests).toBe(0);
+  expect(dubRequests).toBe(0);
+});
+
+test('direct watch URLs also block adult titles before requesting either playback API', async ({ page }) => {
+  let kuhiPlaybackRequests = 0;
+  let anivexaRequests = 0;
+  await page.route('**/anime/info/7100', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 7100, title: { english: 'Adult Direct Watch' }, isAdult: true, genres: ['Hentai'] })
+  }));
+  await page.route('**/anime/playback/7100?**', route => {
+    kuhiPlaybackRequests += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] }) });
+  });
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => {
+    anivexaRequests += 1;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+  });
+  await page.goto('/movie-site/#/watch/7100/1/sub/embed?title=Adult%20Direct%20Watch');
+  await expect(page.getByText('Adult and hentai titles are excluded from AniOrbit.')).toBeVisible();
+  expect(kuhiPlaybackRequests).toBe(0);
+  expect(anivexaRequests).toBe(0);
+});
+
+test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwork is missing', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [{ id: 156822, title: { english: 'Cyberpunk: Edgerunners' }, format: 'TV', seasonYear: 2022, genres: ['Action', 'Sci-Fi'], coverImage: { large: '', extraLarge: '' }, isAdult: false }],
+      recent: []
+    })
+  }));
+  await page.goto(pagePath);
+  const poster = page.locator('.ad-section .ad-tile').first().locator('.ad-poster img');
+  await expect(poster).toHaveAttribute('src', /\/movie-site\/images\/cyberpunk-edgerunners\.svg$/);
+  await expect.poll(() => poster.evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
 });
 
 test('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
@@ -464,13 +553,15 @@ test('release schedule displays upcoming catalogue episodes and supports date fi
     body: JSON.stringify({
       results: [
         { id: 701, title: { english: 'Schedule Test Show' }, coverImage: { large: '' }, next_episode: 5, airingAt: now + 3600 },
-        { id: 702, title: { english: 'Schedule Later Show' }, coverImage: { large: '' }, next_episode: 2, airingAt: now + 9 * 24 * 3600 }
+        { id: 702, title: { english: 'Schedule Later Show' }, coverImage: { large: '' }, next_episode: 2, airingAt: now + 9 * 24 * 3600 },
+        { id: 703, title: { english: 'Adult Schedule Show' }, coverImage: { large: '' }, next_episode: 1, airingAt: now + 7200, isAdult: true, genres: ['Hentai'] }
       ]
     })
   }));
   await page.goto('/movie-site/#/schedule');
   await expect(page.getByRole('heading', { name: 'Upcoming episodes' })).toBeVisible();
   await expect(page.getByText('Schedule Test Show')).toBeVisible();
+  await expect(page.getByText('Adult Schedule Show')).toHaveCount(0);
   await expect(page.getByText('Episode 5')).toBeVisible();
   await page.getByRole('button', { name: 'Today' }).click();
   await expect(page.getByText('Schedule Test Show')).toBeVisible();
