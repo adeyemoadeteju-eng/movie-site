@@ -5,6 +5,12 @@ import PageHeader from './PageHeader.jsx';
 
 const API = (import.meta.env.VITE_KUHI_API_URL || import.meta.env.VITE_ANIME_API_URL || 'https://anime-api-jqpp.onrender.com').replace(/\/+$/, '');
 
+function isAdultAnime(item) {
+  return item?.isAdult === true
+    || (item?.genres || []).some(genre => String(genre).toLowerCase() === 'hentai')
+    || (item?.tags || []).some(tag => String(tag?.name || tag || '').toLowerCase() === 'hentai' || tag?.isAdult === true);
+}
+
 function labelForDate(value) {
   const date = new Date(Number(value) * 1000);
   const today = new Date();
@@ -39,7 +45,7 @@ export default function SchedulePage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Schedule request failed (' + response.status + ')');
       const rows = (Array.isArray(data.results) ? data.results : [])
-        .filter(item => item?.id && Number.isFinite(Number(item.airingAt)) && Number(item.airingAt) > 0 && item.next_episode)
+        .filter(item => !isAdultAnime(item) && item?.id && Number.isFinite(Number(item.airingAt)) && Number(item.airingAt) > 0 && item.next_episode)
         .sort((a, b) => Number(a.airingAt) - Number(b.airingAt));
       setItems(rows);
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), items: rows })); } catch {}
