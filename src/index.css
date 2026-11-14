@@ -751,3 +751,6 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
 .ad-comment-profile-link{color:inherit;text-decoration:none}
 .ad-comment-profile-link:hover{color:#c5bdef;text-decoration:underline}
 @media(max-width:620px){.ad-profile-hero{gap:13px}.ad-profile-avatar{width:66px;height:66px;font-size:23px}.ad-profile-stats>div{grid-template-columns:repeat(2,minmax(0,1fr))}.ad-profile-card{padding:17px}}
+
+.ad-auth-profile-link{display:block;margin:12px 0 0;padding:10px 11px;border:1px solid rgba(169,162,223,.2);border-radius:7px;background:rgba(129,121,194,.07);color:#c7c0f4;font-size:10px;font-weight:650;text-align:center;text-decoration:none}
+.ad-auth-profile-link:hover{background:rgba(129,121,194,.13);color:#eeeaff}
