@@ -726,3 +726,28 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
 .ad-blocked-list span{color:#aeb2c0;font-size:9px}
 .ad-blocked-list button{padding:5px 9px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:#222633;color:#c9ccd7;font-size:8px;cursor:pointer}
 .ad-blocked-list button:disabled{opacity:.5;cursor:wait}
+
+
+/* AniOrbit member profile pages */
+.ad-profile-page{width:min(980px,calc(100% - 36px));min-height:65vh;margin:34px auto 70px;color:#e9eaf0}
+.ad-profile-back{display:inline-block;margin:0 0 18px;color:#aaa3e7;font-size:11px;text-decoration:none}
+.ad-profile-card{padding:clamp(18px,4vw,34px);border:1px solid rgba(255,255,255,.09);border-radius:16px;background:linear-gradient(145deg,#171a25,#10131a 65%);box-shadow:0 18px 55px rgba(0,0,0,.18)}
+.ad-profile-hero{display:flex;align-items:center;gap:19px}
+.ad-profile-avatar{width:88px;height:88px;flex:none;overflow:hidden;display:grid;place-items:center;border:2px solid rgba(169,162,223,.4);border-radius:50%;background:#302d49;color:#ded9ff;font-size:30px;font-weight:800}
+.ad-profile-avatar img{width:100%;height:100%;object-fit:cover}
+.ad-profile-kicker,.ad-profile-favourite span{color:#aaa3e7;font-size:8px;font-weight:800;letter-spacing:1.5px}
+.ad-profile-identity h1{margin:6px 0;color:#f3f1fb;font-size:clamp(22px,4vw,30px);letter-spacing:-.7px}
+.ad-profile-identity p{margin:0;color:#858c9e;font-size:10px}
+.ad-profile-bio{max-width:680px;margin:23px 0 0;color:#c6c9d4;font-size:12px;line-height:1.8;white-space:pre-wrap}
+.ad-profile-favourite{display:flex;flex-direction:column;gap:6px;margin:20px 0 0;padding:13px;border:1px solid rgba(169,162,223,.13);border-radius:9px;background:rgba(129,121,194,.06)}
+.ad-profile-favourite b{color:#e8e5fa;font-size:12px}
+.ad-profile-stats{margin-top:29px}
+.ad-profile-stats h2{margin:0 0 13px;color:#eeeef6;font-size:15px}
+.ad-profile-stats>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.ad-profile-stats article{display:flex;flex-direction:column;gap:7px;min-height:84px;justify-content:center;padding:13px;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:#10131b}
+.ad-profile-stats strong{color:#d9d4ff;font-size:22px;font-variant-numeric:tabular-nums}
+.ad-profile-stats article span{color:#9298a8;font-size:9px;line-height:1.4}
+.ad-profile-stats small{display:block;margin-top:12px;color:#737b8d;font-size:8px;line-height:1.5}
+.ad-comment-profile-link{color:inherit;text-decoration:none}
+.ad-comment-profile-link:hover{color:#c5bdef;text-decoration:underline}
+@media(max-width:620px){.ad-profile-hero{gap:13px}.ad-profile-avatar{width:66px;height:66px;font-size:23px}.ad-profile-stats>div{grid-template-columns:repeat(2,minmax(0,1fr))}.ad-profile-card{padding:17px}}
