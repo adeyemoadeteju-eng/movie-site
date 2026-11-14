@@ -243,7 +243,7 @@ function ContinuePoster({item}){
 }
 function Home(){
  const navigate=useNavigate();
- const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub'};
+ const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub',blockEmbedPopups:true};
  const [prefs,setPrefs]=useState(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem('animedex-settings')||'{}')}}catch{return defaults}});
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [selectedGenre,setSelectedGenre]=useState('');const [formatFilter,setFormatFilter]=useState('all');
@@ -318,7 +318,7 @@ function Home(){
  async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults(d.results||[])}catch(e){setErr(e.message)}finally{setBusy(false)}}
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE'));
- return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label><p>These settings are saved in this browser.</p></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
+ return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label><label><input type="checkbox" checked={prefs.blockEmbedPopups!==false} onChange={e=>setPrefs(p=>({...p,blockEmbedPopups:e.target.checked}))}/> Block pop-ups and full-page redirects in embeds</label><p>Embed protection blocks pop-up windows and attempts to take over AniOrbit. Ads displayed inside a third-party player may still appear.</p></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
  <div className="ad-home-intro-brand"><span>Ani</span><span>Orbit</span></div>
  <p className="ad-home-intro-subtitle">Find your next watch.</p>
  <form className="ad-home-search" onSubmit={search}>
@@ -596,6 +596,8 @@ function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
  const mal=params.get('mal')||'';const name=params.get('title')||'Anime';
  const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ const [blockEmbedPopups,setBlockEmbedPopups]=useState(()=>{try{return JSON.parse(localStorage.getItem('animedex-settings')||'{}').blockEmbedPopups!==false}catch{return true}});
+ const saveEmbedProtection=value=>{setBlockEmbedPopups(value);try{const saved=JSON.parse(localStorage.getItem('animedex-settings')||'{}');localStorage.setItem('animedex-settings',JSON.stringify({...saved,blockEmbedPopups:value}));}catch{}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
  const own=fallback(mal,episode,audio);
@@ -620,7 +622,7 @@ function Watch(){
   return()=>{live=false;controller.abort();window.clearTimeout(timer)};
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
- useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
+ useEffect(()=>{let live=true;setLoading(true);setError('');setSources([]);setActive(0);api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio)).then(d=>{if(live){const list=(d.sources||[]).filter(s=>s?.url&&/^https:\/\//i.test(s.url));setSources([...list,...(own?[own]:[])]);if(!list.length&&!own)setError('No playback source is available.')}}).catch(e=>{if(live){setSources(own?[own]:[]);if(!own)setError(e.message)}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[id,episode,audio,mal]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  const skipMessage=introStatus==='found'?'Opening detected: '+formatSkipTime(intro.start)+'–'+formatSkipTime(intro.end):introStatus==='checking'?'Checking opening timestamps…':introStatus==='not-found'?'No verified opening timestamps were found for this episode.':'Opening timestamps are unavailable for this title.';
@@ -637,7 +639,7 @@ function Watch(){
  </section>
  {loading?<div className="ad-player-message">Preparing playback...</div>:source?<>
   {direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} autoSkip={autoSkip}/>:<>
-   <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
+   <section className="ad-embed-protection" aria-label="Embedded player protection"><label><input type="checkbox" checked={blockEmbedPopups} onChange={event=>saveEmbedProtection(event.target.checked)}/> Block pop-ups &amp; redirects</label><small>Stops embedded pages opening pop-up windows or taking over AniOrbit. Ads displayed inside the player itself may still appear.</small></section><div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} sandbox={blockEmbedPopups?'allow-scripts allow-same-origin allow-forms allow-presentation':undefined} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
   <div className="ad-servers"><b>SERVER:</b>{sources.map((s,i)=><button key={s.url} className={active===i?'active':''} onClick={()=>setActive(i)}>{s.name||'Server '+(i+1)}</button>)}</div>

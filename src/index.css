@@ -925,3 +925,11 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
  .ad-personal-section.ad-custom-list-promo{align-items:flex-start;flex-direction:column}
  .ad-profile-activity-item time{display:none}
 }
+
+
+/* Third-party iframe safety controls */
+.ad-embed-protection{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px;padding:10px 12px;border:1px solid rgba(226,229,245,.09);border-radius:8px;background:#11141c}
+.ad-embed-protection label{display:flex;align-items:center;gap:7px;flex:none;color:#d1d2dc;font-size:10px;font-weight:600;cursor:pointer}
+.ad-embed-protection input{width:14px;height:14px;accent-color:var(--accent)}
+.ad-embed-protection small{color:#858b9b;font-size:9px;line-height:1.5;text-align:right}
+@media(max-width:560px){.ad-embed-protection{align-items:flex-start;flex-direction:column;gap:7px}.ad-embed-protection small{text-align:left}}

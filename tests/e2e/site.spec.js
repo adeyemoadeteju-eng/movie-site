@@ -88,6 +88,7 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByLabel('Autoplay muted trailers')).not.toBeChecked();
   await expect(page.getByLabel('Accent colour')).toHaveValue('blue');
+  await expect(page.getByLabel('Block pop-ups and full-page redirects in embeds')).toBeChecked();
 });
 
 test('catalogue failures show a recovery message instead of an empty or blank page', async ({ page }) => {
@@ -255,7 +256,7 @@ test('watchlist, continue watching, episode completion and recommendations persi
   await page.route('**/anime/dub-finder/901**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
   }));
-  await page.route('**/anime/playback/901?episode=1', route => route.fulfill({
+  await page.route('**/anime/playback/901?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [{ name: 'Test player', url: 'https://player.example.test/embed/901/1' }] })
   }));
@@ -282,7 +283,7 @@ test('watchlist, continue watching, episode completion and recommendations persi
 
 
 test('watch page offers previous/skip episode controls and reports intro support honestly for embeds', async ({ page }) => {
-  await page.route('**/anime/playback/101?episode=2', route => route.fulfill({
+  await page.route('**/anime/playback/101?episode=2**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [{ name: 'Test embed', url: 'https://player.example/embed/101/2' }] })
   }));
@@ -302,7 +303,7 @@ test('watch page offers previous/skip episode controls and reports intro support
 });
 
 test('watch page gracefully handles missing AniSkip metadata and preserves episode navigation', async ({ page }) => {
-  await page.route('**/anime/playback/101?episode=1', route => route.fulfill({
+  await page.route('**/anime/playback/101?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [{ name: 'Test embed', url: 'https://player.example/embed/101/1' }] })
   }));
@@ -318,7 +319,7 @@ test('watch page gracefully handles missing AniSkip metadata and preserves episo
 
 
 test('direct video player automatically jumps over a verified opening when auto-skip is enabled', async ({ page }) => {
-  await page.route('**/anime/playback/202?episode=1', route => route.fulfill({
+  await page.route('**/anime/playback/202?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [{ name: 'Direct video', url: 'https://media.example/episode.mp4', type: 'video/mp4' }] })
   }));
@@ -482,4 +483,30 @@ test('anime detail pages use the saved default audio preference for episode link
   await expect(page.locator('.ad-detail-top')).toBeVisible();
   await expect(page.locator('.ad-detail-copy a.ad-watch')).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
   await expect(page.locator('.ad-episode-grid a').first()).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
+});
+
+
+test('watch page offers new embed servers and blocks pop-ups by default', async ({ page }) => {
+  await page.route('**/anime/playback/4242?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'AnimeEmbed', provider: 'animeembed', url: 'https://animeembed.com/embed/ani/4242/1?track=sub' },
+      { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4242/1?lang=sub' },
+      { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/1' }
+    ] })
+  }));
+  await page.route('https://api.aniskip.com/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
+  }));
+  await page.goto('/movie-site/#/watch/4242/1/sub/embed?title=Embed%20Protection%20Test');
+  await expect(page.locator('.ad-servers')).toContainText('AnimeEmbed');
+  await expect(page.locator('.ad-servers')).toContainText('AniEmbed');
+  await expect(page.locator('.ad-servers')).toContainText('Aanikoto API');
+  const frame = page.locator('.ad-player iframe');
+  await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
+  await expect(frame).not.toHaveAttribute('sandbox', /allow-popups/);
+  await page.getByLabel('Block pop-ups & redirects').uncheck();
+  await expect(frame).not.toHaveAttribute('sandbox');
+  await page.getByLabel('Block pop-ups & redirects').check();
+  await expect(frame).toHaveAttribute('sandbox', /allow-same-origin/);
 });
