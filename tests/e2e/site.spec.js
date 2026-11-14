@@ -402,8 +402,8 @@ test('watch page offers previous/skip episode controls and reports intro support
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
   await expect(page.getByText(/external embedded player that does not expose seeking controls/i)).toBeVisible();
-  await page.getByLabel('Enabled').uncheck();
-  await expect(page.getByLabel('Enabled')).not.toBeChecked();
+  await page.getByLabel('Auto-skip intro and outro').uncheck();
+  await expect(page.getByLabel('Auto-skip intro and outro')).not.toBeChecked();
 });
 
 test('watch page gracefully handles missing AniSkip metadata and preserves episode navigation', async ({ page }) => {
