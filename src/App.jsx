@@ -517,6 +517,7 @@ function EpisodeAlertScheduler(){
 function Details(){
  const {id}=useParams();const [anime,setAnime]=useState(null);const [loading,setLoading]=useState(true);const [err,setErr]=useState('');const [similar,setSimilar]=useState([]);
  const [episodeList,setEpisodeList]=useState([]);const [episodesLoading,setEpisodesLoading]=useState(false);const [episodesError,setEpisodesError]=useState('');
+ const [characters,setCharacters]=useState([]);const [charactersLoading,setCharactersLoading]=useState(false);const [charactersError,setCharactersError]=useState('');const [characterQuery,setCharacterQuery]=useState('');
  const libraryData=useLibraryData();
  const [hideWatchedEpisodes,setHideWatchedEpisodes]=useState(()=>{try{return localStorage.getItem('aniorbit-hide-watched-episodes')==='true'}catch{return false}});
  useEffect(()=>{try{localStorage.setItem('aniorbit-hide-watched-episodes',String(hideWatchedEpisodes))}catch{}},[hideWatchedEpisodes]);
@@ -542,6 +543,17 @@ function Details(){
   finally{setEpisodesLoading(false);}
  };
  useEffect(()=>{let live=true;setLoading(true);api('/anime/info/'+encodeURIComponent(id)).then(a=>{if(live){setAnime(a);setLoading(false)}}).catch(e=>{if(live){setErr(e.message);setLoading(false)}});return()=>{live=false}},[id]);
+ useEffect(()=>{
+  let live=true;
+  setCharacterQuery('');
+  if(!anime?.id||String(anime.id)!==String(id)||isAdultAnime(anime)){setCharacters([]);setCharactersLoading(false);return()=>{live=false};}
+  setCharacters([]);setCharactersLoading(true);setCharactersError('');
+  api('/anime/anime/'+encodeURIComponent(id)+'/characters?page=1&per_page=24')
+   .then(data=>{if(live)setCharacters(Array.isArray(data?.characters)?data.characters.filter(edge=>edge?.node?.id):[]);})
+   .catch(error=>{if(live)setCharactersError(error.message||'Character information could not be loaded.');})
+   .finally(()=>{if(live)setCharactersLoading(false);});
+  return()=>{live=false};
+ },[id,anime?.id,anime?.isAdult,anime?.genres?.join('|')]);
  useEffect(()=>{
   if(!anime?.id){setSimilar([]);return}
   const genres=Array.isArray(anime.genres)?anime.genres.filter(Boolean):[];
@@ -588,6 +600,12 @@ function Details(){
  };
  const seasonNumber=seasonNumberFor(anime);
  const seasonLinks=(anime?.relations?.edges||[]).filter(edge=>['PREQUEL','SEQUEL'].includes(edge?.relationType)&&edge?.node?.type==='ANIME'&&['TV','ONA'].includes(edge?.node?.format)&&edge?.node?.id).filter((edge,index,all)=>all.findIndex(other=>String(other.node.id)===String(edge.node.id))===index).sort((a,b)=>(a.relationType==='PREQUEL'?-1:1)-(b.relationType==='PREQUEL'?-1:1));
+ const characterSearch=characterQuery.trim().toLowerCase();
+ const visibleCharacters=characters.filter(edge=>{
+  const node=edge?.node||{};
+  const actorNames=(edge?.voiceActors||[]).map(actor=>actor?.name?.full||actor?.name?.native||'').filter(Boolean);
+  return [node?.name?.full,node?.name?.userPreferred,node?.name?.native,...actorNames].filter(Boolean).join(' ').toLowerCase().includes(characterSearch);
+ });
  return <><Header/>{loading?<div className="ad-loading">Loading anime...</div>:anime&&isAdultAnime(anime)?<main className="ad-detail ad-adult-blocked"><section><span className="ad-discovery-kicker">CONTENT FILTER</span><h1>Title not available</h1><p>Adult and hentai titles are excluded from AniOrbit.</p><Link className="ad-watch" to="/">Back to Discover</Link></section></main>:anime?<main className="ad-detail">
  <div className="ad-detail-backdrop" style={{backgroundImage:'url('+image(anime)+')'}}/>
  <section className="ad-detail-top"><div className="ad-detail-poster"><AnimePoster item={anime} alt={title(anime)}/></div><div className="ad-detail-copy"><h1>{title(anime)}</h1><div className="ad-detail-tags"><span>HD</span><span>{anime.format||'TV'}</span><span>{anime.seasonYear||'—'}</span></div><Link className="ad-watch" to={'/watch/'+id+'/1/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}>▶ &nbsp; Watch Now</Link><button className="ad-follow-button" type="button" onClick={toggleFollow}>{isFollowing?'✓ In your watchlist':'+ Add to watchlist'}</button><label className="ad-tracking-control"><span>My anime status</span><select aria-label="My anime status" value={trackingStatus} onChange={event=>updateTrackingStatus(anime,event.target.value)}><option value="">Not tracking</option>{TRACKING_STATUSES.map(status=><option key={status} value={status}>{status}</option>)}</select></label><CustomListActions anime={anime}/><p className="ad-synopsis">{clean(anime.description||anime.synopsis)||'No synopsis available.'}</p></div><aside className="ad-info"><h3>Overview:</h3><p>{clean(anime.description||anime.synopsis)||'No overview available.'}</p>{[['Other Names',anime.title?.native||anime.title?.romaji],['Episodes',episodeList.length||anime.episodes||'—'],['Release Year',anime.seasonYear||'—'],['Type',anime.format||'TV'],['Status',anime.status||'—'],['Rating',anime.meanScore||anime.averageScore?((Number(anime.meanScore||anime.averageScore)/10).toFixed(1)+'/10'):'—'],['Studio',(anime.studios?.nodes||[]).filter(studio=>studio?.isAnimationStudio!==false).map(studio=>studio?.name).filter(Boolean).join(', ')||'—']].map(([k,v])=><div className="ad-info-row" key={k}><b>{k}:</b><span>{v||'—'}</span></div>)}<div className="ad-genres"><b>Genres:</b> {(anime.genres||[]).join(', ')}</div></aside></section>
@@ -610,6 +628,19 @@ function Details(){
   <p className="ad-dub-footnote">This finder points to licensed service listings; it does not extract or host video files.</p>
  </section>
  <section className="ad-episodes" id="watch"><div className="ad-episodes-heading"><h2>Season {seasonNumber} Episodes</h2><label><input type="checkbox" checked={hideWatchedEpisodes} onChange={event=>setHideWatchedEpisodes(event.target.checked)}/> Hide watched</label></div>{episodesLoading&&!displayedEpisodes.length?<p>Loading episode list...</p>:visibleEpisodes.length?<><div className="ad-episode-grid">{visibleEpisodes.map(ep=><Link key={ep.number} to={'/watch/'+id+'/'+ep.number+'/'+defaultAudio()+'/embed?mal='+(anime.idMal||'')+'&title='+encodeURIComponent(title(anime))}><b>S{seasonNumber} · EP {ep.number}</b><span>{ep.title||title(anime)+' - Episode '+ep.number}</span><i>{(libraryData.watchedEpisodes?.[String(id)]||[]).includes(Number(ep.number))?'✓':'▶'}</i></Link>)}</div>{episodesError&&<p className="ad-error">Live episode data is temporarily unavailable. Showing the episode count from AniList instead.</p>}</>:displayedEpisodes.length?<p className="ad-episodes-empty">All episodes in this list are marked watched. Turn off “Hide watched” to see them again.</p>:<div><p>{episodesError?'The episode list could not be loaded.':'Episode count is not available for this title.'}</p><button className="ad-reset" onClick={loadEpisodes} disabled={episodesLoading}>{episodesLoading?'Retrying...':'Retry episode list'}</button></div>}{seasonLinks.length>0&&<div className="ad-season-nav"><div className="ad-season-heading"><h3>More Seasons</h3><span>Continue the series</span></div><div className="ad-season-grid">{seasonLinks.map(edge=><Link className="ad-season-card" key={edge.node.id} to={'/anime/'+edge.node.id}><img loading="lazy" src={edge.node.coverImage?.extraLarge||edge.node.coverImage?.large||''} alt=""/><span className="ad-season-card-copy"><small>{edge.relationType==='PREQUEL'?'Previous season':'Next season'}</small><b>{edge.node.title?.english||edge.node.title?.romaji||'Related season'}</b>{edge.node.episodes&&<em>{edge.node.episodes} episodes</em>}</span><i>›</i></Link>)}</div></div>}</section>
+ <section className="ad-section ad-characters" aria-label="Characters and voice actors">
+  <div className="ad-characters-heading"><div><span className="ad-discovery-kicker">MEET THE CAST</span><h2>Characters &amp; voice actors</h2></div><input type="search" aria-label="Search characters and voice actors" placeholder="Search cast…" value={characterQuery} onChange={event=>setCharacterQuery(event.target.value)}/></div>
+  {charactersLoading?<p className="ad-characters-message">Loading character information…</p>:charactersError?<p className="ad-characters-message">Character information is temporarily unavailable.</p>:visibleCharacters.length?<div className="ad-characters-grid">{visibleCharacters.slice(0,24).map(edge=>{
+   const character=edge.node||{};
+   const voiceActor=(edge.voiceActors||[]).find(actor=>actor?.languageV2==='Japanese')||(edge.voiceActors||[])[0];
+   const characterName=character.name?.full||character.name?.userPreferred||character.name?.native||'Unknown character';
+   const actorName=voiceActor?.name?.full||voiceActor?.name?.native||'';
+   return <article className="ad-character-card" key={character.id}>
+    {character.image?.large||character.image?.medium?<img src={character.image.large||character.image.medium} alt="" loading="lazy"/>:<span className="ad-character-placeholder">AO</span>}
+    <div><b>{characterName}</b><small>{edge.role||'Character'}</small>{actorName&&<em>{voiceActor.languageV2||'Voice actor'}: {actorName}</em>}</div>
+   </article>;
+  })}</div>:characters.length?<p className="ad-characters-message">No characters or voice actors match “{characterQuery}”.</p>:<p className="ad-characters-message">Character details are not available for this title.</p>}
+ </section>
  <section className="ad-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><CommunitySection animeId={String(id)} title={title(anime)}/>
  </main>:<div className="ad-loading ad-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
