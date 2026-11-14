@@ -52,6 +52,14 @@ function saveMeta(value) {
   } catch {}
 }
 
+async function assertCurrentUser(userId) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (data.session?.user?.id !== userId) {
+    throw new Error('Cloud sync paused because the signed-in account changed. Your local library has been kept on this device.');
+  }
+}
+
 function readLocalSnapshot() {
   const library = normalizeLibrary(readJson(LIBRARY_KEY, {}));
   const lists = readJson(LISTS_KEY, []);
@@ -224,6 +232,7 @@ export async function syncCloudLibrary(userId) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
+  await assertCurrentUser(userId);
 
   // Read local data after the network request so edits made while the request
   // was in flight are included before deciding which copy to keep.
@@ -274,6 +283,7 @@ export async function syncCloudLibrary(userId) {
     }
   }
 
+  await assertCurrentUser(userId);
   saveMeta({
     lastUserId: userId,
     lastSyncedAt: Date.now(),
