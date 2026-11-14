@@ -815,3 +815,37 @@ test('hide watched preference filters the episode list and persists', async ({ p
   await expect(page.getByLabel('Hide watched')).toBeChecked();
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
 });
+
+
+test('direct video detects and offers a verified ending skip', async ({ page }) => {
+  await page.route('**/anime/playback/9002?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/ending.mp4' }] })
+  }));
+  await page.route('https://media.example.test/ending.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9002/1?**', route => {
+    const requestUrl = new URL(route.request().url());
+    const type = requestUrl.searchParams.get('types[]');
+    const results = type === 'ed'
+      ? [{ skipType: 'ed', interval: { start: 300, end: 320 } }]
+      : [];
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ found: results.length > 0, results })
+    });
+  });
+
+  await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await expect(page.getByRole('button', { name: /Skip outro · 5:00–5:20/ })).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+  });
+  await page.getByRole('button', { name: /Skip outro/ }).click();
+  await expect.poll(() => video.evaluate(element => element.currentTime)).toBe(320);
+});
