@@ -534,14 +534,14 @@ function hasHiddenAdWarning(){try{return localStorage.getItem(AD_WARNING_KEY)===
 function playbackSourceRank(source){
  if(isDirectMedia(source))return -1;
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- if(key.includes('aniembed'))return 0;
- if(key.includes('animeembed'))return 1;
- if(key.includes('vidy'))return 2;
- if(key.includes('anikoto'))return 3;
- if(key.includes('vidsrc'))return 4;
- if(key.includes('vidcore'))return 5;
- if(key.includes('2embed'))return 6;
- if(key.includes('vidlink'))return 7;
+ if(key.includes('vidsrc'))return 0;
+ if(key.includes('vidlink'))return 1;
+ if(key.includes('2embed'))return 2;
+ if(key.includes('vidcore'))return 10;
+ if(key.includes('anikoto'))return 11;
+ if(key.includes('vidy'))return 12;
+ if(key.includes('animeembed'))return 20;
+ if(key.includes('aniembed'))return 21;
  return 50;
 }
 async function getOpeningSkip(mal,episode,signal){
