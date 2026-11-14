@@ -443,7 +443,7 @@ test('direct video player automatically jumps over a verified opening when auto-
   await page.evaluate(() => {
     const element = document.querySelector('.ad-direct-player video');
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
-    element.dispatchEvent(new Event('timeupdate'));
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
   await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
 });
@@ -779,7 +779,7 @@ test('direct video playback automatically stores its current progress', async ({
     const element = document.querySelector('.ad-direct-player video');
     Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 37 });
-    element.dispatchEvent(new Event('timeupdate'));
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
   await expect.poll(() => page.evaluate(() => {
     const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
@@ -845,7 +845,7 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
   await page.evaluate(() => {
     const element = document.querySelector('.ad-direct-player video');
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 300 });
-    element.dispatchEvent(new Event('timeupdate'));
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
   await expect(page.getByRole('button', { name: /Skip outro · 5:00–5:20/ })).toBeVisible();
   await page.getByRole('button', { name: /Skip outro/ }).click();
@@ -899,7 +899,7 @@ test('direct video auto-next advances to the next episode when enabled', async (
     const element = document.querySelector('.ad-direct-player video');
     Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
-    element.dispatchEvent(new Event('ended'));
+    element.dispatchEvent(new Event('ended', { bubbles: true }));
   });
   await expect(page).toHaveURL(/#\/watch\/9101\/2\/sub\/embed/);
   await expect(page.getByRole('heading', { name: 'Auto Next Test - Episode 2' })).toBeVisible();
