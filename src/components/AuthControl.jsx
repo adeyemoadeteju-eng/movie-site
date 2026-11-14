@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {isSupabaseConfigured,supabase} from '../lib/supabase.js';
 import ModerationPanel from './ModerationPanel.jsx';
+import CloudLibrarySync from './CloudLibrarySync.jsx';
 
 export default function AuthControl(){
  const [open,setOpen]=useState(false);
@@ -178,6 +179,7 @@ export default function AuthControl(){
       {editing?<div className="ad-auth-actions"><button type="submit" disabled={busy}>{busy?'Saving…':'Save profile'}</button><button type="button" className="secondary" onClick={()=>{setEditing(false);if(profile){setUsername(profile.username||'');setDisplayName(profile.display_name||'');setBio(profile.bio||'');setFavoriteAnime(profile.favorite_anime||'');setIsPublic(Boolean(profile.is_public));setShowOnline(Boolean(profile.show_online))}}}>Cancel</button></div>:<button type="button" className="ad-auth-primary" onClick={()=>setEditing(true)}>Edit profile</button>}
      </form>}
      {profile&&<Link className="ad-auth-profile-link" to={'/user/'+encodeURIComponent(profile.username)}>View my AniOrbit profile →</Link>}
+     <CloudLibrarySync userId={session.user.id}/>
      {blockedMembers.length>0&&<div className="ad-blocked-list"><b>Blocked members</b>{blockedMembers.map(member=><div key={member.blocked_id}><span>{member.blocked_username||'AniOrbit member'}</span><button type="button" disabled={busy} onClick={()=>unblockMember(member)}>Unblock</button></div>)}</div>}
      {isModerator&&<button type="button" className="ad-auth-signout" onClick={()=>setModerationOpen(true)}>Open moderation queue</button>}
      <button type="button" className="ad-auth-signout" onClick={signOut} disabled={busy}>Sign out</button>
