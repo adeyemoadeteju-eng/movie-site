@@ -1,4 +1,5 @@
 import React,{useCallback,useEffect,useState} from 'react';
+import {Link} from 'react-router-dom';
 import {isSupabaseConfigured,supabase} from '../lib/supabase.js';
 
 const PAGE_SIZE=30;
@@ -207,7 +208,7 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
      return <article className="ad-comment" key={comment.id}>
       <div className="ad-comment-avatar">{avatars[comment.author_avatar_path]?<img src={avatars[comment.author_avatar_path]} alt=""/>:<span>{(comment.author_username||'M').slice(0,1).toUpperCase()}</span>}</div>
       <div className="ad-comment-body">
-       <div className="ad-comment-meta"><b>{comment.author_username||'AniOrbit member'}</b><time dateTime={comment.created_at}>{timeLabel(comment.created_at)}{comment.updated_at!==comment.created_at?' · edited':''}</time></div>
+       <div className="ad-comment-meta"><b><Link className="ad-comment-profile-link" to={'/user/'+encodeURIComponent(comment.author_username||'')}>{comment.author_username||'AniOrbit member'}</Link></b><time dateTime={comment.created_at}>{timeLabel(comment.created_at)}{comment.updated_at!==comment.created_at?' · edited':''}</time></div>
        {comment.is_hidden?<p className="ad-comment-hidden">This comment is hidden by a moderator.</p>:editingId===comment.id?<form className="ad-comment-edit" onSubmit={saveEdit}><textarea value={editDraft} onChange={event=>setEditDraft(event.target.value)} maxLength={2000} rows={3} required/><label><input type="checkbox" checked={editSpoiler} onChange={event=>setEditSpoiler(event.target.checked)}/> Contains spoilers</label><button type="submit">Save</button><button type="button" onClick={()=>setEditingId(null)}>Cancel</button></form>:comment.contains_spoilers&&!isRevealed?<button type="button" className="ad-spoiler-reveal" onClick={()=>setRevealed(old=>({...old,[comment.id]:true}))}>Spoiler hidden · reveal comment</button>:<p className="ad-comment-text">{comment.content}</p>}
        <div className="ad-comment-actions"><button type="button" onClick={()=>toggleLike(comment)} disabled={comment.is_hidden}>{meta.liked?'♥ Liked':'♡ Like'} · {meta.count}</button>
         {own&&!comment.is_hidden&&<><button type="button" onClick={()=>{setEditingId(comment.id);setEditDraft(comment.content);setEditSpoiler(comment.contains_spoilers);}}>Edit</button><button type="button" onClick={()=>deleteComment(comment.id)}>Delete</button></>}
