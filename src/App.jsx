@@ -734,7 +734,7 @@ async function getOpeningSkip(mal,episode,signal){
  return data;
 }
  async function getEndingSkip(mal,episode,signal){
- if(!/^\\d+$/.test(String(mal||'')))return null;
+ if(!/^\d+$/.test(String(mal||'')))return null;
  const key='ending:'+String(mal)+':'+String(episode);
  const cached=ANISKIP_CACHE.get(key);
  if(cached&&Date.now()-cached.savedAt<24*60*60*1000)return cached.data;
@@ -857,13 +857,17 @@ function Watch(){
   setIntro(null);setOutro(null);setIntroStatus('checking');
   if(!mal){setIntroStatus('unavailable');return()=>{live=false;controller.abort()};}
   const timer=window.setTimeout(()=>controller.abort(),10000);
-  getOpeningSkip(mal,episode,controller.signal).then(result=>{
+  Promise.allSettled([
+   getOpeningSkip(mal,episode,controller.signal),
+   getEndingSkip(mal,episode,controller.signal)
+  ]).then(([openingResult,endingResult])=>{
    if(!live)return;
-   setIntro(result);setIntroStatus(result?'found':'not-found');
-  }).catch(()=>{
-   if(live)setIntroStatus('unavailable');
-  });
-  getEndingSkip(mal,episode,controller.signal).then(result=>{if(live)setOutro(result)}).catch(()=>{}).finally(()=>window.clearTimeout(timer));
+   if(openingResult.status==='fulfilled'){
+    setIntro(openingResult.value);
+    setIntroStatus(openingResult.value?'found':'not-found');
+   }else setIntroStatus('unavailable');
+   if(endingResult.status==='fulfilled')setOutro(endingResult.value);
+  }).finally(()=>window.clearTimeout(timer));
   return()=>{live=false;controller.abort();window.clearTimeout(timer)};
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
