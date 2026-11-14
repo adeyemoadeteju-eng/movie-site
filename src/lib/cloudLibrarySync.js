@@ -97,6 +97,7 @@ function writeLocalSnapshot(value) {
   }
   window.dispatchEvent(new Event('animedex-library-change'));
   window.dispatchEvent(new Event('aniorbit-custom-lists-change'));
+  return stamped;
 }
 
 function itemId(item) {
@@ -217,7 +218,6 @@ async function uploadSnapshot(userId, value) {
 
 export async function syncCloudLibrary(userId) {
   if (!supabase || !userId) throw new Error('Sign in to sync your AniOrbit library.');
-  const local = readLocalSnapshot();
   const meta = readMeta();
   const { data: row, error } = await supabase.from('user_cloud_saves')
     .select('data,updated_at')
@@ -225,6 +225,9 @@ export async function syncCloudLibrary(userId) {
     .maybeSingle();
   if (error) throw error;
 
+  // Read local data after the network request so edits made while the request
+  // was in flight are included before deciding which copy to keep.
+  const local = readLocalSnapshot();
   const accountChanged = Boolean(meta.lastUserId && meta.lastUserId !== userId);
   let action = 'current';
   let snapshot;
@@ -239,7 +242,7 @@ export async function syncCloudLibrary(userId) {
     } catch {}
     snapshot = row ? normalizeSnapshot(row.data) : emptySnapshot();
     if (row) {
-      writeLocalSnapshot(snapshot);
+      snapshot = writeLocalSnapshot(snapshot);
       action = 'account-switched';
     } else {
       snapshot = await uploadSnapshot(userId, snapshot);
@@ -263,8 +266,7 @@ export async function syncCloudLibrary(userId) {
       snapshot = await uploadSnapshot(userId, local);
       action = 'uploaded';
     } else if (cloud.modifiedAt > local.modifiedAt) {
-      snapshot = cloud;
-      writeLocalSnapshot(snapshot);
+      snapshot = writeLocalSnapshot(cloud);
       action = 'downloaded';
     } else {
       snapshot = cloud;
