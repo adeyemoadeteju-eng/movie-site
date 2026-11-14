@@ -402,8 +402,8 @@ test('watch page offers previous/skip episode controls and reports intro support
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
   await expect(page.getByText(/external embedded player that does not expose seeking controls/i)).toBeVisible();
-  await page.getByLabel('Enabled').uncheck();
-  await expect(page.getByLabel('Enabled')).not.toBeChecked();
+  await page.getByLabel('Auto-skip intro and outro').uncheck();
+  await expect(page.getByLabel('Auto-skip intro and outro')).not.toBeChecked();
 });
 
 test('watch page gracefully handles missing AniSkip metadata and preserves episode navigation', async ({ page }) => {
@@ -443,7 +443,7 @@ test('direct video player automatically jumps over a verified opening when auto-
   await page.evaluate(() => {
     const element = document.querySelector('.ad-direct-player video');
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
-    element.dispatchEvent(new Event('timeupdate'));
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
   await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
 });
@@ -707,4 +707,236 @@ test('player warning appears again when switching servers unless the user opts o
   await page.getByRole('button', { name: 'Vidy' }).click();
   await expect(page.locator('.ad-ad-warning')).toBeVisible();
   await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+});
+
+
+test('anime tracking status is saved and can be managed from the tracking page', async ({ page }) => {
+  await page.route('**/anime/episodes/1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { test: { episodes: { sub: [{ number: 1 }, { number: 2 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/1?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+
+  await page.goto('/movie-site/#/anime/1');
+  await expect(page.getByLabel('My anime status')).toBeVisible();
+  await page.getByLabel('My anime status').selectOption('Watching');
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.tracking?.['1']?.status || '';
+  })).toBe('Watching');
+
+  await page.goto('/movie-site/#/tracking');
+  await expect(page.getByRole('heading', { name: 'Anime tracking' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Safe Test Anime' })).toBeVisible();
+  await expect(page.getByLabel('Status for Safe Test Anime')).toHaveValue('Watching');
+  await page.getByLabel('Status for Safe Test Anime').selectOption('Completed');
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.tracking?.['1']?.status || '';
+  })).toBe('Completed');
+});
+
+test('embedded player saves an explicitly manual checkpoint without claiming automatic progress', async ({ page }) => {
+  await page.route('**/anime/playback/8080?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Checkpoint Embed', provider: 'test-embed', url: 'https://embed.example.test/8080/1' }] })
+  }));
+  await page.goto('/movie-site/#/watch/8080/1/sub/embed?title=Checkpoint%20Test');
+  await expect(page.getByRole('heading', { name: /Checkpoint Test - Episode 1/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Manual embedded playback checkpoint' })).toBeVisible();
+  await page.getByLabel('Manual episode progress').fill('45');
+  await page.getByRole('button', { name: 'Save checkpoint' }).click();
+  await expect(page.getByText(/Checkpoint saved on this device/)).toBeVisible();
+  await expect(page.getByText(/45% saved on this device · manual embed checkpoint/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.episodeProgress?.['8080:1:sub']?.percent || 0;
+  })).toBe(45);
+  expect(await page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.episodeProgress?.['8080:1:sub']?.manual;
+  })).toBe(true);
+});
+
+test('direct video playback automatically stores its current progress', async ({ page }) => {
+  await page.route('**/anime/playback/8081?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/episode.mp4' }] })
+  }));
+  await page.route('https://media.example.test/episode.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.goto('/movie-site/#/watch/8081/1/sub/embed?title=Progress%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 37 });
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return Math.round(library.episodeProgress?.['8081:1:sub']?.percent || 0);
+  })).toBe(37);
+  await expect(page.getByText(/37% saved on this device · automatic video progress/)).toBeVisible();
+});
+
+test('hide watched preference filters the episode list and persists', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('animedex-library-v1', JSON.stringify({
+      watchlist: [], history: [], watchedEpisodes: { '8082': [1, 2] }, notifiedEpisodes: [], tracking: {}, episodeProgress: {}
+    }));
+  });
+  await page.route('**/anime/info/8082', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8082, title: { english: 'Hide Watched Test' }, episodes: 3, format: 'TV', genres: ['Action'], coverImage: { large: '' } })
+  }));
+  await page.route('**/anime/episodes/8082', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ providers: { test: { episodes: { sub: [{ number: 1 }, { number: 2 }, { number: 3 }], dub: [] } } } })
+  }));
+  await page.route('**/anime/dub-finder/8082?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.goto('/movie-site/#/anime/8082');
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
+  await page.getByRole('checkbox', { name: 'Hide watched' }).check();
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
+  await expect(page.locator('.ad-episode-grid a').first()).toContainText('EP 3');
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Hide watched' })).toBeChecked();
+  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
+});
+
+
+test('direct video detects and offers a verified ending skip', async ({ page }) => {
+  await page.route('**/anime/playback/9002?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/ending.mp4' }] })
+  }));
+  await page.route('https://media.example.test/ending.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.route('https://api.aniskip.com/v2/skip-times/9002/1?**', route => {
+    const requestUrl = new URL(route.request().url());
+    const type = requestUrl.searchParams.get('types[]');
+    const results = type === 'ed'
+      ? [{ skipType: 'ed', interval: { start: 300, end: 320 } }]
+      : [];
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ found: results.length > 0, results })
+    });
+  });
+
+  await page.addInitScript(() => localStorage.setItem('animedex-auto-skip-intro', 'false'));
+  await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 300 });
+    element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+  });
+  await expect(page.getByRole('button', { name: /Skip outro · 5:00–5:20/ })).toBeVisible();
+  await page.getByRole('button', { name: /Skip outro/ }).click();
+  await expect.poll(() => video.evaluate(element => element.currentTime)).toBe(320);
+});
+
+
+test('preferred playback server is remembered but an unreliable report takes priority', async ({ page }) => {
+  await page.route('**/anime/playback/9100?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'VidSrc', provider: 'vidsrc', url: 'https://vidsrc.example.test/9100/1' },
+      { name: 'VidLink', provider: 'vidlink', url: 'https://vidlink.example.test/9100/1' }
+    ] })
+  }));
+  await page.goto('/movie-site/#/watch/9100/1/sub/embed?title=Server%20Preference%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ad-server-grid button').filter({ hasText: 'VidLink' }).click();
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: 'Use as preferred server' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-preferred-servers-v1') || '{}').sub)).toBe('vidlink');
+
+  await page.reload();
+  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidLink');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: 'Mark as not working' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]'))).toContain('vidlink');
+
+  await page.reload();
+  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidSrc');
+});
+
+test('direct video auto-next advances to the next episode when enabled', async ({ page }) => {
+  await page.route('**/anime/playback/9101?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/auto-next-1.mp4' }] })
+  }));
+  await page.route('**/anime/playback/9101?episode=2**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/auto-next-2.mp4' }] })
+  }));
+  await page.route('https://media.example.test/auto-next-*.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.goto('/movie-site/#/watch/9101/1/sub/embed?title=Auto%20Next%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+    element.dispatchEvent(new Event('ended', { bubbles: true }));
+  });
+  await expect(page).toHaveURL(/#\/watch\/9101\/2\/sub\/embed/);
+  await expect(page.getByRole('heading', { name: 'Auto Next Test - Episode 2' })).toBeVisible();
+});
+
+
+test('anime detail page loads and locally searches characters and voice actors', async ({ page }) => {
+  await page.route('**/anime/episodes/8084', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ providers: {} })
+  }));
+  await page.route('**/anime/dub-finder/8084?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
+  }));
+  await page.route('**/anime/anime/8084/characters?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ characters: [
+      {
+        role: 'MAIN',
+        node: { id: 51, name: { full: 'Mina Ashido' }, image: { large: 'https://images.example.test/mina.jpg' } },
+        voiceActors: [{ id: 52, name: { full: 'Megumi Hayashibara' }, languageV2: 'Japanese' }]
+      },
+      {
+        role: 'SUPPORTING',
+        node: { id: 53, name: { full: 'Kirishima Eijiro' }, image: {} },
+        voiceActors: [{ id: 54, name: { full: 'Toshiki Masuda' }, languageV2: 'Japanese' }]
+      }
+    ] })
+  }));
+
+  await page.goto('/movie-site/#/anime/8084');
+  await expect(page.getByRole('heading', { name: 'Characters & voice actors' })).toBeVisible();
+  await expect(page.locator('.ad-character-card')).toHaveCount(2);
+  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
+  await expect(page.locator('.ad-character-card').first()).toContainText('Megumi Hayashibara');
+  await page.getByLabel('Search characters and voice actors').fill('Megumi Hayashibara');
+  await expect(page.locator('.ad-character-card')).toHaveCount(1);
+  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
+  await page.getByLabel('Search characters and voice actors').fill('Nobody Here');
+  await expect(page.getByText(/No characters or voice actors match/)).toBeVisible();
 });
