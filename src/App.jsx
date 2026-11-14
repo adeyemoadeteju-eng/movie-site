@@ -250,9 +250,9 @@ function Header({onSearch,onSettings}){
   const handleShortcut=event=>{
    const target=event.target;
    const typing=target instanceof HTMLElement&&(target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
-   if(event.key==='/'&&!typing&&!event.altKey&&!event.ctrlKey&&!event.metaKey){
+   if((event.key==='/'||event.code==='Slash')&&!typing&&!event.altKey&&!event.ctrlKey&&!event.metaKey){
     event.preventDefault();
-    inputRef.current?.focus();
+    inputRef.current?.focus({preventScroll:true});
    }else if(event.key==='Escape'&&document.activeElement===inputRef.current){
     setQ('');
     inputRef.current?.blur();
