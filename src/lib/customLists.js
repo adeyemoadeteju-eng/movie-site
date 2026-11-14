@@ -17,6 +17,7 @@ export function saveCustomLists(lists) {
   const safe = Array.isArray(lists) ? lists.slice(0, 12) : [];
   try {
     localStorage.setItem(KEY, JSON.stringify(safe));
+    localStorage.setItem('aniorbit-custom-lists-updated-at-v1', String(Date.now()));
     window.dispatchEvent(new Event(EVENT));
   } catch (error) {
     console.warn('AniOrbit custom lists could not be saved:', error);
