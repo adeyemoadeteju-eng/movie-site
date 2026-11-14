@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom';
 import { customListsEventName, readCustomLists, removeAnimeFromCustomList, saveCustomLists } from '../lib/customLists.js';
 import PageHeader from './PageHeader.jsx';
 
+function isAdultAnime(item) {
+  return item?.isAdult === true || (item?.genres || []).some(genre => String(genre).toLowerCase() === 'hentai');
+}
+
 export default function CustomListsPage() {
   const [lists, setLists] = useState(() => readCustomLists());
   const [name, setName] = useState('');
@@ -66,8 +70,8 @@ export default function CustomListsPage() {
       {error && <p className="ad-hub-error" role="alert">{error}</p>}
       {message && <p className="ad-hub-message" role="status">{message}</p>}
       {lists.length ? <div className="ad-custom-lists-grid">{lists.map(list => <section className="ad-custom-list-card" key={list.id}>
-        <div className="ad-custom-list-heading"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
-        {list.items.length ? <div className="ad-custom-list-items">{list.items.map(item => <article key={item.id}>
+        <div className="ad-custom-list-heading"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.filter(item => !isAdultAnime(item)).length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
+        {list.items.some(item => !isAdultAnime(item)) ? <div className="ad-custom-list-items">{list.items.filter(item => !isAdultAnime(item)).map(item => <article key={item.id}>
           <Link to={'/anime/' + item.id}>{item.image ? <img src={item.image} alt="" loading="lazy" /> : <span className="ad-list-no-image">AO</span>}<span><b>{item.title}</b><small>{[item.format, item.seasonYear].filter(Boolean).join(' · ')}</small></span></Link>
           <button type="button" onClick={() => removeItem(list, item)} aria-label={'Remove ' + item.title + ' from ' + list.name}>×</button>
         </article>)}</div> : <p className="ad-custom-list-empty">This list is empty. Open an anime page and use “Add to list” to save something here.</p>}
