@@ -851,3 +851,56 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
   await page.getByRole('button', { name: /Skip outro/ }).click();
   await expect.poll(() => video.evaluate(element => element.currentTime)).toBe(320);
 });
+
+
+test('preferred playback server is remembered but an unreliable report takes priority', async ({ page }) => {
+  await page.route('**/anime/playback/9100?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'VidSrc', provider: 'vidsrc', url: 'https://vidsrc.example.test/9100/1' },
+      { name: 'VidLink', provider: 'vidlink', url: 'https://vidlink.example.test/9100/1' }
+    ] })
+  }));
+  await page.goto('/movie-site/#/watch/9100/1/sub/embed?title=Server%20Preference%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ad-server-grid button').filter({ hasText: 'VidLink' }).click();
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: 'Use as preferred server' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-preferred-servers-v1') || '{}').sub)).toBe('vidlink');
+
+  await page.reload();
+  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidLink');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: 'Mark as not working' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]'))).toContain('vidlink');
+
+  await page.reload();
+  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidSrc');
+});
+
+test('direct video auto-next advances to the next episode when enabled', async ({ page }) => {
+  await page.route('**/anime/playback/9101?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/auto-next-1.mp4' }] })
+  }));
+  await page.route('**/anime/playback/9101?episode=2**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [{ name: 'Direct video', type: 'video/mp4', url: 'https://media.example.test/auto-next-2.mp4' }] })
+  }));
+  await page.route('https://media.example.test/auto-next-*.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: Buffer.from([])
+  }));
+  await page.goto('/movie-site/#/watch/9101/1/sub/embed?title=Auto%20Next%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toBeVisible();
+  await page.evaluate(() => {
+    const element = document.querySelector('.ad-direct-player video');
+    Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
+    element.dispatchEvent(new Event('ended'));
+  });
+  await expect(page).toHaveURL(/#\/watch\/9101\/2\/sub\/embed/);
+  await expect(page.getByRole('heading', { name: 'Auto Next Test - Episode 2' })).toBeVisible();
+});
