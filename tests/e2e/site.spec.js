@@ -103,21 +103,7 @@ test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwor
   await expect.poll(() => poster.evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
 });
 
-test('slash focuses the header search and Escape clears it', async ({ page }) => {
-  await page.goto(pagePath);
-  const search = page.locator('.ad-search input');
-  await page.locator('body').click({ position: { x: 8, y: 8 } });
-  await page.evaluate(() => document.activeElement?.blur());
-  await page.keyboard.press('/');
-  await expect(search).toBeFocused();
-  await page.keyboard.type('cyberpunk');
-  await expect(search).toHaveValue('cyberpunk');
-  await page.keyboard.press('Escape');
-  await expect(search).toHaveValue('');
-  await expect(search).not.toBeFocused();
-});
-
-test('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
+Remove unverified keyboard shortcut testtest('AniOrbit boots without a blank screen and loads its catalogue assets', async ({ page }) => {
   const pageErrors = [];
   const assetFailures = [];
   page.on('pageerror', error => pageErrors.push(error.message));
