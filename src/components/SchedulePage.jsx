@@ -11,6 +11,17 @@ function isAdultAnime(item) {
     || (item?.tags || []).some(tag => String(tag?.name || tag || '').toLowerCase() === 'hentai' || tag?.isAdult === true);
 }
 
+function formatCountdown(value, now) {
+  const seconds = Math.max(0, Math.floor(Number(value) - now / 1000));
+  if (seconds <= 60) return 'Airing now';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days) return 'In ' + days + 'd ' + hours + 'h';
+  if (hours) return 'In ' + hours + 'h ' + minutes + 'm';
+  return 'In ' + Math.max(1, minutes) + 'm';
+}
+
 function labelForDate(value) {
   const date = new Date(Number(value) * 1000);
   const today = new Date();
@@ -27,6 +38,12 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [range, setRange] = useState('week');
+  const [clock, setClock] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
@@ -88,7 +105,7 @@ export default function SchedulePage() {
           const title = item.title?.english || item.title?.romaji || item.title?.native || 'Untitled';
           return <article key={item.id + ':' + item.next_episode}>
             <Link to={'/anime/' + item.id} className="ad-schedule-poster">{image ? <img src={image} loading="lazy" alt="" /> : <span>AO</span>}</Link>
-            <div className="ad-schedule-copy"><Link to={'/anime/' + item.id}><b>{title}</b></Link><span>Episode {item.next_episode}</span><small>{formatAiringTime(item.airingAt)}</small></div>
+            <div className="ad-schedule-copy"><Link to={'/anime/' + item.id}><b>{title}</b></Link><span>Episode {item.next_episode}</span><small>{formatAiringTime(item.airingAt)} · {formatCountdown(item.airingAt, clock)}</small></div>
             <Link className="ad-schedule-open" to={'/anime/' + item.id}>View <span>→</span></Link>
           </article>;
         })}</div>
