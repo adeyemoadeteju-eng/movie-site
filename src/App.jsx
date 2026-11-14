@@ -536,16 +536,16 @@ function Details(){
    .forEach(edge=>add(edge?.node,35));
   setSimilar([...pool.values()].sort((a,b)=>b.score-a.score).slice(0,10).map(entry=>entry.item));
  },[anime?.id]);
- useEffect(()=>{if(anime?.id&&!isAdultAnime(anime))rememberAnime(anime);},[anime?.id]);
+ useEffect(()=>{if(anime?.id&&String(anime.id)===String(id)&&!isAdultAnime(anime))rememberAnime(anime);},[anime?.id,id]);
  useEffect(()=>{
-  if(!anime?.id)return;
+  if(!anime?.id||String(anime.id)!==String(id))return;
   if(isAdultAnime(anime)){setEpisodeList([]);setEpisodesError('');return;}
   loadEpisodes();
  },[id,anime?.id,anime?.isAdult,anime?.genres?.join('|')]);
  useEffect(()=>{
   let live=true;
   setWatchOptions(null);
-  if(!anime?.id||isAdultAnime(anime)){setWatchOptionsLoading(false);return()=>{live=false};}
+  if(!anime?.id||String(anime.id)!==String(id)||isAdultAnime(anime)){setWatchOptionsLoading(false);return()=>{live=false};}
   setWatchOptionsLoading(true);
   api('/anime/dub-finder/'+encodeURIComponent(id)+'?region=CA')
    .then(data=>{if(live)setWatchOptions(data)})
