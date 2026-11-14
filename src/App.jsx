@@ -797,8 +797,8 @@ function Watch(){
   let primaryError='';
   let primarySources=[];
   let anivexaSources=[];
+  let anivexaTimer=null;
   const anivexaController=new AbortController();
-  const anivexaTimer=window.setTimeout(()=>anivexaController.abort(),40000);
   setLoading(true);setError('');setSources([]);setActive(0);
   const refresh=()=>{
    if(!live)return;
@@ -810,27 +810,46 @@ function Watch(){
     setError(primaryError||'No playback source is available from either server.');
    }
   };
-  api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio))
-   .then(data=>{
+  const startPlayback=()=>{
+   if(!live)return;
+   anivexaTimer=window.setTimeout(()=>anivexaController.abort(),40000);
+   api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio))
+    .then(data=>{
+     if(!live)return;
+     primarySources=Array.isArray(data?.sources)?data.sources:[];
+     primaryDone=true;
+     refresh();
+    })
+    .catch(error=>{
+     if(!live)return;
+     primaryError=error?.message||'The main playback API is unavailable.';
+     primaryDone=true;
+     refresh();
+    });
+   fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
+    .then(list=>{if(live)anivexaSources=list})
+    .catch(()=>{})
+    .finally(()=>{anivexaDone=true;if(anivexaTimer)window.clearTimeout(anivexaTimer);refresh()});
+  };
+  api('/anime/info/'+encodeURIComponent(id))
+   .then(metadata=>{
     if(!live)return;
-    primarySources=Array.isArray(data?.sources)?data.sources:[];
-    primaryDone=true;
-    refresh();
+    if(isAdultAnime(metadata)){
+     setLoading(false);
+     setError('Adult and hentai titles are excluded from AniOrbit.');
+     return;
+    }
+    startPlayback();
    })
-   .catch(error=>{
+   .catch(()=>{
     if(!live)return;
-    primaryError=error?.message||'The main playback API is unavailable.';
-    primaryDone=true;
-    refresh();
+    setLoading(false);
+    setError('Could not verify this title. Return to Discover and try again.');
    });
-  fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
-   .then(list=>{if(live)anivexaSources=list})
-   .catch(()=>{})
-   .finally(()=>{anivexaDone=true;window.clearTimeout(anivexaTimer);refresh()});
   return()=>{
    live=false;
    anivexaController.abort();
-   window.clearTimeout(anivexaTimer);
+   if(anivexaTimer)window.clearTimeout(anivexaTimer);
   };
  },[id,episode,audio,mal]);
  const source=sources[active];
