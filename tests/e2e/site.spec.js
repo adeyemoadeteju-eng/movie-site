@@ -492,6 +492,7 @@ test('watch page offers new embed servers and blocks pop-ups by default', async 
     body: JSON.stringify({ sources: [
       { name: 'AnimeEmbed', provider: 'animeembed', url: 'https://animeembed.com/embed/ani/4242/1?track=sub' },
       { name: 'AniEmbed', provider: 'aniembed', url: 'https://aniembed.se/e/4242/1?lang=sub' },
+      { name: 'Vidy', provider: 'vidy', url: 'https://www.vidy.st/anime/4242/1?color=9b87ff' },
       { name: 'Aanikoto API', provider: 'anikoto-api', url: 'https://anikototv.to/embed/4242/1' }
     ] })
   }));
@@ -501,7 +502,9 @@ test('watch page offers new embed servers and blocks pop-ups by default', async 
   await page.goto('/movie-site/#/watch/4242/1/sub/embed?title=Embed%20Protection%20Test');
   await expect(page.locator('.ad-servers')).toContainText('AnimeEmbed');
   await expect(page.locator('.ad-servers')).toContainText('AniEmbed');
+  await expect(page.locator('.ad-servers')).toContainText('Vidy');
   await expect(page.locator('.ad-servers')).toContainText('Aanikoto API');
+  await expect(page.locator('.ad-player iframe')).toHaveAttribute('allow', /autoplay \*; fullscreen \*/);
   const frame = page.locator('.ad-player iframe');
   await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
   await expect(frame).not.toHaveAttribute('sandbox', /allow-popups/);
