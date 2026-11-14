@@ -3,6 +3,8 @@ import {HashRouter,Link,Route,Routes,useNavigate,useParams,useSearchParams} from
 import AuthControl from './components/AuthControl.jsx';
 import CommunitySection from './components/CommunitySection.jsx';
 import PresenceIndicator from './components/PresenceIndicator.jsx';
+import ProfilePage from './components/ProfilePage.jsx';
+import ProfileStatsSync from './components/ProfileStatsSync.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 const API_CACHE_KEY='animedex-api-cache-v1';
@@ -641,5 +643,5 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ad-fatal"><div><h1>Page not found</h1><p>This AniOrbit page does not exist.</p><Link className="ad-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><EpisodeAlertScheduler/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
