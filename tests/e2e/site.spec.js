@@ -808,11 +808,11 @@ test('hide watched preference filters the episode list and persists', async ({ p
   }));
   await page.goto('/movie-site/#/anime/8082');
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
-  await page.getByLabel('Hide watched').check();
+  await page.getByRole('checkbox', { name: 'Hide watched' }).check();
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
   await expect(page.locator('.ad-episode-grid a').first()).toContainText('EP 3');
   await page.reload();
-  await expect(page.getByLabel('Hide watched')).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Hide watched' })).toBeChecked();
   await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
 });
 
