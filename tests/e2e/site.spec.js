@@ -22,6 +22,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('closed account dialog stays hidden and does not block the site', async ({ page }) => {
+  await page.route('**/anime/search?**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ results: [
+      { id: 7131, title: { english: 'Safe Overlay Test' }, genres: ['Action'], isAdult: false }
+    ] })
+  }));
+
   await page.goto(pagePath);
   const accountBackdrop = page.locator('.ad-auth-backdrop');
   await expect(accountBackdrop).toBeHidden();
@@ -31,8 +39,10 @@ test('closed account dialog stays hidden and does not block the site', async ({ 
   await page.getByRole('button', { name: 'Close account dialog' }).click();
   await expect(accountBackdrop).toBeHidden();
 
-  // A visible site control must remain clickable after closing the dialog.
-  await expect(page.getByRole('button', { name: 'Search' })).toBeVisible();
+  // The search flow must still accept a real click after the dialog closes.
+  await page.locator('.ad-home-search input').fill('Safe');
+  await page.locator('.ad-home-search button').click();
+  await expect(page.locator('.ad-results .ad-grid .ad-tile').first()).toBeVisible();
 });
 
 test('adult and hentai titles stay out of discovery, search, and direct title pages', async ({ page }) => {
