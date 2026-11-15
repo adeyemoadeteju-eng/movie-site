@@ -1073,3 +1073,106 @@ body{background:#080808;-webkit-font-smoothing:antialiased}
 .ad-cloud-sync-bottom button:disabled{opacity:.55;cursor:wait}
 .ad-cloud-sync-privacy{margin:11px 0 0;color:#7f8798;font-size:9px;line-height:1.55}
 @media(max-width:520px){.ad-cloud-sync{padding:13px}.ad-cloud-sync-bottom{align-items:flex-start;flex-direction:column}.ad-cloud-sync-bottom button{width:100%}}
+
+
+/* AniOrbit platform upgrade: data saver and small-screen playback refinements */
+html[data-data-saver="true"] .ad-skeleton .ad-poster{
+  animation:none;
+  background:#202431;
+}
+html[data-data-saver="true"] .ad-tile,
+html[data-data-saver="true"] .ad-tile *,
+html[data-data-saver="true"] .ad-server-grid button,
+html[data-data-saver="true"] .ad-server-secondary button{
+  transition:none !important;
+}
+@media(max-width:600px){
+  .ad-watch-page{
+    width:auto;
+    margin:18px auto 34px;
+    padding:0 12px;
+  }
+  .ad-watch-page h1{
+    font-size:clamp(17px,5vw,21px);
+    line-height:1.35;
+    overflow-wrap:anywhere;
+  }
+  .ad-player,
+  .ad-direct-player{
+    border-radius:8px;
+  }
+  .ad-servers{
+    padding:10px;
+  }
+  .ad-server-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  .ad-server-grid button{
+    min-height:54px;
+    padding:8px;
+    gap:7px;
+  }
+  .ad-server-copy strong{
+    font-size:9px;
+  }
+  .ad-intro-settings{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+    gap:10px;
+  }
+  .ad-intro-settings>div{
+    grid-column:1/-1;
+  }
+  .ad-intro-settings label{
+    min-width:0;
+    line-height:1.45;
+  }
+  .ad-episode-nav button,
+  .ad-watch-bottom-nav button{
+    min-height:40px;
+    padding:9px 10px;
+  }
+  .ad-embed-checkpoint{
+    gap:10px;
+  }
+  .ad-embed-checkpoint>div{
+    min-width:0;
+    width:100%;
+  }
+  .ad-embed-checkpoint>button,
+  .ad-server-tools button{
+    min-height:36px;
+  }
+  .ad-server-tools>span{
+    flex-basis:100%;
+    min-width:0;
+  }
+  .ad-continue-grid{
+    grid-template-columns:1fr;
+  }
+  .ad-discovery-form{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .ad-airing-item{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:4px;
+  }
+  .ad-airing-item span{
+    text-align:left;
+  }
+}
+@media(max-width:380px){
+  .ad-server-grid,
+  .ad-discovery-form{
+    grid-template-columns:1fr;
+  }
+  .ad-intro-settings{
+    grid-template-columns:1fr;
+  }
+  .ad-intro-settings>div{
+    grid-column:1;
+  }
+}
