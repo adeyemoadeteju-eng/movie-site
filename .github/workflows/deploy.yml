@@ -33,7 +33,7 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const html = fs.readFileSync('dist/index.html', 'utf8');
-          if (!/src=[\"']\\/assets\\//.test(html) || /[\\\"']\\/movie-site\\//.test(html)) {
+          if (!html.includes('src="/assets/') || html.includes('src="/movie-site/') || html.includes('href="/movie-site/')) {
             throw new Error('Netlify output must load assets from /assets/, not /movie-site/.');
           }
           console.log('Netlify root asset paths verified.');
