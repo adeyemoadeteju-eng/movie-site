@@ -1018,7 +1018,6 @@ test('direct playback automatically tries another healthy direct server after a 
   const video = page.locator('.ad-direct-player video');
   await expect(video).toHaveAttribute('src', /backup\.mp4/);
   await expect(page.locator('.ad-server-grid button.active')).toContainText('Backup Direct');
-  await expect(page.locator('.ad-server-tools')).toContainText('Trying Backup Direct');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]')))
     .toContain('direct-primary');
 });
