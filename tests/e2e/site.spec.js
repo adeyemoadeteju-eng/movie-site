@@ -964,3 +964,86 @@ test('anime detail page loads and locally searches characters and voice actors',
   await page.getByLabel('Search characters and voice actors').fill('Nobody Here');
   await expect(page.getByText(/No characters or voice actors match/)).toBeVisible();
 });
+
+
+test('data saver disables autoplay trailers and stays enabled after refresh', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [{
+        id: 88101, title: { english: 'Data Saver Trailer Test' }, format: 'TV',
+        coverImage: { large: '' }, trailer: { id: 'abcDEF12345', site: 'youtube' }
+      }],
+      recent: []
+    })
+  }));
+
+  await page.goto(pagePath);
+  await expect(page.locator('.ad-hero-trailer')).toBeVisible();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const dataSaver = page.getByLabel('Reduce data use (disable autoplay trailers and heavy effects)');
+  await dataSaver.check();
+  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveAttribute('data-data-saver', 'true');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await expect(page.getByLabel('Reduce data use (disable autoplay trailers and heavy effects)')).toBeChecked();
+  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+});
+
+test('direct playback automatically tries another healthy direct server after a media error', async ({ page }) => {
+  await page.route('**/anime/playback/88102?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'Primary Direct', provider: 'direct-primary', type: 'video/mp4', url: 'https://streams.example.test/failing.mp4' },
+      { name: 'Backup Direct', provider: 'direct-backup', type: 'video/mp4', url: 'https://streams.example.test/backup.mp4' }
+    ] })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({})
+  }));
+  await page.route('https://api.aniskip.com/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
+  }));
+  await page.route('https://streams.example.test/failing.mp4', route => route.abort());
+  await page.route('https://streams.example.test/backup.mp4', route => route.fulfill({
+    status: 200, contentType: 'video/mp4', body: ''
+  }));
+
+  await page.goto('/movie-site/#/watch/88102/1/sub/embed?title=Automatic%20Server%20Recovery');
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+
+  const video = page.locator('.ad-direct-player video');
+  await expect(video).toHaveAttribute('src', /backup\.mp4/);
+  await expect(page.locator('.ad-server-grid button.active')).toContainText('Backup Direct');
+  await expect(page.locator('.ad-server-tools')).toContainText('Trying Backup Direct');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]')))
+    .toContain('direct-primary');
+});
+
+test('watch page server controls fit a narrow mobile screen without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route('**/anime/playback/88103?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'Mobile Server One', provider: 'mobile-one', url: 'https://player.example.test/one' },
+      { name: 'Mobile Server Two', provider: 'mobile-two', url: 'https://player.example.test/two' }
+    ] })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({})
+  }));
+  await page.route('https://api.aniskip.com/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
+  }));
+
+  await page.goto('/movie-site/#/watch/88103/1/sub/embed?title=Mobile%20Layout');
+  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const columns = await page.locator('.ad-server-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length);
+  expect(columns).toBe(2);
+});
