@@ -189,39 +189,39 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
  };
 
  const heading=episodeNumber==null?'Community discussion':'Episode discussion';
- if(!isSupabaseConfigured)return <section className="ad-community"><div className="ad-community-heading"><h2>{heading}</h2></div><p>Community features are not configured yet.</p></section>;
+ if(!isSupabaseConfigured)return <section className="ao-community"><div className="ao-community-heading"><h2>{heading}</h2></div><p>Community features are not configured yet.</p></section>;
 
- return <section className="ad-community" aria-labelledby="ad-community-title">
-  <div className="ad-community-heading"><div><span className="ad-community-kicker">ANIORBIT COMMUNITY</span><h2 id="ad-community-title">{heading}</h2><p>{title}{episodeNumber==null?'':' · Episode '+episodeNumber}</p></div><span className="ad-community-count">{comments.length}{hasMore?'+':''} comments</span></div>
-  {!session?.user?<div className="ad-community-locked"><p>Sign in to read and join the discussion. Comments are limited to signed-in members.</p></div>:<>
-   {moderationReady===null?<p className="ad-community-locked">Checking whether community posting is available…</p>:moderationReady?<form className="ad-community-compose" onSubmit={submitComment}>
-    <label htmlFor={'ad-comment-'+animeId+'-'+(episodeNumber||'anime')}>Add to the discussion</label>
-    <textarea id={'ad-comment-'+animeId+'-'+(episodeNumber||'anime')} value={draft} onChange={event=>setDraft(event.target.value)} maxLength={2000} rows={3} placeholder="Share your thoughts respectfully…" required/>
-    <div className="ad-community-compose-foot"><label><input type="checkbox" checked={spoiler} onChange={event=>setSpoiler(event.target.checked)}/> Contains spoilers</label><span>{draft.length}/2000</span><button type="submit" disabled={posting||!draft.trim()}>{posting?'Posting…':'Post comment'}</button></div>
-    <p className="ad-community-guideline">Be respectful. Don't share personal information. Posts are limited to five every five minutes.</p>
-   </form>:<div className="ad-community-locked"><p>Posting is paused while the AniOrbit moderation team is being set up. You can still read the discussion.</p></div>}
-   {loading&&comments.length===0?<p className="ad-community-empty">Loading discussion…</p>:comments.length===0?<p className="ad-community-empty">No comments yet. Start the conversation!</p>:<div className="ad-comment-list">
+ return <section className="ao-community" aria-labelledby="ao-community-title">
+  <div className="ao-community-heading"><div><span className="ao-community-kicker">ANIORBIT COMMUNITY</span><h2 id="ao-community-title">{heading}</h2><p>{title}{episodeNumber==null?'':' · Episode '+episodeNumber}</p></div><span className="ao-community-count">{comments.length}{hasMore?'+':''} comments</span></div>
+  {!session?.user?<div className="ao-community-locked"><p>Sign in to read and join the discussion. Comments are limited to signed-in members.</p></div>:<>
+   {moderationReady===null?<p className="ao-community-locked">Checking whether community posting is available…</p>:moderationReady?<form className="ao-community-compose" onSubmit={submitComment}>
+    <label htmlFor={'ao-comment-'+animeId+'-'+(episodeNumber||'anime')}>Add to the discussion</label>
+    <textarea id={'ao-comment-'+animeId+'-'+(episodeNumber||'anime')} value={draft} onChange={event=>setDraft(event.target.value)} maxLength={2000} rows={3} placeholder="Share your thoughts respectfully…" required/>
+    <div className="ao-community-compose-foot"><label><input type="checkbox" checked={spoiler} onChange={event=>setSpoiler(event.target.checked)}/> Contains spoilers</label><span>{draft.length}/2000</span><button type="submit" disabled={posting||!draft.trim()}>{posting?'Posting…':'Post comment'}</button></div>
+    <p className="ao-community-guideline">Be respectful. Don't share personal information. Posts are limited to five every five minutes.</p>
+   </form>:<div className="ao-community-locked"><p>Posting is paused while the AniOrbit moderation team is being set up. You can still read the discussion.</p></div>}
+   {loading&&comments.length===0?<p className="ao-community-empty">Loading discussion…</p>:comments.length===0?<p className="ao-community-empty">No comments yet. Start the conversation!</p>:<div className="ao-comment-list">
     {comments.map(comment=>{
      const meta=likes[comment.id]||{count:0,liked:false};
      const own=comment.user_id===session.user.id;
      const isRevealed=Boolean(revealed[comment.id]);
-     return <article className="ad-comment" key={comment.id}>
-      <div className="ad-comment-avatar">{avatars[comment.author_avatar_path]?<img src={avatars[comment.author_avatar_path]} alt=""/>:<span>{(comment.author_username||'M').slice(0,1).toUpperCase()}</span>}</div>
-      <div className="ad-comment-body">
-       <div className="ad-comment-meta"><b><Link className="ad-comment-profile-link" to={'/user/'+encodeURIComponent(comment.author_username||'')}>{comment.author_username||'AniOrbit member'}</Link></b><time dateTime={comment.created_at}>{timeLabel(comment.created_at)}{comment.updated_at!==comment.created_at?' · edited':''}</time></div>
-       {comment.is_hidden?<p className="ad-comment-hidden">This comment is hidden by a moderator.</p>:editingId===comment.id?<form className="ad-comment-edit" onSubmit={saveEdit}><textarea value={editDraft} onChange={event=>setEditDraft(event.target.value)} maxLength={2000} rows={3} required/><label><input type="checkbox" checked={editSpoiler} onChange={event=>setEditSpoiler(event.target.checked)}/> Contains spoilers</label><button type="submit">Save</button><button type="button" onClick={()=>setEditingId(null)}>Cancel</button></form>:comment.contains_spoilers&&!isRevealed?<button type="button" className="ad-spoiler-reveal" onClick={()=>setRevealed(old=>({...old,[comment.id]:true}))}>Spoiler hidden · reveal comment</button>:<p className="ad-comment-text">{comment.content}</p>}
-       <div className="ad-comment-actions"><button type="button" onClick={()=>toggleLike(comment)} disabled={comment.is_hidden}>{meta.liked?'♥ Liked':'♡ Like'} · {meta.count}</button>
+     return <article className="ao-comment" key={comment.id}>
+      <div className="ao-comment-avatar">{avatars[comment.author_avatar_path]?<img src={avatars[comment.author_avatar_path]} alt=""/>:<span>{(comment.author_username||'M').slice(0,1).toUpperCase()}</span>}</div>
+      <div className="ao-comment-body">
+       <div className="ao-comment-meta"><b><Link className="ao-comment-profile-link" to={'/user/'+encodeURIComponent(comment.author_username||'')}>{comment.author_username||'AniOrbit member'}</Link></b><time dateTime={comment.created_at}>{timeLabel(comment.created_at)}{comment.updated_at!==comment.created_at?' · edited':''}</time></div>
+       {comment.is_hidden?<p className="ao-comment-hidden">This comment is hidden by a moderator.</p>:editingId===comment.id?<form className="ao-comment-edit" onSubmit={saveEdit}><textarea value={editDraft} onChange={event=>setEditDraft(event.target.value)} maxLength={2000} rows={3} required/><label><input type="checkbox" checked={editSpoiler} onChange={event=>setEditSpoiler(event.target.checked)}/> Contains spoilers</label><button type="submit">Save</button><button type="button" onClick={()=>setEditingId(null)}>Cancel</button></form>:comment.contains_spoilers&&!isRevealed?<button type="button" className="ao-spoiler-reveal" onClick={()=>setRevealed(old=>({...old,[comment.id]:true}))}>Spoiler hidden · reveal comment</button>:<p className="ao-comment-text">{comment.content}</p>}
+       <div className="ao-comment-actions"><button type="button" onClick={()=>toggleLike(comment)} disabled={comment.is_hidden}>{meta.liked?'♥ Liked':'♡ Like'} · {meta.count}</button>
         {own&&!comment.is_hidden&&<><button type="button" onClick={()=>{setEditingId(comment.id);setEditDraft(comment.content);setEditSpoiler(comment.contains_spoilers);}}>Edit</button><button type="button" onClick={()=>deleteComment(comment.id)}>Delete</button></>}
         {!own&&!comment.is_hidden&&<><button type="button" onClick={()=>{setReportingId(comment.id);setReportReason('spam');setReportDetails('')}}>Report</button><button type="button" onClick={()=>toggleBlock(comment.user_id)}>{blocks[comment.user_id]?'Unblock member':'Block member'}</button></>}
        </div>
-       {reportingId===comment.id&&<form className="ad-report-form" onSubmit={submitReport}><label>Reason<select value={reportReason} onChange={event=>setReportReason(event.target.value)}>{REPORT_REASONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label>Extra details (optional)<textarea value={reportDetails} onChange={event=>setReportDetails(event.target.value)} maxLength={500} rows={2}/></label><div><button type="submit" disabled={reportBusy}>{reportBusy?'Sending…':'Send report'}</button><button type="button" onClick={()=>setReportingId(null)}>Cancel</button></div></form>}
+       {reportingId===comment.id&&<form className="ao-report-form" onSubmit={submitReport}><label>Reason<select value={reportReason} onChange={event=>setReportReason(event.target.value)}>{REPORT_REASONS.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><label>Extra details (optional)<textarea value={reportDetails} onChange={event=>setReportDetails(event.target.value)} maxLength={500} rows={2}/></label><div><button type="submit" disabled={reportBusy}>{reportBusy?'Sending…':'Send report'}</button><button type="button" onClick={()=>setReportingId(null)}>Cancel</button></div></form>}
       </div>
      </article>;
     })}
    </div>}
-   {hasMore&&<button className="ad-community-more" type="button" onClick={()=>loadComments(false)} disabled={loading}>{loading?'Loading…':'Load more comments'}</button>}
-   {message&&<p className="ad-community-message" role="status">{message}</p>}
-   {error&&<p className="ad-community-error" role="alert">{error}</p>}
+   {hasMore&&<button className="ao-community-more" type="button" onClick={()=>loadComments(false)} disabled={loading}>{loading?'Loading…':'Load more comments'}</button>}
+   {message&&<p className="ao-community-message" role="status">{message}</p>}
+   {error&&<p className="ao-community-error" role="alert">{error}</p>}
   </>}
  </section>;
 }

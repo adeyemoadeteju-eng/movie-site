@@ -31,7 +31,7 @@ test('closed account dialog stays hidden and does not block the site', async ({ 
   }));
 
   await page.goto(pagePath);
-  const accountBackdrop = page.locator('.ad-auth-backdrop');
+  const accountBackdrop = page.locator('.ao-auth-backdrop');
   await expect(accountBackdrop).toBeHidden();
 
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -40,9 +40,9 @@ test('closed account dialog stays hidden and does not block the site', async ({ 
   await expect(accountBackdrop).toBeHidden();
 
   // The search flow must still accept a real click after the dialog closes.
-  await page.locator('.ad-home-search input').fill('Safe');
-  await page.locator('.ad-home-search button').click();
-  await expect(page.locator('.ad-results .ad-grid .ad-tile').first()).toBeVisible();
+  await page.locator('.ao-home-search input').fill('Safe');
+  await page.locator('.ao-home-search button').click();
+  await expect(page.locator('.ao-results .ao-grid .ao-tile').first()).toBeVisible();
 });
 
 test('adult and hentai titles stay out of discovery, search, and direct title pages', async ({ page }) => {
@@ -79,11 +79,11 @@ test('adult and hentai titles stay out of discovery, search, and direct title pa
   });
 
   await page.goto(pagePath);
-  await expect(page.locator('.ad-tile').filter({ hasText: 'Safe Home Pick' })).toBeVisible();
+  await expect(page.locator('.ao-tile').filter({ hasText: 'Safe Home Pick' })).toBeVisible();
   await expect(page.getByText('Adult Home Pick')).toHaveCount(0);
-  await page.locator('.ad-home-search input').fill('test');
-  await page.locator('.ad-home-search button').click();
-  await expect(page.locator('.ad-tile').filter({ hasText: 'Safe Search Pick' })).toBeVisible();
+  await page.locator('.ao-home-search input').fill('test');
+  await page.locator('.ao-home-search button').click();
+  await expect(page.locator('.ao-tile').filter({ hasText: 'Safe Search Pick' })).toBeVisible();
   await expect(page.getByText('Hentai Search Pick')).toHaveCount(0);
 
   await page.goto('/movie-site/#/anime/7099');
@@ -122,7 +122,7 @@ test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwor
     })
   }));
   await page.goto(pagePath);
-  const poster = page.locator('.ad-section .ad-tile').first().locator('.ad-poster img');
+  const poster = page.locator('.ao-section .ao-tile').first().locator('.ao-poster img');
   await expect(poster).toHaveAttribute('src', /\/movie-site\/images\/cyberpunk-edgerunners\.svg$/);
   await expect.poll(() => poster.evaluate(image => image.naturalWidth)).toBeGreaterThan(0);
 });
@@ -139,22 +139,22 @@ test('AniOrbit boots without a blank screen and loads its catalogue assets', asy
   });
 
   await page.goto(pagePath);
-  await expect(page.locator('.ad-header')).toBeVisible();
-  await expect(page.locator('.ad-home-intro')).toBeVisible();
-  await expect(page.locator('.ad-home-intro-brand')).toContainText('AniOrbit');
-  await expect(page.locator('.ad-home-search')).toHaveCSS('border-radius', '999px');
-  await expect(page.locator('.ad-header .ad-search')).toBeHidden();
-  await expect(page.locator('.ad-brand')).toContainText('AniOrbit');
-  await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
-  await expect(page.locator('.ad-brand')).toHaveCSS('align-items', 'center');
+  await expect(page.locator('.ao-header')).toBeVisible();
+  await expect(page.locator('.ao-home-intro')).toBeVisible();
+  await expect(page.locator('.ao-home-intro-brand')).toContainText('AniOrbit');
+  await expect(page.locator('.ao-home-search')).toHaveCSS('border-radius', '999px');
+  await expect(page.locator('.ao-header .ao-search')).toBeHidden();
+  await expect(page.locator('.ao-brand')).toContainText('AniOrbit');
+  await expect(page.locator('.ao-brand-mark')).toHaveCount(0);
+  await expect(page.locator('.ao-brand')).toHaveCSS('align-items', 'center');
   await expect(page.getByRole('heading', { name: 'Most Popular' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Recently Updated' })).toBeVisible();
   await expect(page.locator('#boot-screen')).toHaveCount(0);
-  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toBeVisible();
-  await expect(page.locator('.ad-section').first().locator('.ad-tile').first()).toHaveCSS('border-radius', '12px');
-  await expect(page.locator('.ad-section').first().locator('.ad-poster').first()).toHaveCSS('position', 'relative');
-  await expect(page.locator('.ad-section').first().locator('.ad-tile-info').first()).toHaveCSS('position', 'relative');
-  await expect(page.locator('.ad-section').nth(1).locator('.ad-tile').first()).toBeVisible();
+  await expect(page.locator('.ao-section').first().locator('.ao-tile').first()).toBeVisible();
+  await expect(page.locator('.ao-section').first().locator('.ao-tile').first()).toHaveCSS('border-radius', '12px');
+  await expect(page.locator('.ao-section').first().locator('.ao-poster').first()).toHaveCSS('position', 'relative');
+  await expect(page.locator('.ao-section').first().locator('.ao-tile-info').first()).toHaveCSS('position', 'relative');
+  await expect(page.locator('.ao-section').nth(1).locator('.ao-tile').first()).toBeVisible();
   expect(assetFailures).toEqual([]);
   expect(pageErrors).toEqual([]);
 });
@@ -173,9 +173,9 @@ test('homepage catalogue is reused from the tab cache after refresh', async ({ p
   });
 
   await page.goto(pagePath);
-  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Cached Home Pick');
+  await expect(page.locator('.ao-section .ao-tile').first()).toContainText('Cached Home Pick');
   await page.reload();
-  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Cached Home Pick');
+  await expect(page.locator('.ao-section .ao-tile').first()).toContainText('Cached Home Pick');
   expect(requests).toBe(1);
 });
 
@@ -197,18 +197,18 @@ test('featured YouTube trailers autoplay muted on the home page', async ({ page 
     ] })
   }));
   await page.goto(pagePath);
-  await page.locator('.ad-quick-tags').getByRole('button', { name: 'Action' }).click();
+  await page.locator('.ao-quick-tags').getByRole('button', { name: 'Action' }).click();
   await expect(page.getByRole('heading', { name: 'Action', exact: true })).toBeVisible();
-  await expect(page.locator('.ad-results .ad-tile')).toContainText('Action Genre Pick');
+  await expect(page.locator('.ao-results .ao-tile')).toContainText('Action Genre Pick');
   await page.getByRole('button', { name: 'Back to Home' }).click();
-  const trailer = page.locator('.ad-hero-trailer');
+  const trailer = page.locator('.ao-hero-trailer');
   await expect(trailer).toBeVisible();
   await expect(trailer).toHaveAttribute('src', /autoplay=1.*mute=1/);
   await expect(trailer).toHaveAttribute('allow', /autoplay/);
   await page.getByRole('button', { name: 'Open settings' }).click();
   await page.getByLabel('Autoplay muted trailers').uncheck();
   await page.getByLabel('Accent colour').selectOption('blue');
-  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await expect(page.locator('.ao-hero-trailer')).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByLabel('Autoplay muted trailers')).not.toBeChecked();
@@ -222,7 +222,7 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
   }));
 
   await page.goto(pagePath);
-  await expect(page.locator('.ad-header')).toBeVisible();
+  await expect(page.locator('.ao-header')).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'catalogue is temporarily unavailable' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 });
@@ -279,19 +279,19 @@ test('search and anime details page load and episode links are present', async (
   await page.goto(pagePath);
   await page.getByRole('searchbox', { name: 'Search Anime' }).fill('Naruto');
   await page.getByRole('button', { name: 'Search' }).click();
-  const first = page.locator('.ad-results .ad-grid .ad-tile').first();
+  const first = page.locator('.ao-results .ao-grid .ao-tile').first();
   await expect(first).toBeVisible({ timeout: 60000 });
   await first.click();
-  await expect(page.locator('.ad-detail-top')).toBeVisible({ timeout: 60000 });
-  await expect(page.locator('.ad-community')).toBeVisible();
-  await expect(page.locator('.ad-community-heading h2')).toHaveText('Community discussion');
-  await expect(page.locator('.ad-detail-copy h1')).not.toBeEmpty();
-  await expect(page.locator('.ad-episode-grid a').first()).toBeVisible();
-  await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
-  await expect(page.locator('.ad-episodes h2')).toHaveText('Season 1 Episodes');
-  await expect(page.locator('.ad-episode-grid a').first()).toContainText('S1 · EP 1');
+  await expect(page.locator('.ao-detail-top')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator('.ao-community')).toBeVisible();
+  await expect(page.locator('.ao-community-heading h2')).toHaveText('Community discussion');
+  await expect(page.locator('.ao-detail-copy h1')).not.toBeEmpty();
+  await expect(page.locator('.ao-episode-grid a').first()).toBeVisible();
+  await expect(page.locator('.ao-episode-grid a')).toHaveCount(3);
+  await expect(page.locator('.ao-episodes h2')).toHaveText('Season 1 Episodes');
+  await expect(page.locator('.ao-episode-grid a').first()).toContainText('S1 · EP 1');
   await expect(page.getByRole('link', { name: /Next season Test Anime Season 2/ })).toBeVisible();
-  await expect(page.locator('.ad-section .ad-tile').first()).toContainText('Recommended Pick');
+  await expect(page.locator('.ao-section .ao-tile').first()).toContainText('Recommended Pick');
   expect(similarGenreRequests).toBe(0);
   expect(errors).toEqual([]);
 });
@@ -308,10 +308,10 @@ test('a failed JavaScript bundle leaves a visible reload screen instead of a bla
 test('poster catalogue stays usable on mobile without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(pagePath);
-  await expect(page.locator('.ad-brand')).toContainText('AniOrbit');
-  await expect(page.locator('.ad-brand-mark')).toHaveCount(0);
+  await expect(page.locator('.ao-brand')).toContainText('AniOrbit');
+  await expect(page.locator('.ao-brand-mark')).toHaveCount(0);
   await expect(page.getByRole('searchbox', { name: 'Search Anime' })).toBeVisible();
-  await expect(page.locator('.ad-tile').first()).toBeVisible({ timeout: 60000 });
+  await expect(page.locator('.ao-tile').first()).toBeVisible({ timeout: 60000 });
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     content: document.documentElement.scrollWidth
@@ -338,16 +338,16 @@ test('advanced discovery combines catalogue filters and local studio, rating and
   });
   await page.goto(pagePath);
   await page.getByRole('button', { name: 'Open filters' }).click();
-  await page.locator('.ad-discovery-form label').nth(0).locator('select').selectOption('Action');
-  await page.locator('.ad-discovery-form label').nth(1).locator('input').fill('2024');
-  await page.locator('.ad-discovery-form label').nth(2).locator('select').selectOption('FALL');
-  await page.locator('.ad-discovery-form label').nth(4).locator('select').selectOption('FINISHED');
-  await page.locator('.ad-discovery-form label').nth(5).locator('select').selectOption('80');
-  await page.locator('.ad-discovery-form label').nth(6).locator('select').selectOption('100000');
-  await page.locator('.ad-discovery-form label').nth(7).locator('input').fill('Bones');
+  await page.locator('.ao-discovery-form label').nth(0).locator('select').selectOption('Action');
+  await page.locator('.ao-discovery-form label').nth(1).locator('input').fill('2024');
+  await page.locator('.ao-discovery-form label').nth(2).locator('select').selectOption('FALL');
+  await page.locator('.ao-discovery-form label').nth(4).locator('select').selectOption('FINISHED');
+  await page.locator('.ao-discovery-form label').nth(5).locator('select').selectOption('80');
+  await page.locator('.ao-discovery-form label').nth(6).locator('select').selectOption('100000');
+  await page.locator('.ao-discovery-form label').nth(7).locator('input').fill('Bones');
   await page.getByRole('button', { name: 'Apply filters' }).click();
-  await expect(page.locator('.ad-results .ad-tile')).toHaveCount(1);
-  await expect(page.locator('.ad-results .ad-tile')).toContainText('Qualified Filter Pick');
+  await expect(page.locator('.ao-results .ao-tile')).toHaveCount(1);
+  await expect(page.locator('.ao-results .ao-tile')).toContainText('Qualified Filter Pick');
   const requested = new URL(requestedUrl);
   expect(requested.searchParams.get('genre')).toBe('Action');
   expect(requested.searchParams.get('year')).toBe('2024');
@@ -389,23 +389,23 @@ test('watchlist, continue watching, episode completion and recommendations persi
     status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] })
   }));
   await page.goto(pagePath);
-  await page.locator('.ad-section .ad-tile').first().click();
-  await expect(page.locator('.ad-detail-top')).toBeVisible();
+  await page.locator('.ao-section .ao-tile').first().click();
+  await expect(page.locator('.ao-detail-top')).toBeVisible();
   await page.getByRole('button', { name: '+ Add to watchlist' }).click();
   await expect(page.getByRole('button', { name: '✓ In your watchlist' })).toBeVisible();
-  await page.locator('.ad-episode-grid a').first().click();
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.locator('.ao-episode-grid a').first().click();
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
   await page.getByRole('button', { name: 'Mark episode as watched' }).click();
   await expect(page.getByRole('button', { name: '✓ Episode watched' })).toBeVisible();
   await page.goto(pagePath);
   await expect(page.getByRole('heading', { name: 'Continue Watching' })).toBeVisible();
-  await expect(page.locator('.ad-continue-card').first()).toContainText('Episode 2');
+  await expect(page.locator('.ao-continue-card').first()).toContainText('Episode 2');
   await expect(page.getByRole('heading', { name: 'Picked for You' })).toBeVisible();
-  await expect(page.locator('.ad-recommendations .ad-tile').first()).toContainText('Because You Watched This');
+  await expect(page.locator('.ao-recommendations .ao-tile').first()).toContainText('Because You Watched This');
   await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
-  await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Progress Test Anime');
+  await expect(page.locator('.ao-my-list .ao-tile')).toContainText('Progress Test Anime');
 });
 
 
@@ -421,7 +421,7 @@ test('watch page offers previous/skip episode controls and reports intro support
   await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
   await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-community-heading h2')).toHaveText('Episode discussion');
+  await expect(page.locator('.ao-community-heading h2')).toHaveText('Episode discussion');
   await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
@@ -459,17 +459,17 @@ test('direct video player automatically jumps over a verified opening when auto-
     body: JSON.stringify({ found: true, results: [{ skipType: 'op', interval: { start: 90, end: 180 } }] })
   }));
   await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  const video = page.locator('.ad-direct-player video');
+  const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
   await page.evaluate(() => {
-    const element = document.querySelector('.ad-direct-player video');
+    const element = document.querySelector('.ao-direct-player video');
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
     element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
-  await expect.poll(() => page.locator('.ad-direct-player video').evaluate(element => element.currentTime)).toBe(180);
+  await expect.poll(() => page.locator('.ao-direct-player video').evaluate(element => element.currentTime)).toBe(180);
 });
 
 test('Continue Watching repairs stale posters from the catalogue and can dismiss entries', async ({ page }) => {
@@ -519,7 +519,7 @@ test('Continue Watching repairs stale posters from the catalogue and can dismiss
   }));
 
   await page.goto(pagePath);
-  const card = page.locator('.ad-continue-card').filter({ hasText: 'Cyberpunk: Edgerunners' });
+  const card = page.locator('.ao-continue-card').filter({ hasText: 'Cyberpunk: Edgerunners' });
   await expect(page.getByRole('heading', { name: 'Continue Watching' })).toBeVisible();
   await expect(card.locator('img')).toHaveAttribute('src', freshUrl);
   await expect.poll(() => card.locator('img').evaluate(img => img.naturalWidth)).toBeGreaterThan(0);
@@ -531,7 +531,7 @@ test('Continue Watching repairs stale posters from the catalogue and can dismiss
   await card.getByRole('button', { name: 'Remove Cyberpunk: Edgerunners from Continue Watching' }).click();
   await expect(page.getByRole('heading', { name: 'Continue Watching' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'My Watchlist' })).toBeVisible();
-  await expect(page.locator('.ad-my-list .ad-tile')).toContainText('Cyberpunk: Edgerunners');
+  await expect(page.locator('.ao-my-list .ao-tile')).toContainText('Cyberpunk: Edgerunners');
 });
 
 
@@ -561,12 +561,12 @@ test('custom anime lists can be created and filled from an anime page', async ({
   }));
 
   await page.goto('/movie-site/#/anime/1');
-  await expect(page.locator('.ad-detail-top')).toBeVisible();
-  await page.locator('#ad-add-to-list').selectOption({ label: 'Favourites' });
+  await expect(page.locator('.ao-detail-top')).toBeVisible();
+  await page.locator('#ao-add-to-list').selectOption({ label: 'Favourites' });
   await page.getByRole('button', { name: '+ Add to list' }).click();
   await expect(page.getByRole('button', { name: '✓ In this list' })).toBeVisible();
   await page.goto('/movie-site/#/lists');
-  await expect(page.locator('.ad-custom-list-card').filter({ hasText: 'Favourites' })).toContainText('List Test Anime');
+  await expect(page.locator('.ao-custom-list-card').filter({ hasText: 'Favourites' })).toContainText('List Test Anime');
 });
 
 test('release schedule displays upcoming catalogue episodes and supports date filters', async ({ page }) => {
@@ -612,9 +612,9 @@ test('anime detail pages use the saved default audio preference for episode link
     status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'no_listings', providers: [] })
   }));
   await page.goto('/movie-site/#/anime/1');
-  await expect(page.locator('.ad-detail-top')).toBeVisible();
-  await expect(page.locator('.ad-detail-copy a.ad-watch')).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
-  await expect(page.locator('.ad-episode-grid a').first()).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
+  await expect(page.locator('.ao-detail-top')).toBeVisible();
+  await expect(page.locator('.ao-detail-copy a.ao-watch')).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
+  await expect(page.locator('.ao-episode-grid a').first()).toHaveAttribute('href', /\/watch\/1\/1\/dub\/embed/);
 });
 
 
@@ -646,19 +646,19 @@ test('watch page shows VidSrc, VidLink, 2Embed, and Anivexa as its top four and 
     status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
   }));
   await page.goto('/movie-site/#/watch/4242/7/sub/embed?title=Player%20Safety%20Test');
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
-  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
-  await expect(page.locator('.ad-server-grid button')).toHaveCount(4);
-  await expect(page.locator('.ad-server-grid button').nth(0)).toContainText('VidSrc');
-  await expect(page.locator('.ad-server-grid button').nth(1)).toContainText('VidLink');
-  await expect(page.locator('.ad-server-grid button').nth(2)).toContainText('2Embed');
-  await expect(page.locator('.ad-server-grid button').nth(3)).toContainText('Anivexa');
-  await expect(page.locator('.ad-server-more')).not.toContainText('AniEmbed');
-  await expect(page.locator('.ad-server-more')).not.toContainText('AnimeEmbed');
-  await expect(page.locator('.ad-server-more')).toContainText('VidCore');
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ao-server-grid button')).toHaveCount(4);
+  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidLink');
+  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('2Embed');
+  await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('Anivexa');
+  await expect(page.locator('.ao-server-more')).not.toContainText('AniEmbed');
+  await expect(page.locator('.ao-server-more')).not.toContainText('AnimeEmbed');
+  await expect(page.locator('.ao-server-more')).toContainText('VidCore');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  const frame = page.locator('.ad-player iframe');
+  const frame = page.locator('.ao-player iframe');
   await expect(frame).toBeVisible();
   await expect(frame).not.toHaveAttribute('sandbox');
   await expect(frame).toHaveAttribute('src', /vidsrc\.mov\/embed\/tv\/5\/2\/7/);
@@ -666,7 +666,7 @@ test('watch page shows VidSrc, VidLink, 2Embed, and Anivexa as its top four and 
   await expect(frame).toHaveAttribute('src', /vidlink\.pro\/tv\/5\/2\/7/);
   await page.getByRole('button', { name: /2Embed/ }).click();
   await expect(frame).toHaveAttribute('src', /2embed\.cc\/embedtv\/5&s=2&e=7/);
-  await expect(page.locator('.ad-ad-warning')).toHaveCount(0);
+  await expect(page.locator('.ao-ao-warning')).toHaveCount(0);
 });
 
 test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
@@ -684,11 +684,11 @@ test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
     body: JSON.stringify({ stream_url: 'https://streams.example.test/fallback.m3u8', streams: [] })
   }));
   await page.goto('/movie-site/#/watch/99001/1/sub/embed?title=Anivexa%20Fallback');
-  await expect(page.locator('.ad-server-grid button').first()).toContainText('Anivexa');
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ao-server-grid button').first()).toContainText('Anivexa');
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-direct-player video')).toBeVisible();
-  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ao-direct-player video')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toHaveCount(0);
 });
 
 test('site visits warm both APIs once per 20-minute window', async ({ page }) => {
@@ -727,10 +727,10 @@ test('player warning appears again when switching servers unless the user opts o
   }));
   await page.goto('/movie-site/#/watch/4243/1/sub/embed?title=Warning%20Repeat%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
   await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
-  await expect(page.locator('.ad-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toHaveCount(0);
 });
 
 
@@ -771,7 +771,7 @@ test('embedded player saves an explicitly manual checkpoint without claiming aut
   await page.goto('/movie-site/#/watch/8080/1/sub/embed?title=Checkpoint%20Test');
   await expect(page.getByRole('heading', { name: /Checkpoint Test - Episode 1/ })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Manual embedded playback checkpoint' })).toBeVisible();
   await page.getByLabel('Manual episode progress').fill('45');
   await page.getByRole('button', { name: 'Save checkpoint' }).click();
@@ -797,10 +797,10 @@ test('direct video playback automatically stores its current progress', async ({
   }));
   await page.goto('/movie-site/#/watch/8081/1/sub/embed?title=Progress%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  const video = page.locator('.ad-direct-player video');
+  const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
-    const element = document.querySelector('.ad-direct-player video');
+    const element = document.querySelector('.ao-direct-player video');
     Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 37 });
     element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
@@ -831,13 +831,13 @@ test('hide watched preference filters the episode list and persists', async ({ p
     body: JSON.stringify({ status: 'no_listings', providers: [] })
   }));
   await page.goto('/movie-site/#/anime/8082');
-  await expect(page.locator('.ad-episode-grid a')).toHaveCount(3);
+  await expect(page.locator('.ao-episode-grid a')).toHaveCount(3);
   await page.getByRole('checkbox', { name: 'Hide watched' }).check();
-  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
-  await expect(page.locator('.ad-episode-grid a').first()).toContainText('EP 3');
+  await expect(page.locator('.ao-episode-grid a')).toHaveCount(1);
+  await expect(page.locator('.ao-episode-grid a').first()).toContainText('EP 3');
   await page.reload();
   await expect(page.getByRole('checkbox', { name: 'Hide watched' })).toBeChecked();
-  await expect(page.locator('.ad-episode-grid a')).toHaveCount(1);
+  await expect(page.locator('.ao-episode-grid a')).toHaveCount(1);
 });
 
 
@@ -864,10 +864,10 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
   await page.addInitScript(() => localStorage.setItem('animedex-auto-skip-intro', 'false'));
   await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  const video = page.locator('.ad-direct-player video');
+  const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
-    const element = document.querySelector('.ad-direct-player video');
+    const element = document.querySelector('.ao-direct-player video');
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 300 });
     element.dispatchEvent(new Event('timeupdate', { bubbles: true }));
   });
@@ -887,20 +887,20 @@ test('preferred playback server is remembered but an unreliable report takes pri
   }));
   await page.goto('/movie-site/#/watch/9100/1/sub/embed?title=Server%20Preference%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await page.locator('.ad-server-grid button').filter({ hasText: 'VidLink' }).click();
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'VidLink' }).click();
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await page.getByRole('button', { name: 'Use as preferred server' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-preferred-servers-v1') || '{}').sub)).toBe('vidlink');
 
   await page.reload();
-  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidLink');
+  await expect(page.locator('.ao-server-grid button.active')).toContainText('VidLink');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await page.getByRole('button', { name: 'Mark as not working' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]'))).toContain('vidlink');
 
   await page.reload();
-  await expect(page.locator('.ad-server-grid button.active')).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button.active')).toContainText('VidSrc');
 });
 
 test('direct video auto-next advances to the next episode when enabled', async ({ page }) => {
@@ -917,10 +917,10 @@ test('direct video auto-next advances to the next episode when enabled', async (
   }));
   await page.goto('/movie-site/#/watch/9101/1/sub/embed?title=Auto%20Next%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  const video = page.locator('.ad-direct-player video');
+  const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
-    const element = document.querySelector('.ad-direct-player video');
+    const element = document.querySelector('.ao-direct-player video');
     Object.defineProperty(element, 'duration', { configurable: true, value: 100 });
     Object.defineProperty(element, 'currentTime', { configurable: true, writable: true, value: 100 });
     element.dispatchEvent(new Event('ended', { bubbles: true }));
@@ -955,12 +955,12 @@ test('anime detail page loads and locally searches characters and voice actors',
 
   await page.goto('/movie-site/#/anime/8084');
   await expect(page.getByRole('heading', { name: 'Characters & voice actors' })).toBeVisible();
-  await expect(page.locator('.ad-character-card')).toHaveCount(2);
-  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
-  await expect(page.locator('.ad-character-card').first()).toContainText('Megumi Hayashibara');
+  await expect(page.locator('.ao-character-card')).toHaveCount(2);
+  await expect(page.locator('.ao-character-card').first()).toContainText('Mina Ashido');
+  await expect(page.locator('.ao-character-card').first()).toContainText('Megumi Hayashibara');
   await page.getByLabel('Search characters and voice actors').fill('Megumi Hayashibara');
-  await expect(page.locator('.ad-character-card')).toHaveCount(1);
-  await expect(page.locator('.ad-character-card').first()).toContainText('Mina Ashido');
+  await expect(page.locator('.ao-character-card')).toHaveCount(1);
+  await expect(page.locator('.ao-character-card').first()).toContainText('Mina Ashido');
   await page.getByLabel('Search characters and voice actors').fill('Nobody Here');
   await expect(page.getByText(/No characters or voice actors match/)).toBeVisible();
 });
@@ -979,17 +979,17 @@ test('data saver disables autoplay trailers and stays enabled after refresh', as
   }));
 
   await page.goto(pagePath);
-  await expect(page.locator('.ad-hero-trailer')).toBeVisible();
+  await expect(page.locator('.ao-hero-trailer')).toBeVisible();
   await page.getByRole('button', { name: 'Open settings' }).click();
   const dataSaver = page.getByLabel('Reduce data use (disable autoplay trailers and heavy effects)');
   await dataSaver.check();
-  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await expect(page.locator('.ao-hero-trailer')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-data-saver', 'true');
 
   await page.reload();
   await page.getByRole('button', { name: 'Open settings' }).click();
   await expect(page.getByLabel('Reduce data use (disable autoplay trailers and heavy effects)')).toBeChecked();
-  await expect(page.locator('.ad-hero-trailer')).toHaveCount(0);
+  await expect(page.locator('.ao-hero-trailer')).toHaveCount(0);
 });
 
 test('direct playback automatically tries another healthy direct server after a media error', async ({ page }) => {
@@ -1012,12 +1012,12 @@ test('direct playback automatically tries another healthy direct server after a 
   }));
 
   await page.goto('/movie-site/#/watch/88102/1/sub/embed?title=Automatic%20Server%20Recovery');
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
 
-  const video = page.locator('.ad-direct-player video');
+  const video = page.locator('.ao-direct-player video');
   await expect(video).toHaveAttribute('src', /backup\.mp4/);
-  await expect(page.locator('.ad-server-grid button.active')).toContainText('Backup Direct');
+  await expect(page.locator('.ao-server-grid button.active')).toContainText('Backup Direct');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]')))
     .toContain('direct-primary');
 });
@@ -1039,11 +1039,11 @@ test('watch page server controls fit a narrow mobile screen without horizontal o
   }));
 
   await page.goto('/movie-site/#/watch/88103/1/sub/embed?title=Mobile%20Layout');
-  await expect(page.locator('.ad-ad-warning')).toBeVisible();
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ad-player iframe')).toBeVisible();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  const columns = await page.locator('.ad-server-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length);
+  const columns = await page.locator('.ao-server-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length);
   expect(columns).toBe(2);
 });
 

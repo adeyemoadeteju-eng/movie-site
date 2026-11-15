@@ -162,13 +162,13 @@ export default function CommunityHub() {
     return term ? suggestions.filter(profile => (profile.username || '').toLowerCase().includes(term) || memberName(profile).toLowerCase().includes(term)) : suggestions;
   }, [suggestions, memberSearch]);
 
-  if (!isSupabaseConfigured) return <main className="ad-community-hub"><section className="ad-community-card"><h1>Community</h1><p>Community accounts are not configured on this build.</p></section></main>;
-  if (!session?.user) return <main className="ad-community-hub"><section className="ad-community-card"><span className="ad-hub-kicker">ANIORBIT COMMUNITY</span><h1>Meet other anime fans</h1><p>Sign in to follow members, see their public activity and receive notifications.</p><Link className="ad-hub-primary" to="/">Return to AniOrbit and sign in</Link></section></main>;
+  if (!isSupabaseConfigured) return <main className="ao-community-hub"><section className="ao-community-card"><h1>Community</h1><p>Community accounts are not configured on this build.</p></section></main>;
+  if (!session?.user) return <main className="ao-community-hub"><section className="ao-community-card"><span className="ao-hub-kicker">ANIORBIT COMMUNITY</span><h1>Meet other anime fans</h1><p>Sign in to follow members, see their public activity and receive notifications.</p><Link className="ao-hub-primary" to="/">Return to AniOrbit and sign in</Link></section></main>;
 
   const unread = notifications.filter(item => !item.read_at).length;
-  const memberCard = profile => <article className="ad-hub-member" key={profile.id}>
-    <Link to={'/user/' + encodeURIComponent(profile.username)} className="ad-hub-member-main">
-      <span className="ad-hub-avatar">{profile.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</span>
+  const memberCard = profile => <article className="ao-hub-member" key={profile.id}>
+    <Link to={'/user/' + encodeURIComponent(profile.username)} className="ao-hub-member-main">
+      <span className="ao-hub-avatar">{profile.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</span>
       <span><b>{memberName(profile)}</b><small>@{profile.username}</small><em>{profile.bio || 'AniOrbit member'}</em></span>
     </Link>
     {following.some(item => item.id === profile.id)
@@ -178,40 +178,40 @@ export default function CommunityHub() {
 
   return <>
     <PageHeader/>
-    <main className="ad-community-hub">
-      <div className="ad-hub-title"><div><span className="ad-hub-kicker">ANIORBIT COMMUNITY</span><h1>Your anime circle</h1><p>Follow members, discover what they are watching and keep up with interactions.</p></div><Link className="ad-hub-profile-link" to="/">← Discover anime</Link></div>
-      <div className="ad-hub-stats"><article><b>{following.length}</b><span>Following</span></article><article><b>{followers.length}</b><span>Followers shown</span></article><article><b>{unread}</b><span>Unread</span></article></div>
-      <div className="ad-hub-tabs" role="tablist" aria-label="Community sections">
+    <main className="ao-community-hub">
+      <div className="ao-hub-title"><div><span className="ao-hub-kicker">ANIORBIT COMMUNITY</span><h1>Your anime circle</h1><p>Follow members, discover what they are watching and keep up with interactions.</p></div><Link className="ao-hub-profile-link" to="/">← Discover anime</Link></div>
+      <div className="ao-hub-stats"><article><b>{following.length}</b><span>Following</span></article><article><b>{followers.length}</b><span>Followers shown</span></article><article><b>{unread}</b><span>Unread</span></article></div>
+      <div className="ao-hub-tabs" role="tablist" aria-label="Community sections">
         {TABS.map(([key, label]) => <button key={key} role="tab" aria-selected={tab === key} className={tab === key ? 'active' : ''} onClick={() => changeTab(key)}>{label}{key === 'notifications' && unread > 0 ? ' (' + unread + ')' : ''}</button>)}
       </div>
-      {error && <p className="ad-hub-error" role="alert">{error}</p>}
-      {message && <p className="ad-hub-message" role="status">{message}</p>}
-      {loading ? <p className="ad-hub-empty">Loading your community…</p> : tab === 'feed' ? <>
-        {feed.length ? <div className="ad-hub-feed">{feed.map(item => {
+      {error && <p className="ao-hub-error" role="alert">{error}</p>}
+      {message && <p className="ao-hub-message" role="status">{message}</p>}
+      {loading ? <p className="ao-hub-empty">Loading your community…</p> : tab === 'feed' ? <>
+        {feed.length ? <div className="ao-hub-feed">{feed.map(item => {
           const profile = members[item.user_id];
-          return <article className="ad-hub-feed-item" key={item.id}>
-            <Link to={'/user/' + encodeURIComponent(profile?.username || '')} className="ad-hub-avatar">{profile?.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</Link>
-            <div><p><Link to={'/user/' + encodeURIComponent(profile?.username || '')}>{memberName(profile)}</Link> {activityLabel(item)}</p><Link className="ad-hub-feed-anime" to={'/anime/' + item.anime_id}>{item.anime_image ? <img src={item.anime_image} alt="" loading="lazy" /> : <span>AO</span>}<span><b>{item.anime_title}</b><small>{item.detail || 'View anime'}</small></span></Link><time>{new Date(item.created_at).toLocaleString()}</time></div>
+          return <article className="ao-hub-feed-item" key={item.id}>
+            <Link to={'/user/' + encodeURIComponent(profile?.username || '')} className="ao-hub-avatar">{profile?.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</Link>
+            <div><p><Link to={'/user/' + encodeURIComponent(profile?.username || '')}>{memberName(profile)}</Link> {activityLabel(item)}</p><Link className="ao-hub-feed-anime" to={'/anime/' + item.anime_id}>{item.anime_image ? <img src={item.anime_image} alt="" loading="lazy" /> : <span>AO</span>}<span><b>{item.anime_title}</b><small>{item.detail || 'View anime'}</small></span></Link><time>{new Date(item.created_at).toLocaleString()}</time></div>
           </article>;
-        })}</div> : <section className="ad-hub-empty-card"><h2>Your feed starts with a follow</h2><p>Follow public members to see anime they add, start watching or mark as watched.</p><button type="button" onClick={() => changeTab('members')}>Find members</button></section>}
+        })}</div> : <section className="ao-hub-empty-card"><h2>Your feed starts with a follow</h2><p>Follow public members to see anime they add, start watching or mark as watched.</p><button type="button" onClick={() => changeTab('members')}>Find members</button></section>}
       </> : tab === 'members' ? <>
-        <label className="ad-hub-search">Find members<input type="search" value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="Search visible usernames or display names…" /></label>
-        <section className="ad-hub-member-section"><div className="ad-hub-section-title"><h2>People you follow</h2><span>{following.length}</span></div>{following.length ? following.map(profile => memberCard(profile)) : <p className="ad-hub-empty">You are not following anyone yet.</p>}</section>
-        <section className="ad-hub-member-section"><div className="ad-hub-section-title"><h2>Followers</h2><span>{followers.length}</span></div>{followers.length ? followers.map(profile => memberCard(profile)) : <p className="ad-hub-empty">No visible followers yet.</p>}</section>
-        <section className="ad-hub-member-section"><div className="ad-hub-section-title"><h2>Discover members</h2><span>{visibleSuggestions.length}</span></div>{visibleSuggestions.length ? visibleSuggestions.map(profile => memberCard(profile)) : <p className="ad-hub-empty">No matching public profiles were found.</p>}</section>
+        <label className="ao-hub-search">Find members<input type="search" value={memberSearch} onChange={event => setMemberSearch(event.target.value)} placeholder="Search visible usernames or display names…" /></label>
+        <section className="ao-hub-member-section"><div className="ao-hub-section-title"><h2>People you follow</h2><span>{following.length}</span></div>{following.length ? following.map(profile => memberCard(profile)) : <p className="ao-hub-empty">You are not following anyone yet.</p>}</section>
+        <section className="ao-hub-member-section"><div className="ao-hub-section-title"><h2>Followers</h2><span>{followers.length}</span></div>{followers.length ? followers.map(profile => memberCard(profile)) : <p className="ao-hub-empty">No visible followers yet.</p>}</section>
+        <section className="ao-hub-member-section"><div className="ao-hub-section-title"><h2>Discover members</h2><span>{visibleSuggestions.length}</span></div>{visibleSuggestions.length ? visibleSuggestions.map(profile => memberCard(profile)) : <p className="ao-hub-empty">No matching public profiles were found.</p>}</section>
       </> : <>
-        <div className="ad-hub-section-title"><h2>Your inbox</h2>{unread > 0 && <button type="button" onClick={markAllRead}>Mark all as read</button>}</div>
-        {notifications.length ? <div className="ad-hub-notifications">{notifications.map(item => {
+        <div className="ao-hub-section-title"><h2>Your inbox</h2>{unread > 0 && <button type="button" onClick={markAllRead}>Mark all as read</button>}</div>
+        {notifications.length ? <div className="ao-hub-notifications">{notifications.map(item => {
           const profile = item.actor_id ? members[item.actor_id] : null;
           const target = item.notification_type === 'comment_liked' && item.reference_id ? '/anime/' + item.reference_id : profile?.username ? '/user/' + encodeURIComponent(profile.username) : '/community';
           return <article className={!item.read_at ? 'unread' : ''} key={item.id}>
-            <span className="ad-hub-avatar">{profile?.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</span>
+            <span className="ao-hub-avatar">{profile?.avatar_path && avatarUrls[profile.avatar_path] ? <img src={avatarUrls[profile.avatar_path]} alt="" /> : memberName(profile).slice(0, 1).toUpperCase()}</span>
             <div><p><b>{memberName(profile)}</b> {notificationLabel(item)}{item.notification_type === 'comment_liked' ? ' on ' + (item.episode_number ? 'episode ' + item.episode_number : 'an anime discussion') : ''}.</p><time>{new Date(item.created_at).toLocaleString()}</time></div>
             <Link to={target} onClick={() => !item.read_at && markRead(item.id)}>Open</Link>
           </article>;
-        })}</div> : <p className="ad-hub-empty">No notifications yet. New followers and likes on your comments will appear here.</p>}
+        })}</div> : <p className="ao-hub-empty">No notifications yet. New followers and likes on your comments will appear here.</p>}
       </>}
-      <p className="ad-hub-privacy-note">Only public profiles and activity are shown here. Private profile details stay hidden. You can change your profile visibility in Account settings.</p>
+      <p className="ao-hub-privacy-note">Only public profiles and activity are shown here. Private profile details stay hidden. You can change your profile visibility in Account settings.</p>
     </main>
   </>;
 }

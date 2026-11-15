@@ -59,24 +59,24 @@ export default function CustomListsPage() {
 
   return <>
     <PageHeader/>
-    <main className="ad-lists-page">
-      <Link className="ad-profile-back" to="/">← Back to AniOrbit</Link>
-      <div className="ad-page-title"><div><span>YOUR LIBRARY</span><h1>Custom anime lists</h1><p>Make collections for anything you want to keep together.</p></div><b>{lists.length}/12 lists</b></div>
-      <form className="ad-list-create" onSubmit={createList}>
+    <main className="ao-lists-page">
+      <Link className="ao-profile-back" to="/">← Back to AniOrbit</Link>
+      <div className="ao-page-title"><div><span>YOUR LIBRARY</span><h1>Custom anime lists</h1><p>Make collections for anything you want to keep together.</p></div><b>{lists.length}/12 lists</b></div>
+      <form className="ao-list-create" onSubmit={createList}>
         <label>List name<input value={name} onChange={event => setName(event.target.value)} maxLength={32} minLength={2} placeholder="e.g. All-time favourites" required /></label>
         <label>Description <span>(optional)</span><input value={description} onChange={event => setDescription(event.target.value)} maxLength={120} placeholder="What is this collection for?" /></label>
         <button type="submit" disabled={lists.length >= 12}>Create list</button>
       </form>
-      {error && <p className="ad-hub-error" role="alert">{error}</p>}
-      {message && <p className="ad-hub-message" role="status">{message}</p>}
-      {lists.length ? <div className="ad-custom-lists-grid">{lists.map(list => <section className="ad-custom-list-card" key={list.id}>
-        <div className="ad-custom-list-heading"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.filter(item => !isAdultAnime(item)).length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
-        {list.items.some(item => !isAdultAnime(item)) ? <div className="ad-custom-list-items">{list.items.filter(item => !isAdultAnime(item)).map(item => <article key={item.id}>
-          <Link to={'/anime/' + item.id}>{item.image ? <img src={item.image} alt="" loading="lazy" /> : <span className="ad-list-no-image">AO</span>}<span><b>{item.title}</b><small>{[item.format, item.seasonYear].filter(Boolean).join(' · ')}</small></span></Link>
+      {error && <p className="ao-hub-error" role="alert">{error}</p>}
+      {message && <p className="ao-hub-message" role="status">{message}</p>}
+      {lists.length ? <div className="ao-custom-lists-grid">{lists.map(list => <section className="ao-custom-list-card" key={list.id}>
+        <div className="ao-custom-list-heading"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.filter(item => !isAdultAnime(item)).length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
+        {list.items.some(item => !isAdultAnime(item)) ? <div className="ao-custom-list-items">{list.items.filter(item => !isAdultAnime(item)).map(item => <article key={item.id}>
+          <Link to={'/anime/' + item.id}>{item.image ? <img src={item.image} alt="" loading="lazy" /> : <span className="ao-list-no-image">AO</span>}<span><b>{item.title}</b><small>{[item.format, item.seasonYear].filter(Boolean).join(' · ')}</small></span></Link>
           <button type="button" onClick={() => removeItem(list, item)} aria-label={'Remove ' + item.title + ' from ' + list.name}>×</button>
-        </article>)}</div> : <p className="ad-custom-list-empty">This list is empty. Open an anime page and use “Add to list” to save something here.</p>}
-      </section>)}</div> : <section className="ad-custom-list-empty-state"><h2>Your collections start here</h2><p>Create your first list, then add anime from its detail page.</p></section>}
-      <p className="ad-local-storage-note">Custom lists are saved in this browser, just like your watchlist. They are not public or synced between devices.</p>
+        </article>)}</div> : <p className="ao-custom-list-empty">This list is empty. Open an anime page and use “Add to list” to save something here.</p>}
+      </section>)}</div> : <section className="ao-custom-list-empty-state"><h2>Your collections start here</h2><p>Create your first list, then add anime from its detail page.</p></section>}
+      <p className="ao-local-storage-note">Custom lists are saved in this browser, just like your watchlist. They are not public or synced between devices.</p>
     </main>
   </>;
 }

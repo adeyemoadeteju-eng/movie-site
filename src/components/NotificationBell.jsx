@@ -32,7 +32,7 @@ export default function NotificationBell() {
   }, [userId, refresh]);
 
   if (!isSupabaseConfigured || !userId) return null;
-  return <Link className="ad-notification-bell" to="/community?tab=notifications" aria-label={unread ? 'Community notifications, ' + unread + ' unread' : 'Community notifications'}>
+  return <Link className="ao-notification-bell" to="/community?tab=notifications" aria-label={unread ? 'Community notifications, ' + unread + ' unread' : 'Community notifications'}>
     <span aria-hidden="true">♢</span><span>Inbox</span>{unread > 0 && <b>{unread > 99 ? '99+' : unread}</b>}
   </Link>;
 }

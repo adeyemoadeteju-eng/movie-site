@@ -155,48 +155,48 @@ export default function AuthControl(){
  };
  const signOut=async()=>{setBusy(true);setError('');try{const {error:signOutError}=await supabase.auth.signOut();if(signOutError)throw signOutError;setProfile(null);setBlockedMembers([]);setMessage('You are signed out.')}catch(e){setError(e.message||'Could not sign out.')}finally{setBusy(false)}};
 
- if(!isSupabaseConfigured)return <span className="ad-auth-unavailable" title="Supabase configuration is missing">Accounts unavailable</span>;
+ if(!isSupabaseConfigured)return <span className="ao-auth-unavailable" title="Supabase configuration is missing">Accounts unavailable</span>;
  return <>
-  <button type="button" className="ad-settings-trigger ad-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}} aria-label={session?.user?'Open your AniOrbit profile':'Sign in to AniOrbit'} title={session?.user?'Your account and profile settings':'Sign in'}>{session?.user?<><span className="ad-account-avatar">{avatarUrl?<img src={avatarUrl} alt="" />:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><span className="ad-account-name">{profile?.display_name||profile?.username||'Account'}</span></>:<><span className="ad-account-guest" aria-hidden="true">◉</span><span>Sign in</span></>}</button>
-  <div className="ad-auth-backdrop" hidden={!open} role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
-   <section className="ad-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-auth-title">
-    <div className="ad-auth-heading"><div><span className="ad-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ad-auth-title">{recoveryMode?'Choose a new password':session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
-    {session?.user&&recoveryMode?<form className="ad-profile-form" onSubmit={updatePassword}>
+  <button type="button" className="ao-settings-trigger ao-account-trigger" onClick={()=>{setOpen(true);setError('');setMessage('')}} aria-label={session?.user?'Open your AniOrbit profile':'Sign in to AniOrbit'} title={session?.user?'Your account and profile settings':'Sign in'}>{session?.user?<><span className="ao-account-avatar">{avatarUrl?<img src={avatarUrl} alt="" />:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><span className="ao-account-name">{profile?.display_name||profile?.username||'Account'}</span></>:<><span className="ao-account-guest" aria-hidden="true">◉</span><span>Sign in</span></>}</button>
+  <div className="ao-auth-backdrop" hidden={!open} role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
+   <section className="ao-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="ao-auth-title">
+    <div className="ao-auth-heading"><div><span className="ao-auth-kicker">YOUR ANIORBIT ACCOUNT</span><h2 id="ao-auth-title">{recoveryMode?'Choose a new password':session?.user?'Your account':mode==='signup'?'Create your account':mode==='reset'?'Reset password':'Welcome back'}</h2></div><button type="button" onClick={()=>setOpen(false)} aria-label="Close account dialog">×</button></div>
+    {session?.user&&recoveryMode?<form className="ao-profile-form" onSubmit={updatePassword}>
      <label>New password<input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={event=>setNewPassword(event.target.value)} required/></label>
-     <p className="ad-auth-help">Choose a new password with at least 8 characters.</p>
-     <button type="submit" className="ad-auth-primary" disabled={busy}>{busy?'Updating…':'Update password'}</button>
+     <p className="ao-auth-help">Choose a new password with at least 8 characters.</p>
+     <button type="submit" className="ao-auth-primary" disabled={busy}>{busy?'Updating…':'Update password'}</button>
     </form>:session?.user?<>
-     <div className="ad-auth-signed-in"><span className="ad-auth-avatar">{avatarUrl?<img src={avatarUrl} alt="Your avatar"/>:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><div><b>{profile?.display_name||profile?.username||'AniOrbit member'}</b><small>{session.user.email}</small></div></div>
-     {profile&&<form className="ad-profile-form" onSubmit={saveProfile}>
-      <div className="ad-avatar-control"><label htmlFor="ad-avatar-upload">Profile avatar</label><input id="ad-avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAvatar} disabled={busy}/><small>JPG, PNG, or WebP · 2 MB max · visible to signed-in members when used in comments</small></div>
+     <div className="ao-auth-signed-in"><span className="ao-auth-avatar">{avatarUrl?<img src={avatarUrl} alt="Your avatar"/>:(profile?.display_name||profile?.username||session.user.email||'A').slice(0,1).toUpperCase()}</span><div><b>{profile?.display_name||profile?.username||'AniOrbit member'}</b><small>{session.user.email}</small></div></div>
+     {profile&&<form className="ao-profile-form" onSubmit={saveProfile}>
+      <div className="ao-avatar-control"><label htmlFor="ao-avatar-upload">Profile avatar</label><input id="ao-avatar-upload" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAvatar} disabled={busy}/><small>JPG, PNG, or WebP · 2 MB max · visible to signed-in members when used in comments</small></div>
       <label>Username<input value={username} onChange={e=>setUsername(e.target.value)} minLength={3} maxLength={24} required disabled={!editing}/></label>
       <label>Display name<input value={displayName} onChange={e=>setDisplayName(e.target.value)} maxLength={40} disabled={!editing}/></label>
       <label>Bio<textarea value={bio} onChange={e=>setBio(e.target.value)} maxLength={240} rows={3} disabled={!editing}/></label>
       <label>Favourite anime<input value={favoriteAnime} onChange={e=>setFavoriteAnime(e.target.value)} maxLength={120} disabled={!editing}/></label>
-      <label className="ad-profile-privacy"><input type="checkbox" checked={isPublic} onChange={e=>setIsPublic(e.target.checked)} disabled={!editing}/> Allow my profile details to be visible to other signed-in members</label>
-      <label className="ad-profile-privacy"><input type="checkbox" checked={showOnline} onChange={e=>setShowOnline(e.target.checked)} disabled={!editing}/> Include me in the anonymous online member count while I’m here</label>
-      <p className="ad-auth-help">Your profile is private by default. The online count never shows names or last-seen times. Don't add your real name, school, location, or other personal details.</p>
-      {editing?<div className="ad-auth-actions"><button type="submit" disabled={busy}>{busy?'Saving…':'Save profile'}</button><button type="button" className="secondary" onClick={()=>{setEditing(false);if(profile){setUsername(profile.username||'');setDisplayName(profile.display_name||'');setBio(profile.bio||'');setFavoriteAnime(profile.favorite_anime||'');setIsPublic(Boolean(profile.is_public));setShowOnline(Boolean(profile.show_online))}}}>Cancel</button></div>:<button type="button" className="ad-auth-primary" onClick={()=>setEditing(true)}>Edit profile</button>}
+      <label className="ao-profile-privacy"><input type="checkbox" checked={isPublic} onChange={e=>setIsPublic(e.target.checked)} disabled={!editing}/> Allow my profile details to be visible to other signed-in members</label>
+      <label className="ao-profile-privacy"><input type="checkbox" checked={showOnline} onChange={e=>setShowOnline(e.target.checked)} disabled={!editing}/> Include me in the anonymous online member count while I’m here</label>
+      <p className="ao-auth-help">Your profile is private by default. The online count never shows names or last-seen times. Don't add your real name, school, location, or other personal details.</p>
+      {editing?<div className="ao-auth-actions"><button type="submit" disabled={busy}>{busy?'Saving…':'Save profile'}</button><button type="button" className="secondary" onClick={()=>{setEditing(false);if(profile){setUsername(profile.username||'');setDisplayName(profile.display_name||'');setBio(profile.bio||'');setFavoriteAnime(profile.favorite_anime||'');setIsPublic(Boolean(profile.is_public));setShowOnline(Boolean(profile.show_online))}}}>Cancel</button></div>:<button type="button" className="ao-auth-primary" onClick={()=>setEditing(true)}>Edit profile</button>}
      </form>}
-     {profile&&<Link className="ad-auth-profile-link" to={'/user/'+encodeURIComponent(profile.username)}>View my AniOrbit profile →</Link>}
+     {profile&&<Link className="ao-auth-profile-link" to={'/user/'+encodeURIComponent(profile.username)}>View my AniOrbit profile →</Link>}
      <CloudLibrarySync userId={session.user.id}/>
-     {blockedMembers.length>0&&<div className="ad-blocked-list"><b>Blocked members</b>{blockedMembers.map(member=><div key={member.blocked_id}><span>{member.blocked_username||'AniOrbit member'}</span><button type="button" disabled={busy} onClick={()=>unblockMember(member)}>Unblock</button></div>)}</div>}
-     {isModerator&&<button type="button" className="ad-auth-signout" onClick={()=>setModerationOpen(true)}>Open moderation queue</button>}
-     <button type="button" className="ad-auth-signout" onClick={signOut} disabled={busy}>Sign out</button>
+     {blockedMembers.length>0&&<div className="ao-blocked-list"><b>Blocked members</b>{blockedMembers.map(member=><div key={member.blocked_id}><span>{member.blocked_username||'AniOrbit member'}</span><button type="button" disabled={busy} onClick={()=>unblockMember(member)}>Unblock</button></div>)}</div>}
+     {isModerator&&<button type="button" className="ao-auth-signout" onClick={()=>setModerationOpen(true)}>Open moderation queue</button>}
+     <button type="button" className="ao-auth-signout" onClick={signOut} disabled={busy}>Sign out</button>
     </>:<>
-     <div className="ad-auth-tabs"><button type="button" className={mode==='login'?'active':''} onClick={()=>{setMode('login');setMessage('');setError('')}}>Sign in</button><button type="button" className={mode==='signup'?'active':''} onClick={()=>{setMode('signup');setMessage('');setError('')}}>Create account</button></div>
-     <form className="ad-profile-form" onSubmit={submit}>
+     <div className="ao-auth-tabs"><button type="button" className={mode==='login'?'active':''} onClick={()=>{setMode('login');setMessage('');setError('')}}>Sign in</button><button type="button" className={mode==='signup'?'active':''} onClick={()=>{setMode('signup');setMessage('');setError('')}}>Create account</button></div>
+     <form className="ao-profile-form" onSubmit={submit}>
       <label>Email address<input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required/></label>
       {mode!=='reset'&&<label>Password<input type="password" autoComplete={mode==='signup'?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} minLength={8} required/></label>}
-      {mode==='signup'&&<p className="ad-auth-help">Use a password of at least 8 characters. Your public profile starts private; you can choose a username after signing in.</p>}
-      <button type="submit" className="ad-auth-primary" disabled={busy}>{busy?'Please wait…':mode==='signup'?'Create account':mode==='reset'?'Send reset link':'Sign in'}</button>
+      {mode==='signup'&&<p className="ao-auth-help">Use a password of at least 8 characters. Your public profile starts private; you can choose a username after signing in.</p>}
+      <button type="submit" className="ao-auth-primary" disabled={busy}>{busy?'Please wait…':mode==='signup'?'Create account':mode==='reset'?'Send reset link':'Sign in'}</button>
      </form>
-     {mode==='signup'&&resendAvailable&&<button type="button" className="ad-auth-text-button" onClick={resendConfirmation} disabled={busy}>Resend confirmation email</button>}
-     {mode==='login'&&<button type="button" className="ad-auth-text-button" onClick={()=>{setMode('reset');setMessage('');setError('')}}>Forgot password?</button>}
-     {mode==='reset'&&<button type="button" className="ad-auth-text-button" onClick={()=>{setMode('login');setMessage('');setError('')}}>Back to sign in</button>}
+     {mode==='signup'&&resendAvailable&&<button type="button" className="ao-auth-text-button" onClick={resendConfirmation} disabled={busy}>Resend confirmation email</button>}
+     {mode==='login'&&<button type="button" className="ao-auth-text-button" onClick={()=>{setMode('reset');setMessage('');setError('')}}>Forgot password?</button>}
+     {mode==='reset'&&<button type="button" className="ao-auth-text-button" onClick={()=>{setMode('login');setMessage('');setError('')}}>Back to sign in</button>}
     </>}
-    {message&&<p className="ad-auth-message" role="status">{message}</p>}
-    {error&&<p className="ad-auth-error" role="alert">{error}</p>}
+    {message&&<p className="ao-auth-message" role="status">{message}</p>}
+    {error&&<p className="ao-auth-error" role="alert">{error}</p>}
    </section>
   </div>
   {moderationOpen&&<ModerationPanel onClose={()=>setModerationOpen(false)}/>}

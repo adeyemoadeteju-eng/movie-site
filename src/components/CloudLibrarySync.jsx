@@ -91,21 +91,21 @@ export default function CloudLibrarySync({ userId }) {
       : status === 'error' ? 'Sync paused'
         : 'Cloud sync on';
 
-  return <section className={'ad-cloud-sync ad-cloud-sync-' + status} aria-label="Cloud library sync">
-    <div className="ad-cloud-sync-top">
+  return <section className={'ao-cloud-sync ao-cloud-sync-' + status} aria-label="Cloud library sync">
+    <div className="ao-cloud-sync-top">
       <div>
-        <span className="ad-cloud-sync-kicker">PRIVATE CLOUD LIBRARY</span>
+        <span className="ao-cloud-sync-kicker">PRIVATE CLOUD LIBRARY</span>
         <h3>Cloud saves</h3>
       </div>
-      <span className="ad-cloud-sync-status"><i aria-hidden="true"/>{label}</span>
+      <span className="ao-cloud-sync-status"><i aria-hidden="true"/>{label}</span>
     </div>
-    <p className="ad-cloud-sync-message" role="status" aria-live="polite">{message}</p>
-    <div className="ad-cloud-sync-bottom">
+    <p className="ao-cloud-sync-message" role="status" aria-live="polite">{message}</p>
+    <div className="ao-cloud-sync-bottom">
       <small>{lastSynced ? 'Last checked at ' + lastSynced : 'Watchlist, history, tracking, episode progress and custom lists'}</small>
       <button type="button" onClick={() => { window.clearTimeout(timer.current); void syncNow(); }} disabled={status === 'syncing' || status === 'checking'}>
         {status === 'syncing' || status === 'checking' ? 'Syncing…' : 'Sync now'}
       </button>
     </div>
-    <p className="ad-cloud-sync-privacy">Only you can access this saved library through your account. It is not shown on your public profile.</p>
+    <p className="ao-cloud-sync-privacy">Only you can access this saved library through your account. It is not shown on your public profile.</p>
   </section>;
 }
