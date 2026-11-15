@@ -1047,3 +1047,34 @@ test('watch page server controls fit a narrow mobile screen without horizontal o
   const columns = await page.locator('.ad-server-grid').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length);
   expect(columns).toBe(2);
 });
+
+
+test('fully watched series are removed from Continue Watching automatically', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ popular: [], recent: [] })
+  }));
+
+  await page.goto(pagePath);
+  await page.evaluate(() => {
+    const library = {
+      watchlist: [],
+      history: [{
+        id: 88104,
+        title: { english: 'Finished Series Test' },
+        episodes: 3,
+        lastEpisode: 3,
+        audio: 'sub'
+      }],
+      watchedEpisodes: { '88104': [1, 2, 3] },
+      notifiedEpisodes: [],
+      tracking: {},
+      episodeProgress: {}
+    };
+    localStorage.setItem('animedex-library-v1', JSON.stringify(library));
+  });
+  await page.reload();
+
+  await expect(page.getByRole('heading', { name: 'Continue Watching' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Recently Viewed' })).toBeVisible();
+});
