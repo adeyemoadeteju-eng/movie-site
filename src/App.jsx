@@ -338,7 +338,7 @@ function Home(){
  const [discoveryGenres,setDiscoveryGenres]=useState(['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi']);
  const libraryData=useLibraryData();
  const recommendations=getPersonalRecommendations(libraryData);
- const continueList=libraryData.history.filter(item=>item.lastEpisode&&!isAdultAnime(item));
+ const continueList=libraryData.history.filter(item=>{if(!item.lastEpisode||isAdultAnime(item))return false;const total=Math.max(0,Number(item.episodes)||0);const watched=libraryData.watchedEpisodes?.[String(item.id)]||[];return !(total>0&&new Set(watched).size>=total);});
  const [airingAlerts,setAiringAlerts]=useState([]);
  const [alertMessage,setAlertMessage]=useState('');
  const [notificationPermission,setNotificationPermission]=useState(()=>('Notification' in window?Notification.permission:'unsupported'));
