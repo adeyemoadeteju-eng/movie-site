@@ -21,6 +21,20 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('closed account dialog stays hidden and does not block the site', async ({ page }) => {
+  await page.goto(pagePath);
+  const accountBackdrop = page.locator('.ad-auth-backdrop');
+  await expect(accountBackdrop).toBeHidden();
+
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(accountBackdrop).toBeVisible();
+  await page.getByRole('button', { name: 'Close account dialog' }).click();
+  await expect(accountBackdrop).toBeHidden();
+
+  // A visible site control must remain clickable after closing the dialog.
+  await expect(page.getByRole('button', { name: 'Search' })).toBeVisible();
+});
+
 test('adult and hentai titles stay out of discovery, search, and direct title pages', async ({ page }) => {
   let episodeRequests = 0;
   let dubRequests = 0;
