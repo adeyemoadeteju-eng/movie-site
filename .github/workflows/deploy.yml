@@ -52,6 +52,12 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run browser tests against the production build
         run: npm run test:e2e
+      - name: Verify deployed Netlify preview at the domain root
+        if: github.event_name == 'pull_request'
+        env:
+          PLAYWRIGHT_BASE_URL: https://deploy-preview-${{ github.event.pull_request.number }}--aniorbit.netlify.app
+          PLAYWRIGHT_NETLIFY_SMOKE: 'true'
+        run: npx playwright test tests/e2e/netlify-root.spec.js
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
