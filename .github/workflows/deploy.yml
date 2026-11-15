@@ -24,6 +24,20 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
+      - name: Verify Netlify root asset paths
+        env:
+          NETLIFY: 'true'
+          GITHUB_ACTIONS: 'true'
+        run: |
+          npm run build
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const html = fs.readFileSync('dist/index.html', 'utf8');
+          if (!/src=[\"']\\/assets\\//.test(html) || /[\\\"']\\/movie-site\\//.test(html)) {
+            throw new Error('Netlify output must load assets from /assets/, not /movie-site/.');
+          }
+          console.log('Netlify root asset paths verified.');
+          NODE
       - name: Build
         env:
           VITE_KUHI_API_URL: ${{ vars.VITE_KUHI_API_URL }}
