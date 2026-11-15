@@ -1,10 +1,10 @@
-import React,{useEffect} from 'react';
+import React,{useLayoutEffect} from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
 function Startup(){
-  useEffect(()=>{
+  useLayoutEffect(()=>{
     document.getElementById('boot-screen')?.remove();
   },[]);
   return <App/>;
