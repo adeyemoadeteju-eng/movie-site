@@ -43,7 +43,7 @@ export default function ModerationPanel({onClose}){
 
  return <div className="ao-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
   <section className="ao-moderation-dialog" role="dialog" aria-modal="true" aria-labelledby="ao-moderation-title">
-   <div className="ao-auth-heading"><div><span className="ao-auth-kicker">ANIORBIT SAFETY TOOLS</span><h2 id="ao-moderation-title">Moderation queue</h2></div><button type="button" onClick={onClose} aria-label="Close moderation queue">×</button></div>
+   <div className="ao-auth-titlebar"><div><span className="ao-auth-kicker">ANIORBIT SAFETY TOOLS</span><h2 id="ao-moderation-title">Moderation queue</h2></div><button type="button" onClick={onClose} aria-label="Close moderation queue">×</button></div>
    <p className="ao-moderation-intro">Review member reports, hide content that breaks the community rules, and close reports when reviewed.</p>
    {loading?<p>Loading reports…</p>:reports.length===0?<p className="ao-community-empty">No open reports. Nice and quiet.</p>:<div className="ao-moderation-list">
     {reports.map(report=>{

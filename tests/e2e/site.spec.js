@@ -139,11 +139,11 @@ test('AniOrbit boots without a blank screen and loads its catalogue assets', asy
   });
 
   await page.goto(pagePath);
-  await expect(page.locator('.ao-header')).toBeVisible();
+  await expect(page.locator('.ao-topbar')).toBeVisible();
   await expect(page.locator('.ao-home-intro')).toBeVisible();
   await expect(page.locator('.ao-home-intro-brand')).toContainText('AniOrbit');
   await expect(page.locator('.ao-home-search')).toHaveCSS('border-radius', '999px');
-  await expect(page.locator('.ao-header .ao-search')).toBeHidden();
+  await expect(page.locator('.ao-topbar .ao-search')).toBeHidden();
   await expect(page.locator('.ao-brand')).toContainText('AniOrbit');
   await expect(page.locator('.ao-brand-mark')).toHaveCount(0);
   await expect(page.locator('.ao-brand')).toHaveCSS('align-items', 'center');
@@ -222,7 +222,7 @@ test('catalogue failures show a recovery message instead of an empty or blank pa
   }));
 
   await page.goto(pagePath);
-  await expect(page.locator('.ao-header')).toBeVisible();
+  await expect(page.locator('.ao-topbar')).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'catalogue is temporarily unavailable' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
 });
@@ -284,7 +284,7 @@ test('search and anime details page load and episode links are present', async (
   await first.click();
   await expect(page.locator('.ao-detail-top')).toBeVisible({ timeout: 60000 });
   await expect(page.locator('.ao-community')).toBeVisible();
-  await expect(page.locator('.ao-community-heading h2')).toHaveText('Community discussion');
+  await expect(page.locator('.ao-community-titlebar h2')).toHaveText('Community discussion');
   await expect(page.locator('.ao-detail-copy h1')).not.toBeEmpty();
   await expect(page.locator('.ao-episode-grid a').first()).toBeVisible();
   await expect(page.locator('.ao-episode-grid a')).toHaveCount(3);
@@ -421,7 +421,7 @@ test('watch page offers previous/skip episode controls and reports intro support
   await page.goto('/movie-site/#/watch/101/2/sub/embed?mal=9001&title=Skip%20Test');
   await expect(page.getByRole('heading', { name: 'Skip Test - Episode 2' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ao-community-heading h2')).toHaveText('Episode discussion');
+  await expect(page.locator('.ao-community-titlebar h2')).toHaveText('Episode discussion');
   await expect(page.getByRole('button', { name: /Previous episode/ }).first()).toBeEnabled();
   await expect(page.getByRole('button', { name: /Skip episode/ })).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();

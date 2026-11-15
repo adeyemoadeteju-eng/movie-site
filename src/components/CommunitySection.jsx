@@ -189,10 +189,10 @@ export default function CommunitySection({animeId,title,episodeNumber=null}){
  };
 
  const heading=episodeNumber==null?'Community discussion':'Episode discussion';
- if(!isSupabaseConfigured)return <section className="ao-community"><div className="ao-community-heading"><h2>{heading}</h2></div><p>Community features are not configured yet.</p></section>;
+ if(!isSupabaseConfigured)return <section className="ao-community"><div className="ao-community-titlebar"><h2>{heading}</h2></div><p>Community features are not configured yet.</p></section>;
 
  return <section className="ao-community" aria-labelledby="ao-community-title">
-  <div className="ao-community-heading"><div><span className="ao-community-kicker">ANIORBIT COMMUNITY</span><h2 id="ao-community-title">{heading}</h2><p>{title}{episodeNumber==null?'':' · Episode '+episodeNumber}</p></div><span className="ao-community-count">{comments.length}{hasMore?'+':''} comments</span></div>
+  <div className="ao-community-titlebar"><div><span className="ao-community-kicker">ANIORBIT COMMUNITY</span><h2 id="ao-community-title">{heading}</h2><p>{title}{episodeNumber==null?'':' · Episode '+episodeNumber}</p></div><span className="ao-community-count">{comments.length}{hasMore?'+':''} comments</span></div>
   {!session?.user?<div className="ao-community-locked"><p>Sign in to read and join the discussion. Comments are limited to signed-in members.</p></div>:<>
    {moderationReady===null?<p className="ao-community-locked">Checking whether community posting is available…</p>:moderationReady?<form className="ao-community-compose" onSubmit={submitComment}>
     <label htmlFor={'ao-comment-'+animeId+'-'+(episodeNumber||'anime')}>Add to the discussion</label>

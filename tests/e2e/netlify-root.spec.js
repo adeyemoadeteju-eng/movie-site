@@ -32,7 +32,7 @@ test('Netlify root deployment loads the app and its JS/CSS assets', async ({ pag
   });
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.ao-header')).toBeVisible();
+  await expect(page.locator('.ao-topbar')).toBeVisible();
   await expect(page.locator('.ao-home-intro')).toBeVisible();
   await expect(page.locator('.ao-home-intro-brand')).toContainText('AniOrbit');
   await expect(page.locator('#boot-screen')).toHaveCount(0);

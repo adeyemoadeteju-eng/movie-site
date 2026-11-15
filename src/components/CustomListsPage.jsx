@@ -70,7 +70,7 @@ export default function CustomListsPage() {
       {error && <p className="ao-hub-error" role="alert">{error}</p>}
       {message && <p className="ao-hub-message" role="status">{message}</p>}
       {lists.length ? <div className="ao-custom-lists-grid">{lists.map(list => <section className="ao-custom-list-card" key={list.id}>
-        <div className="ao-custom-list-heading"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.filter(item => !isAdultAnime(item)).length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
+        <div className="ao-custom-list-titlebar"><div><h2>{list.name}</h2><p>{list.description || 'Your personal collection'}</p><small>{list.items.filter(item => !isAdultAnime(item)).length} anime</small></div><button type="button" onClick={() => deleteList(list)} aria-label={'Delete ' + list.name}>×</button></div>
         {list.items.some(item => !isAdultAnime(item)) ? <div className="ao-custom-list-items">{list.items.filter(item => !isAdultAnime(item)).map(item => <article key={item.id}>
           <Link to={'/anime/' + item.id}>{item.image ? <img src={item.image} alt="" loading="lazy" /> : <span className="ao-list-no-image">AO</span>}<span><b>{item.title}</b><small>{[item.format, item.seasonYear].filter(Boolean).join(' · ')}</small></span></Link>
           <button type="button" onClick={() => removeItem(list, item)} aria-label={'Remove ' + item.title + ' from ' + list.name}>×</button>
