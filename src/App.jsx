@@ -329,7 +329,7 @@ function ContinuePoster({item}){
 }
 function Home(){
  const navigate=useNavigate();
- const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub'};
+ const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub',autoServerRecovery:true,dataSaver:false};
  const [prefs,setPrefs]=useState(()=>{try{const {blockEmbedPopups:_legacyEmbedSetting,...saved}=JSON.parse(localStorage.getItem('animedex-settings')||'{}');return {...defaults,...saved}}catch{return defaults}});
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [selectedGenre,setSelectedGenre]=useState('');const [formatFilter,setFormatFilter]=useState('all');
@@ -348,7 +348,7 @@ function Home(){
  const [query,setQuery]=useState(new URLSearchParams(location.hash.split('?')[1]||'').get('q')||'');
  const [results,setResults]=useState(null);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
  const [slide,setSlide]=useState(0);const request=useRef(0);
- useEffect(()=>{try{localStorage.setItem('animedex-settings',JSON.stringify(prefs));document.documentElement.dataset.accent=prefs.accent||'lavender'}catch{}},[prefs]);
+ useEffect(()=>{try{localStorage.setItem('animedex-settings',JSON.stringify(prefs));document.documentElement.dataset.accent=prefs.accent||'lavender';document.documentElement.dataset.dataSaver=prefs.dataSaver?'true':'false'}catch{}},[prefs]);
  useEffect(()=>{if(!filtersOpen)return;let live=true;api('/anime/genres').then(data=>{if(live&&Array.isArray(data.genres)&&data.genres.length)setDiscoveryGenres(data.genres.filter(genre=>String(genre).toLowerCase()!=='hentai'))}).catch(()=>{});return()=>{live=false}},[filtersOpen]);
  useEffect(()=>{
   if(!followedKey){setAiringAlerts([]);return;}
@@ -405,7 +405,7 @@ function Home(){
  async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(e){setErr(e.message)}finally{setBusy(false)}}
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>!isAdultAnime(item)&&(formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE')));
- return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
+ return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ad-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ad-settings-head"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label><input type="checkbox" checked={prefs.autoServerRecovery!==false} onChange={e=>setPrefs(p=>({...p,autoServerRecovery:e.target.checked}))}/> Automatically try another direct server if playback fails</label><label><input type="checkbox" checked={Boolean(prefs.dataSaver)} onChange={e=>setPrefs(p=>({...p,dataSaver:e.target.checked}))}/> Reduce data use (disable autoplay trailers and heavy effects)</label><label className="ad-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ad-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label></div>}<main className="ad-main">{results===null&&<section className="ad-home-intro" aria-label="AniOrbit search">
  <div className="ad-home-intro-brand"><span>Ani</span><span>Orbit</span></div>
  <p className="ad-home-intro-subtitle">Find your next watch.</p>
  <form className="ad-home-search" onSubmit={search}>
@@ -416,7 +416,7 @@ function Home(){
 </section>}
  {data.error&&<div className="ad-catalogue-error" role="alert"><span>The catalogue is temporarily unavailable. Your page is still working; try loading the catalogue again.</span><button onClick={()=>window.location.reload()}>Retry</button></div>}
  {results===null?<>
- <section className="ad-hero">{featured?<> {prefs.autoplayTrailer&&trailerEmbed(featured)?<iframe className="ad-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button><button className="ad-more" onClick={()=>{if(data.popular.length){const pick=data.popular[Math.floor(Math.random()*data.popular.length)];navigate('/anime/'+pick.id);}}}>Surprise me</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIORBIT DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
+ <section className="ad-hero">{featured?<> {prefs.autoplayTrailer&&!prefs.dataSaver&&trailerEmbed(featured)?<iframe className="ad-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ad-hero-bg" src={image(featured)} alt=""/>}<div className="ad-hero-shade"/><div className="ad-hero-content"><div className="ad-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ad-hero-meta"><span className="ad-chip">HD</span><span className="ad-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ad-hero-actions"><Link className="ad-watch" to={'/anime/'+featured.id}>View details</Link><button className="ad-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button><button className="ad-more" onClick={()=>{if(data.popular.length){const pick=data.popular[Math.floor(Math.random()*data.popular.length)];navigate('/anime/'+pick.id);}}}>Surprise me</button></div></div><div className="ad-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ad-hero-empty"><div className="ad-spotlight">ANIORBIT DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
  {prefs.quickTags&&<section className="ad-quick-tags" aria-label="Browse by genre"><span>Browse by genre</span>{genres.map(genre=><button key={genre} onClick={()=>filterGenre(genre)}>{genre}</button>)}</section>}
  <section className="ad-discovery-panel" aria-label="Advanced anime discovery">
   <div className="ad-discovery-heading"><div><span className="ad-discovery-kicker">FIND SOMETHING TO WATCH</span><h2>Advanced discovery</h2></div><button type="button" className="ad-discovery-toggle" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>{filtersOpen?'Hide filters':'Open filters'} <span>{filtersOpen?'−':'+'}</span></button></div>
@@ -779,9 +779,15 @@ async function getOpeningSkip(mal,episode,signal){
  ANISKIP_CACHE.set(key,{savedAt:Date.now(),data});
  return data;
 }
-function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,audio,autoNext,onEnded,speed}){
- const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false),outroSkippedRef=useRef(false);
+function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,audio,autoNext,onEnded,speed,onPlaybackError}){
+ const videoRef=useRef(null),hlsRef=useRef(null),skippedRef=useRef(false),outroSkippedRef=useRef(false),errorReported=useRef(false);
  const [currentTime,setCurrentTime]=useState(0),[playerError,setPlayerError]=useState('');
+ const reportPlaybackError=()=>{
+  if(errorReported.current)return;
+  errorReported.current=true;
+  setPlayerError('This direct video source could not be loaded. Trying another direct server if available…');
+  onPlaybackError?.(source);
+ };
  const [resumeAt,setResumeAt]=useState(null);
  const lastSavedAt=useRef(0);
  const url=source.url;
@@ -807,10 +813,10 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
      if(Hls.isSupported()){
       hls=new Hls({enableWorker:true,lowLatencyMode:false});
       hlsRef.current=hls;
-      hls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal&&!cancelled)setPlayerError('This video stream could not be played by the browser.');});
+      hls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal&&!cancelled)reportPlaybackError();});
       hls.loadSource(url);hls.attachMedia(video);
      }else{video.src=url;}
-    }catch{if(!cancelled)setPlayerError('The HLS player could not be loaded.');}
+    }catch{if(!cancelled)reportPlaybackError();}
    }else{video.src=url;}
   };
   attach();
@@ -849,7 +855,7 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
  };
  const resume=()=>{const video=videoRef.current;if(video&&resumeAt!==null){video.currentTime=Math.min(resumeAt,Math.max(0,(video.duration||resumeAt)-2));video.play().catch(()=>{});}setResumeAt(null);};
  const restart=()=>{const video=videoRef.current;if(video)video.currentTime=0;setResumeAt(null);};
- return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={()=>setPlayerError('The direct video source could not be loaded. Try another server.')}/>{resumeAt!==null&&<div className="ad-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={()=>seekToEnd(intro,skippedRef)}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{canOfferOutro&&<button className="ad-skip-intro ad-skip-outro" type="button" onClick={()=>seekToEnd(outro,outroSkippedRef)}>Skip outro · {formatSkipTime(outro.start)}–{formatSkipTime(outro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}<small className="ad-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
+ return <div className="ad-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={reportPlaybackError}/>{resumeAt!==null&&<div className="ad-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ad-skip-intro" type="button" onClick={()=>seekToEnd(intro,skippedRef)}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{canOfferOutro&&<button className="ad-skip-intro ad-skip-outro" type="button" onClick={()=>seekToEnd(outro,outroSkippedRef)}>Skip outro · {formatSkipTime(outro.start)}–{formatSkipTime(outro.end)} <span>↗</span></button>}{playerError&&<p className="ad-player-error" role="status">{playerError}</p>}<small className="ad-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
 }
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
@@ -882,6 +888,28 @@ function Watch(){
  const handleDirectEnded=()=>{markEpisodeWatched(id,episodeNumber,audio);setMarkedWatched(true);if(autoNext)navigate(nextPath);};
  const makePreferred=()=>{if(source){savePreferredServer(audio,source);setPreferredMessage((source.name||'This server')+' is now your preferred '+audio+' server.');}};
  const reportUnreliable=()=>{if(source){reportServerUnreliable(source);setPreferredMessage((source.name||'This server')+' is marked as unreliable on this device and will be ranked lower.');}};
+ const nextServerIndex=(directOnly=false)=>{
+  for(let offset=1;offset<=sources.length;offset++){
+   const index=(active+offset)%sources.length;
+   const candidate=sources[index];
+   if(index!==active&&candidate&&(!directOnly||isDirectMedia(candidate))&&!isServerReportedUnreliable(candidate))return index;
+  }
+  return -1;
+ };
+ const tryNextServer=()=>{
+  const next=nextServerIndex(false);
+  if(next>=0)selectServer(next);
+  else setPreferredMessage('No other playback servers are available.');
+ };
+ const handleDirectPlaybackError=failedSource=>{
+  if(failedSource)reportServerUnreliable(failedSource);
+  let enabled=true;
+  try{enabled=JSON.parse(localStorage.getItem('animedex-settings')||'{}').autoServerRecovery!==false}catch{}
+  if(!enabled){setPreferredMessage('The direct stream failed and was marked unreliable. Choose another server below.');return;}
+  const next=nextServerIndex(true);
+  if(next>=0){setPreferredMessage('The direct stream failed. Trying '+(sources[next].name||'the next direct server')+'.');setActive(next);}
+  else setPreferredMessage('The direct stream failed. No untried direct server is available; choose another server below.');
+ };
  useEffect(()=>{recordEpisodeStart(id,episode,audio,name);setMarkedWatched((readLibrary().watchedEpisodes?.[String(id)]||[]).includes(Number(episode)));},[id,episode,audio]);
  useEffect(()=>{
   let live=true;
@@ -992,7 +1020,7 @@ function Watch(){
     <label><input type="checkbox" checked={dontShowAdWarning} onChange={event=>setDontShowAdWarning(event.target.checked)}/> Do not show this warning again</label>
     <button type="button" onClick={continueToVideo}>Continue to video</button>
    </div>
-  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} outro={outro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} speed={playbackSpeed}/>:<>
+  </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} outro={outro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} onPlaybackError={handleDirectPlaybackError} speed={playbackSpeed}/>:<>
    <div className="ad-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
    {intro&&<p className="ad-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
@@ -1001,7 +1029,7 @@ function Watch(){
    <div className="ad-servers-heading"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
    <div className="ad-server-grid">{sources.slice(0,4).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ad-server-number">0{i+1}</span><span className="ad-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ad-server-active">ACTIVE</span>}</button>)}</div>
    {sources.length>4&&<details className="ad-server-more" open={active>=4}><summary><span>More servers</span><small>{sources.length-4} additional options</small></summary><div className="ad-server-secondary">{sources.slice(4).map((s,offset)=>{const i=offset+4;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
-   {source&&<div className="ad-server-tools"><button type="button" onClick={makePreferred}>Use as preferred server</button><button type="button" onClick={reportUnreliable}>Mark as not working</button><span>{isServerReportedUnreliable(source)?'Marked unreliable on this device. ':''}{preferredMessage}</span></div>}
+   {source&&<div className="ad-server-tools"><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button><button type="button" onClick={makePreferred}>Use as preferred server</button><button type="button" onClick={reportUnreliable}>Mark as not working</button><span>{isServerReportedUnreliable(source)?'Marked unreliable on this device. ':''}{preferredMessage}</span></div>}
   </div>
  </>:<p className="ad-error">{error||'No source available.'}</p>}
  <div className="ad-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
