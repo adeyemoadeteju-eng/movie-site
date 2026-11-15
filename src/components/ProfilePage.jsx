@@ -118,8 +118,8 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <main className="ad-profile-page"><p>Loading member profile…</p></main>;
-  if (error) return <main className="ad-profile-page"><Link to="/">← AniOrbit</Link><section className="ad-profile-card"><h1>Profile unavailable</h1><p>{error}</p>{!signedIn && <p><Link to="/">Return to AniOrbit and sign in using the account menu.</Link></p>}</section></main>;
+  if (loading) return <main className="ao-profile-page"><p>Loading member profile…</p></main>;
+  if (error) return <main className="ao-profile-page"><Link to="/">← AniOrbit</Link><section className="ao-profile-card"><h1>Profile unavailable</h1><p>{error}</p>{!signedIn && <p><Link to="/">Return to AniOrbit and sign in using the account menu.</Link></p>}</section></main>;
 
   const name = profile.display_name || profile.username;
   const joined = profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : 'AniOrbit member';
@@ -130,27 +130,27 @@ export default function ProfilePage() {
     ['Currently watching', stats?.continue_count ?? 0]
   ];
 
-  return <main className="ad-profile-page">
-    <Link className="ad-profile-back" to="/community">← Back to Community</Link>
-    <section className="ad-profile-card">
-      <div className="ad-profile-hero">
-        <div className="ad-profile-avatar">{avatar ? <img src={avatar} alt="" /> : <span>{name.slice(0, 1).toUpperCase()}</span>}</div>
-        <div className="ad-profile-identity"><span className="ad-profile-kicker">ANIORBIT MEMBER</span><h1>{name}</h1><p>@{profile.username} · Joined {joined}</p></div>
+  return <main className="ao-profile-page">
+    <Link className="ao-profile-back" to="/community">← Back to Community</Link>
+    <section className="ao-profile-card">
+      <div className="ao-profile-hero">
+        <div className="ao-profile-avatar">{avatar ? <img src={avatar} alt="" /> : <span>{name.slice(0, 1).toUpperCase()}</span>}</div>
+        <div className="ao-profile-identity"><span className="ao-profile-kicker">ANIORBIT MEMBER</span><h1>{name}</h1><p>@{profile.username} · Joined {joined}</p></div>
       </div>
-      <div className="ad-profile-social">
+      <div className="ao-profile-social">
         <span><b>{followersCount.toLocaleString()}</b> Followers</span>
         <span><b>{followingCount.toLocaleString()}</b> Following</span>
         {viewerId && viewerId !== profile.id && profile.is_public && <button type="button" disabled={followBusy} onClick={toggleFollow}>{followBusy ? 'Saving…' : isFollowing ? '✓ Following' : '＋ Follow'}</button>}
       </div>
-      {followError && <p className="ad-hub-error" role="alert">{followError}</p>}
-      {profile.bio && <p className="ad-profile-bio">{profile.bio}</p>}
-      {profile.favorite_anime && <p className="ad-profile-favourite"><span>FAVOURITE ANIME</span><b>{profile.favorite_anime}</b></p>}
-      {activity.length > 0 && <section className="ad-profile-activity"><h2>Recent activity</h2>{activity.map(item => <Link key={item.id} to={'/anime/' + item.anime_id} className="ad-profile-activity-item">
-        {item.anime_image ? <img src={item.anime_image} alt="" loading="lazy" /> : <span className="ad-list-no-image">AO</span>}
+      {followError && <p className="ao-hub-error" role="alert">{followError}</p>}
+      {profile.bio && <p className="ao-profile-bio">{profile.bio}</p>}
+      {profile.favorite_anime && <p className="ao-profile-favourite"><span>FAVOURITE ANIME</span><b>{profile.favorite_anime}</b></p>}
+      {activity.length > 0 && <section className="ao-profile-activity"><h2>Recent activity</h2>{activity.map(item => <Link key={item.id} to={'/anime/' + item.anime_id} className="ao-profile-activity-item">
+        {item.anime_image ? <img src={item.anime_image} alt="" loading="lazy" /> : <span className="ao-list-no-image">AO</span>}
         <span><b>{item.anime_title}</b><small>{activityText(item)}{item.detail ? ' · ' + item.detail : ''}</small></span>
         <time>{new Date(item.created_at).toLocaleDateString()}</time>
       </Link>)}</section>}
-      <div className="ad-profile-stats"><h2>Viewing statistics</h2><div>{values.map(([label, value]) => <article key={label}><strong>{Number(value).toLocaleString()}</strong><span>{label}</span></article>)}</div><small>Statistics update when this member uses AniOrbit while signed in.</small></div>
+      <div className="ao-profile-stats"><h2>Viewing statistics</h2><div>{values.map(([label, value]) => <article key={label}><strong>{Number(value).toLocaleString()}</strong><span>{label}</span></article>)}</div><small>Statistics update when this member uses AniOrbit while signed in.</small></div>
     </section>
   </main>;
 }

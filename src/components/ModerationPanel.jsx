@@ -41,24 +41,24 @@ export default function ModerationPanel({onClose}){
   finally{setBusyId('');}
  };
 
- return <div className="ad-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
-  <section className="ad-moderation-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-moderation-title">
-   <div className="ad-auth-heading"><div><span className="ad-auth-kicker">ANIORBIT SAFETY TOOLS</span><h2 id="ad-moderation-title">Moderation queue</h2></div><button type="button" onClick={onClose} aria-label="Close moderation queue">×</button></div>
-   <p className="ad-moderation-intro">Review member reports, hide content that breaks the community rules, and close reports when reviewed.</p>
-   {loading?<p>Loading reports…</p>:reports.length===0?<p className="ad-community-empty">No open reports. Nice and quiet.</p>:<div className="ad-moderation-list">
+ return <div className="ao-auth-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
+  <section className="ao-moderation-dialog" role="dialog" aria-modal="true" aria-labelledby="ao-moderation-title">
+   <div className="ao-auth-titlebar"><div><span className="ao-auth-kicker">ANIORBIT SAFETY TOOLS</span><h2 id="ao-moderation-title">Moderation queue</h2></div><button type="button" onClick={onClose} aria-label="Close moderation queue">×</button></div>
+   <p className="ao-moderation-intro">Review member reports, hide content that breaks the community rules, and close reports when reviewed.</p>
+   {loading?<p>Loading reports…</p>:reports.length===0?<p className="ao-community-empty">No open reports. Nice and quiet.</p>:<div className="ao-moderation-list">
     {reports.map(report=>{
      const comment=report.anime_comments;
-     return <article className="ad-moderation-item" key={report.id}>
-      <div className="ad-moderation-meta"><b>{report.reason.replaceAll('_',' ')}</b><time>{new Date(report.created_at).toLocaleString()}</time></div>
-      <p className="ad-moderation-context">{comment?comment.author_username+' · Anime '+comment.anime_id+(comment.episode_number?' · Episode '+comment.episode_number:''):'Comment unavailable'}</p>
+     return <article className="ao-moderation-item" key={report.id}>
+      <div className="ao-moderation-meta"><b>{report.reason.replaceAll('_',' ')}</b><time>{new Date(report.created_at).toLocaleString()}</time></div>
+      <p className="ao-moderation-context">{comment?comment.author_username+' · Anime '+comment.anime_id+(comment.episode_number?' · Episode '+comment.episode_number:''):'Comment unavailable'}</p>
       {comment&&<blockquote className={comment.is_hidden?'is-hidden':''}>{comment.content}</blockquote>}
-      {report.details&&<p className="ad-moderation-details">Report details: {report.details}</p>}
-      <div className="ad-moderation-actions">{comment&&<button type="button" disabled={busyId===report.id} onClick={()=>toggleHidden(report)}>{comment.is_hidden?'Unhide comment':'Hide comment'}</button>}<button type="button" disabled={busyId===report.id} onClick={()=>updateReport(report,'reviewed')}>Mark reviewed</button><button type="button" className="secondary" disabled={busyId===report.id} onClick={()=>updateReport(report,'dismissed')}>Dismiss</button></div>
+      {report.details&&<p className="ao-moderation-details">Report details: {report.details}</p>}
+      <div className="ao-moderation-actions">{comment&&<button type="button" disabled={busyId===report.id} onClick={()=>toggleHidden(report)}>{comment.is_hidden?'Unhide comment':'Hide comment'}</button>}<button type="button" disabled={busyId===report.id} onClick={()=>updateReport(report,'reviewed')}>Mark reviewed</button><button type="button" className="secondary" disabled={busyId===report.id} onClick={()=>updateReport(report,'dismissed')}>Dismiss</button></div>
      </article>;
     })}
    </div>}
-   {error&&<p className="ad-auth-error" role="alert">{error}</p>}
-   <div className="ad-moderation-footer"><button type="button" onClick={load} disabled={loading}>Refresh queue</button><button type="button" className="secondary" onClick={onClose}>Close</button></div>
+   {error&&<p className="ao-auth-error" role="alert">{error}</p>}
+   <div className="ao-moderation-footer"><button type="button" onClick={load} disabled={loading}>Refresh queue</button><button type="button" className="secondary" onClick={onClose}>Close</button></div>
   </section>
  </div>;
 }

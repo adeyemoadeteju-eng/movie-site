@@ -49,5 +49,5 @@ export default function PresenceIndicator(){
  },[optedIn]);
 
  if(!isSupabaseConfigured)return null;
- return <span className="ad-presence" aria-live="polite"><i aria-hidden="true"/>{online} online</span>;
+ return <span className="ao-presence" aria-live="polite"><i aria-hidden="true"/>{online} online</span>;
 }

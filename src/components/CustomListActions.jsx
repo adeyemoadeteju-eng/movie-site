@@ -23,7 +23,7 @@ export default function CustomListActions({ anime }) {
   }, [lists, selected]);
 
   if (!lists.length) {
-    return <Link className="ad-custom-list-create-link" to="/lists">＋ Create a custom list</Link>;
+    return <Link className="ao-custom-list-create-link" to="/lists">＋ Create a custom list</Link>;
   }
 
   const activeList = lists.find(list => list.id === selected);
@@ -37,9 +37,9 @@ export default function CustomListActions({ anime }) {
     setMessage(added ? 'Added to ' + list.name + '.' : 'Removed from ' + list.name + '.');
   };
 
-  return <div className="ad-custom-list-actions">
-    <label htmlFor="ad-add-to-list">Custom list</label>
-    <select id="ad-add-to-list" value={selected} onChange={event => { setSelected(event.target.value); setMessage(''); }}>
+  return <div className="ao-custom-list-actions">
+    <label htmlFor="ao-add-to-list">Custom list</label>
+    <select id="ao-add-to-list" value={selected} onChange={event => { setSelected(event.target.value); setMessage(''); }}>
       {lists.map(list => <option key={list.id} value={list.id}>{list.name}</option>)}
     </select>
     <button type="button" onClick={toggle} disabled={!activeList}>
