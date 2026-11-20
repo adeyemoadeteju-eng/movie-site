@@ -1089,7 +1089,7 @@ test('statistics and yearly recap render from the existing local library without
         { id: 99102, title: { english: 'Another Saved Anime' }, genres: ['Comedy'] }
       ],
       history: [{ id: 99101, title: { english: 'Saved Anime' }, genres: ['Action', 'Drama'], viewedAt: new Date(year, 2, 12).getTime() }],
-      watchedEpisodes: { '99101': [1, 2, 3], '99102': [1, 2, 3, 4, 5] },
+      watchedEpisodes: { '99101': [1, 2], '99102': [1] },
       tracking: { '99101': { status: 'Watching', anime: { id: 99101 } } }
     }));
     localStorage.setItem('aniorbit-custom-lists-v1', JSON.stringify([{ id: 'test-list', name: 'Favourites', items: [] }]));
