@@ -888,8 +888,8 @@ test('preferred playback server is remembered but an unreliable report takes pri
   await page.goto('/movie-site/#/watch/9100/1/sub/embed?title=Server%20Preference%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await page.locator('.ao-server-grid button').filter({ hasText: 'VidLink' }).click();
-  await expect(page.locator('.ao-ao-warning')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-ao-warning')).toHaveCount(0);
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', /vidlink\.example\.test/);
   await page.getByRole('button', { name: 'Use as preferred server' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-preferred-servers-v1') || '{}').sub)).toBe('vidlink');
 
