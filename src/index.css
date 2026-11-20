@@ -1274,3 +1274,10 @@ html[data-data-saver="true"] .ao-server-secondary button{
 .ao-achievement-card>strong{color:#aca4eb;font-size:9px}
 .ao-stats-anime em{color:#9e97d7;font-size:8px;font-style:normal;margin-left:auto;flex:none}
 @media(max-width:520px){.ao-achievement-grid{grid-template-columns:1fr}}
+
+
+/* Playback recovery hint: keep alternate servers within reach when an embed stalls. */
+.ao-embed-slow-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0;padding:10px 12px;border:1px solid rgba(176,169,236,.24);border-radius:7px;background:#171a25;color:#b9bfd0;font-size:10px;line-height:1.5}
+.ao-embed-slow-hint button{flex:none;padding:8px 11px;border:0;border-radius:5px;background:#8179c2;color:#fff;font-size:9px;font-weight:800;cursor:pointer}
+.ao-embed-slow-hint button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:520px){.ao-embed-slow-hint{align-items:stretch;flex-direction:column}.ao-embed-slow-hint button{width:100%}}

@@ -19,7 +19,7 @@ const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
 const ANIVEXA_PROVIDER_ORDER=['reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','anipm','mkissa','animenosub'];
 const API_WARMUP_KEY='aniorbit-api-warmup-v1';
-const API_WARMUP_INTERVAL=20*60*1000;
+const API_WARMUP_INTERVAL=10*60*1000;
 const API_CACHE_KEY='animedex-api-cache-v1';
 const API_CACHE=new Map();
 const API_IN_FLIGHT=new Map();
@@ -879,11 +879,14 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
  const mal=params.get('mal')||'';const name=params.get('title')||'Anime';
- const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+ const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [loadingStage,setLoadingStage]=useState('Starting playback…');const [error,setError]=useState('');
+ const [embedSlowHint,setEmbedSlowHint]=useState(false);
+ const selectedSourceUrlRef=useRef(null);
  const [showAdWarning,setShowAdWarning]=useState(()=>!hasHiddenAdWarning());
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
- const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setShowAdWarning(false);setDontShowAdWarning(false)};
- const selectServer=index=>{setActive(index);if(!hasHiddenAdWarning()){setDontShowAdWarning(false);setShowAdWarning(true)}};
+ const [warningAcknowledged,setWarningAcknowledged]=useState(()=>hasHiddenAdWarning());
+ const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setWarningAcknowledged(true);setShowAdWarning(false);setDontShowAdWarning(false)};
+ const selectServer=index=>{setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [outro,setOutro]=useState(null);
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
@@ -950,71 +953,143 @@ function Watch(){
   return()=>{live=false;controller.abort();window.clearTimeout(timer)};
  },[mal,episode]);
  useEffect(()=>{try{localStorage.setItem('animedex-auto-skip-intro',String(autoSkip))}catch{}},[autoSkip]);
- useEffect(()=>{setDontShowAdWarning(false);setShowAdWarning(!hasHiddenAdWarning())},[id,episode,audio]);
+ useEffect(()=>{setDontShowAdWarning(false);setWarningAcknowledged(hasHiddenAdWarning());setShowAdWarning(!hasHiddenAdWarning())},[id,episode,audio]);
  useEffect(()=>{
   let live=true;
+  let metadataDone=false;
+  let metadataAllowed=false;
   let primaryDone=false;
   let anivexaDone=false;
+  let anivexaStarted=false;
   let primaryError='';
   let primarySources=[];
   let anivexaSources=[];
   let anivexaTimer=null;
+  let slowStartTimer=null;
   const anivexaController=new AbortController();
-  setLoading(true);setError('');setSources([]);setActive(0);
+  selectedSourceUrlRef.current=null;
+  setLoading(true);setLoadingStage('Starting playback…');setError('');setSources([]);setActive(0);setEmbedSlowHint(false);
+  slowStartTimer=window.setTimeout(()=>{
+   if(live)setLoadingStage('The streaming service is waking up. Checking your episode…');
+  },7000);
+
   const refresh=()=>{
-   if(!live)return;
+   if(!live||!metadataDone||!metadataAllowed)return;
    const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
    setSources(ranked);
-   if(ranked.length){const preferred=readPreferredServers()[audio==='dub'?'dub':'sub'];const preferredIndex=preferred?ranked.findIndex(item=>sourceServerId(item)===preferred&&!isServerReportedUnreliable(item)):-1;setActive(preferredIndex>=0?preferredIndex:0);setLoading(false);setError('');return;}
+   if(ranked.length){
+    let chosenIndex=selectedSourceUrlRef.current
+     ?ranked.findIndex(item=>item.url===selectedSourceUrlRef.current)
+     :-1;
+    if(chosenIndex<0){
+     const preferred=readPreferredServers()[audio==='dub'?'dub':'sub'];
+     const preferredIndex=preferred?ranked.findIndex(item=>sourceServerId(item)===preferred&&!isServerReportedUnreliable(item)):-1;
+     chosenIndex=preferredIndex>=0?preferredIndex:0;
+     selectedSourceUrlRef.current=ranked[chosenIndex]?.url||null;
+    }
+    setActive(chosenIndex);
+    setLoading(false);setError('');
+    if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
+    return;
+   }
    if(primaryDone&&anivexaDone){
     setLoading(false);
     setError(primaryError||'No playback source is available from either server.');
+    if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
+   }else if(primaryDone&&anivexaStarted){
+    setLoading(true);
+    setLoadingStage('The main server did not return a playable link. Checking backup servers…');
    }
   };
-  const startPlayback=()=>{
-   if(!live)return;
-   anivexaTimer=window.setTimeout(()=>anivexaController.abort(),40000);
-   api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio))
-    .then(data=>{
-     if(!live)return;
-     primarySources=Array.isArray(data?.sources)?data.sources:[];
-     primaryDone=true;
-     refresh();
-    })
-    .catch(error=>{
-     if(!live)return;
-     primaryError=error?.message||'The main playback API is unavailable.';
-     primaryDone=true;
-     refresh();
-    });
+
+  const startAnivexa=()=>{
+   if(!live||anivexaStarted||!metadataAllowed)return;
+   anivexaStarted=true;
+   anivexaDone=false;
+   if(!rankPlaybackSources(primarySources,[],own).length)
+    setLoadingStage('Checking backup servers…');
+   anivexaTimer=window.setTimeout(()=>anivexaController.abort(),15000);
    fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
     .then(list=>{if(live)anivexaSources=list})
     .catch(()=>{})
-    .finally(()=>{anivexaDone=true;if(anivexaTimer)window.clearTimeout(anivexaTimer);refresh()});
+    .finally(()=>{
+     anivexaDone=true;
+     if(anivexaTimer){window.clearTimeout(anivexaTimer);anivexaTimer=null;}
+     refresh();
+    });
   };
+
+  // Start both requests together: a sleeping Render service should only add one
+  // cold-start wait, not make metadata and source discovery run one after another.
   api('/anime/info/'+encodeURIComponent(id))
    .then(metadata=>{
     if(!live)return;
+    metadataDone=true;
     if(isAdultAnime(metadata)){
+     metadataAllowed=false;
      setLoading(false);
      setError('Adult and hentai titles are excluded from AniOrbit.');
+     anivexaController.abort();
+     if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
      return;
     }
-    startPlayback();
+    metadataAllowed=true;
+    refresh();
+    startAnivexa();
    })
    .catch(()=>{
     if(!live)return;
+    metadataDone=true;
+    metadataAllowed=false;
     setLoading(false);
     setError('Could not verify this title. Return to Discover and try again.');
+    anivexaController.abort();
+    if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
    });
+
+  api('/anime/playback/'+encodeURIComponent(id)+'?episode='+encodeURIComponent(episode)+'&type='+encodeURIComponent(audio))
+   .then(data=>{
+    if(!live)return;
+    if(isAdultAnime(data)){
+     metadataDone=true;metadataAllowed=false;setLoading(false);
+     setError('Adult and hentai titles are excluded from AniOrbit.');
+     anivexaController.abort();
+     if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
+     return;
+    }
+    primarySources=Array.isArray(data?.sources)?data.sources:[];
+    primaryDone=true;
+    refresh();
+   })
+   .catch(error=>{
+    if(!live)return;
+    primaryError=error?.message||'The main playback API is unavailable.';
+    primaryDone=true;
+    if(/Adult and hentai titles are excluded/i.test(primaryError)){
+     metadataDone=true;metadataAllowed=false;setLoading(false);
+     setError('Adult and hentai titles are excluded from AniOrbit.');
+     anivexaController.abort();
+     if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
+     return;
+    }
+    refresh();
+   });
+
   return()=>{
    live=false;
    anivexaController.abort();
    if(anivexaTimer)window.clearTimeout(anivexaTimer);
+   if(slowStartTimer)window.clearTimeout(slowStartTimer);
   };
  },[id,episode,audio,mal]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
+ useEffect(()=>{
+  setEmbedSlowHint(false);
+  if(!source||direct||showAdWarning)return;
+  const timer=window.setTimeout(()=>setEmbedSlowHint(true),15000);
+  return()=>window.clearTimeout(timer);
+ },[id,episodeNumber,audio,source?.url,direct,showAdWarning]);
  const skipMessage=introStatus==='found'?'Opening detected: '+formatSkipTime(intro.start)+'–'+formatSkipTime(intro.end):introStatus==='checking'?'Checking opening timestamps…':introStatus==='not-found'?'No verified opening timestamps were found for this episode.':'Opening timestamps are unavailable for this title.';
  return <><Header/><main className="ao-watch-page"><Link to={'/anime/'+id} className="ao-back">‹ BACK TO ANIME</Link><h1>{name} - Episode {episode} <small>{audio.toUpperCase()}</small></h1>
  <div className="ao-watch-audio" role="group" aria-label="Audio preference"><span>Audio</span><button type="button" className={audio==='sub'?'active':''} aria-pressed={audio==='sub'} onClick={()=>switchAudio('sub')}>Subtitles</button><button type="button" className={audio==='dub'?'active':''} aria-pressed={audio==='dub'} onClick={()=>switchAudio('dub')}>Dub</button><small>Saved as your default for future episodes.</small></div>
@@ -1030,7 +1105,7 @@ function Watch(){
   <label><input type="checkbox" checked={autoNext} onChange={event=>setAutoNext(event.target.checked)}/> Auto-next (direct videos only)</label>
   {direct&&<label className="ao-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>}
  </section>
- {loading?<div className="ao-player-message">Preparing playback...</div>:source?<>
+ {loading?<div className="ao-player-message" role="status">{loadingStage}</div>:source?<>
   {showAdWarning?<section className="ao-ao-warning" role="dialog" aria-modal="true" aria-labelledby="ao-ao-warning-title">
    <div className="ao-ao-warning-card">
     <span className="ao-ao-warning-kicker">PLAYER SAFETY NOTICE</span>
@@ -1040,7 +1115,7 @@ function Watch(){
     <button type="button" onClick={continueToVideo}>Continue to video</button>
    </div>
   </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} outro={outro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} onPlaybackError={handleDirectPlaybackError} speed={playbackSpeed}/>:<>
-   <div className="ao-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>
+   <div className="ao-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>{embedSlowHint&&<div className="ao-embed-slow-hint" role="status"><span>If the video is still loading, this server may be stuck. Try another server.</span><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button></div>}
    {intro&&<p className="ao-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
   {!direct&&!showAdWarning&&<section className="ao-embed-checkpoint" aria-label="Manual embedded playback checkpoint"><div><b>Save your place in this episode</b><small>Embedded players do not share their timeline with AniOrbit. Move this slider to roughly match the player, then save it manually.</small></div><label><span>{manualCheckpoint}%</span><input aria-label="Manual episode progress" type="range" min="0" max="95" step="5" value={manualCheckpoint} onChange={event=>setManualCheckpoint(Number(event.target.value))}/></label><button type="button" onClick={saveEmbedCheckpoint}>Save checkpoint</button>{checkpointMessage&&<p role="status">{checkpointMessage}</p>}</section>}
