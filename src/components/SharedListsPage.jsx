@@ -5,7 +5,7 @@ import { readCustomLists, customListsEventName } from '../lib/customLists.js';
 import PageHeader from './PageHeader.jsx';
 
 function safeItems(items) {
-  return (Array.isArray(items) ? items : []).filter(item => item?.id && item?.title && !item.isAdult)
+  return (Array.isArray(items) ? items : []).filter(item => item?.id && item?.title && !item.isAdult && !(item.genres || []).some(genre => String(genre).toLowerCase() === 'hentai'))
     .slice(0, 40).map(item => ({
       id: String(item.id).slice(0, 80),
       title: String(item.title).slice(0, 180),
@@ -55,6 +55,7 @@ export default function SharedListsPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) { setLoading(false); return; }
     let active = true;
     const start = async () => {
       const { data } = await supabase.auth.getSession();

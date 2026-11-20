@@ -31,6 +31,8 @@ For local development, copy `.env.example` to `.env` and fill in the same two pu
 
 The migrations enable RLS, create a pseudonymous profile automatically after signup, and create a private avatar bucket with a 2 MB limit for JPEG, PNG, and WebP files. The discussion posting policy stays closed until a moderator account is appointed.
 
+The project also has the later migrations for member follows, activity, notifications, and private cloud library saves. Apply those existing migration files in timestamp order if setting up a fresh database. The new `202611190001_aniorbit_reviews_shared_lists.sql` migration adds member reviews/ratings and shareable list snapshots. It enables RLS, revokes anonymous access, and restricts writes to each member's own rows.
+
 ## 3. Configure authentication URLs
 
 In Supabase, open **Authentication → URL Configuration**.
@@ -65,6 +67,8 @@ Until at least one moderator is appointed, the database rejects new comments. Th
 - Comments display a database-generated username snapshot, not email addresses or private profile fields.
 - Reports are private to moderators. Profiles remain private unless members explicitly opt in.
 - Avatars accept JPEG, PNG, or WebP images up to 2 MB and are readable only by signed-in members.
+- Anime reviews are visible to signed-in members; each member can create, update, or delete only their own review.
+- Shared collections are snapshots of a member's local list. Signed-in members can open public share links; only the owner can create or remove a share.
 - Online presence is an anonymous count. A member must opt in; names and last-seen times are not shown.
 - No direct messages or public watch-history feed are included.
 

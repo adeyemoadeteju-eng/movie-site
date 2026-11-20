@@ -1099,3 +1099,10 @@ test('statistics and yearly recap render from the existing local library without
   await expect(page.locator('.ao-genre-ranking')).toContainText('Action');
   await expect(page.getByText(/Monthly activity uses the dates stored/)).toBeVisible();
 });
+
+
+test('shared collections page explains sign-in requirement to guests', async ({ page }) => {
+  await page.goto('/movie-site/#/shared-lists');
+  await expect(page.getByRole('heading', { name: 'Shared collections' })).toBeVisible();
+  await expect(page.getByText(/Sign in to create, view and manage shared anime collections/)).toBeVisible();
+});

@@ -46,7 +46,7 @@ create policy "Members delete their own anime reviews"
 
 revoke all on table public.anime_reviews from anon;
 grant select, insert, delete on table public.anime_reviews to authenticated;
-grant update (score, title, content, contains_spoilers, updated_at)
+grant update (user_id, anime_id, anime_title, score, title, content, contains_spoilers, updated_at)
   on table public.anime_reviews to authenticated;
 
 create table if not exists public.shared_anime_lists (

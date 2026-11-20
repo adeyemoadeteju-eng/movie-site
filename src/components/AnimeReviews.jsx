@@ -62,6 +62,7 @@ export default function AnimeReviews({ animeId, anime }) {
   }, [animeId]);
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) { setLoading(false); return; }
     let active = true;
     const start = async () => {
       const { data } = await supabase.auth.getSession();
