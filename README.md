@@ -7,6 +7,10 @@ A React + Vite recreation inspired by the public AnimeDexLite v3 interface, conn
 - Popular and recent anime rows, search results, anime information, episode listings, and watch pages.
 - Existing API-backed catalogue and playback integration.
 - Responsive desktop and mobile layouts.
+- Member reviews and ratings with spoiler controls.
+- Shareable anime collection snapshots for signed-in members.
+- Personal library statistics and a transparent yearly activity recap.
+- Direct-player caption track selection and caption text sizing when the chosen source provides tracks.
 
 ## Data and playback
 - Catalogue data is supplied by the backend API. The frontend reads `VITE_KUHI_API_URL`, then `VITE_ANIME_API_URL`, and falls back to the current Render API URL.

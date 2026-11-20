@@ -1077,3 +1077,32 @@ test('fully watched series are removed from Continue Watching automatically', as
   await expect(page.getByRole('heading', { name: 'Continue Watching' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Recently Viewed' })).toBeVisible();
 });
+
+
+test('statistics and yearly recap render from the existing local library without changing saved data', async ({ page }) => {
+  await page.addInitScript(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    localStorage.setItem('animedex-library-v1', JSON.stringify({
+      watchlist: [{ id: 99101, title: { english: 'Saved Anime' }, genres: ['Action'] }],
+      history: [{ id: 99101, title: { english: 'Saved Anime' }, genres: ['Action', 'Drama'], viewedAt: new Date(year, 2, 12).getTime() }],
+      watchedEpisodes: { '99101': [1, 2, 3] },
+      tracking: { '99101': { status: 'Watching', anime: { id: 99101 } } }
+    }));
+    localStorage.setItem('aniorbit-custom-lists-v1', JSON.stringify([{ id: 'test-list', name: 'Favourites', items: [] }]));
+  });
+  await page.goto('/movie-site/#/stats');
+  await expect(page.getByRole('heading', { name: 'Statistics & yearly recap' })).toBeVisible();
+  await expect(page.getByText('Episodes marked watched')).toBeVisible();
+  await expect(page.locator('.ao-stats-grid')).toContainText('3');
+  await expect(page.getByRole('heading', { name: 'Top genres in recent history' })).toBeVisible();
+  await expect(page.locator('.ao-genre-ranking')).toContainText('Action');
+  await expect(page.getByText(/Monthly activity uses the dates stored/)).toBeVisible();
+});
+
+
+test('shared collections page explains sign-in requirement to guests', async ({ page }) => {
+  await page.goto('/movie-site/#/shared-lists');
+  await expect(page.getByRole('heading', { name: 'Shared collections' })).toBeVisible();
+  await expect(page.getByText(/Sign in to create, view and manage shared anime collections/)).toBeVisible();
+});

@@ -11,6 +11,9 @@ import CustomListActions from './components/CustomListActions.jsx';
 import SchedulePage from './components/SchedulePage.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 import TrackingPage from './components/TrackingPage.jsx';
+import AnimeReviews from './components/AnimeReviews.jsx';
+import StatsDashboard from './components/StatsDashboard.jsx';
+import SharedListsPage from './components/SharedListsPage.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
@@ -284,7 +287,7 @@ function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
- return <header className="ao-topbar"><div className="ao-topbar-inner"><Link to="/" className="ao-brand" aria-label="AniOrbit home"><span className="ao-wordmark">Ani<span>Orbit</span></span></Link><nav className="ao-nav" aria-label="Main navigation"><Link to="/">Discover</Link><Link to="/community">Community</Link><Link to="/schedule">Schedule</Link><Link to="/lists">My Lists</Link><Link to="/tracking">Tracking</Link></nav><form className="ao-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ao-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
+ return <header className="ao-topbar"><div className="ao-topbar-inner"><Link to="/" className="ao-brand" aria-label="AniOrbit home"><span className="ao-wordmark">Ani<span>Orbit</span></span></Link><nav className="ao-nav" aria-label="Main navigation"><Link to="/">Discover</Link><Link to="/community">Community</Link><Link to="/schedule">Schedule</Link><Link to="/lists">My Lists</Link><Link to="/shared-lists">Shared</Link><Link to="/stats">Stats</Link><Link to="/tracking">Tracking</Link></nav><form className="ao-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ao-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
 }
 function Footer(){return <footer className="ao-footer"><div className="ao-footer-inner"><Link to="/" className="ao-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ao-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ao-tile" to={'/anime/'+item.id}><div className="ao-poster"><AnimePoster item={item} priority={priority}/><span className="ao-tag">{item?.format||'TV'}</span></div><div className="ao-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
@@ -642,7 +645,7 @@ function Details(){
    </article>;
   })}</div>:characters.length?<p className="ao-characters-message">No characters or voice actors match “{characterQuery}”.</p>:<p className="ao-characters-message">Character details are not available for this title.</p>}
  </section>
- <section className="ao-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><CommunitySection animeId={String(id)} title={title(anime)}/>
+ <section className="ao-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><AnimeReviews animeId={String(id)} anime={anime}/><CommunitySection animeId={String(id)} title={title(anime)}/>
  </main>:<div className="ao-pending ao-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
 const ANISKIP_CACHE=new Map();
@@ -789,6 +792,9 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
   onPlaybackError?.(source);
  };
  const [resumeAt,setResumeAt]=useState(null);
+ const [captionTracks,setCaptionTracks]=useState([]);
+ const [activeCaption,setActiveCaption]=useState('off');
+ const [captionSize,setCaptionSize]=useState(()=>{try{const value=localStorage.getItem('aniorbit-caption-size')||'medium';return ['small','medium','large'].includes(value)?value:'medium'}catch{return 'medium'}});
  const lastSavedAt=useRef(0);
  const url=source.url;
  useEffect(()=>{
@@ -801,8 +807,15 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
    const saved=getEpisodeProgress(readLibrary(),id,episode,audio);
    if(saved&&Number(saved.currentTime)>8&&Number(saved.percent)<95&&video.duration>Number(saved.currentTime)+10)setResumeAt(Number(saved.currentTime));
    video.playbackRate=Number(speed)||1;
+   refreshCaptionTracks();
+  };
+  const refreshCaptionTracks=()=>{
+   const tracks=Array.from(video.textTracks||[]).map((track,index)=>({id:'track-'+index,label:track.label||track.language||('Caption track '+(index+1)),kind:track.kind})).filter(track=>['captions','subtitles'].includes(track.kind));
+   setCaptionTracks(tracks);
   };
   video.addEventListener('loadedmetadata',onMetadata);
+  video.textTracks?.addEventListener?.('addtrack',refreshCaptionTracks);
+  video.textTracks?.addEventListener?.('removetrack',refreshCaptionTracks);
   const attach=async()=>{
    if(/\.m3u8(?:$|[?#])/i.test(url)){
     if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=url;return;}
@@ -823,6 +836,10 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
   return()=>{
    cancelled=true;
    video.removeEventListener('loadedmetadata',onMetadata);
+   video.textTracks?.removeEventListener?.('addtrack',refreshCaptionTracks);
+   video.textTracks?.removeEventListener?.('removetrack',refreshCaptionTracks);
+   setCaptionTracks([]);
+   setActiveCaption('off');
    if(video.duration>0&&video.currentTime>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration);
    if(hls){hls.destroy();if(hlsRef.current===hls)hlsRef.current=null;}
    video.pause();video.removeAttribute('src');video.load();
@@ -830,6 +847,8 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
  },[url,id,episode,audio]);
  useEffect(()=>{skippedRef.current=false;outroSkippedRef.current=false;setCurrentTime(0);setResumeAt(null);lastSavedAt.current=0;},[url,intro?.start,intro?.end,outro?.start,outro?.end]);
  useEffect(()=>{const video=videoRef.current;if(video)video.playbackRate=Number(speed)||1;},[speed]);
+ useEffect(()=>{try{localStorage.setItem('aniorbit-caption-size',captionSize)}catch{}},[captionSize]);
+ useEffect(()=>{const tracks=videoRef.current?.textTracks;if(!tracks)return;Array.from(tracks).forEach((track,index)=>{track.mode=activeCaption==='track-'+index?'showing':'disabled'});},[activeCaption,captionTracks]);
  const seekToEnd=(segment=intro,flag=skippedRef)=>{
   const video=videoRef.current;
   if(!video||!segment)return;
@@ -855,7 +874,7 @@ function DirectMediaPlayer({source,intro,outro,autoSkip,onAutoSkip,id,episode,au
  };
  const resume=()=>{const video=videoRef.current;if(video&&resumeAt!==null){video.currentTime=Math.min(resumeAt,Math.max(0,(video.duration||resumeAt)-2));video.play().catch(()=>{});}setResumeAt(null);};
  const restart=()=>{const video=videoRef.current;if(video)video.currentTime=0;setResumeAt(null);};
- return <div className="ao-direct-player"><video ref={videoRef} controls playsInline preload="metadata" onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={reportPlaybackError}/>{resumeAt!==null&&<div className="ao-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ao-skip-intro" type="button" onClick={()=>seekToEnd(intro,skippedRef)}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{canOfferOutro&&<button className="ao-skip-intro ao-skip-outro" type="button" onClick={()=>seekToEnd(outro,outroSkippedRef)}>Skip outro · {formatSkipTime(outro.start)}–{formatSkipTime(outro.end)} <span>↗</span></button>}{playerError&&<p className="ao-player-error" role="status">{playerError}</p>}<small className="ao-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
+ return <div className="ao-direct-player"><video ref={videoRef} controls playsInline preload="metadata" data-caption-size={captionSize} onTimeUpdate={onTimeUpdate} onPause={()=>{const video=videoRef.current;if(video?.duration>0)saveEpisodeProgress(id,episode,audio,video.currentTime,video.duration)}} onEnded={()=>{if(videoRef.current?.duration>0)saveEpisodeProgress(id,episode,audio,videoRef.current.currentTime,videoRef.current.duration);onEnded?.();}} onKeyDown={handleKeys} onError={reportPlaybackError}/><div className="ao-caption-tools" aria-label="Subtitle preferences"><label>Captions<select aria-label="Caption track" value={activeCaption} onChange={event=>setActiveCaption(event.target.value)}><option value="off">Off</option>{captionTracks.map(track=><option key={track.id} value={track.id}>{track.label}</option>)}</select></label><label>Text size<select aria-label="Caption text size" value={captionSize} onChange={event=>setCaptionSize(event.target.value)}><option value="small">Small</option><option value="medium">Normal</option><option value="large">Large</option></select></label><small>{captionTracks.length?'Choose an available subtitle or caption track.':'Caption tracks depend on whether the selected server provides them.'}</small></div>{resumeAt!==null&&<div className="ao-resume-prompt" role="dialog" aria-label="Resume playback"><span>Saved progress: {formatSkipTime(resumeAt)}</span><button type="button" onClick={resume}>Resume</button><button type="button" onClick={restart}>Start over</button></div>}{canOfferSkip&&<button className="ao-skip-intro" type="button" onClick={()=>seekToEnd(intro,skippedRef)}>Skip intro · {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)} <span>↗</span></button>}{canOfferOutro&&<button className="ao-skip-intro ao-skip-outro" type="button" onClick={()=>seekToEnd(outro,outroSkippedRef)}>Skip outro · {formatSkipTime(outro.start)}–{formatSkipTime(outro.end)} <span>↗</span></button>}{playerError&&<p className="ao-player-error" role="status">{playerError}</p>}<small className="ao-player-shortcuts">Shortcuts: Space to play/pause · ←/→ seek 10s · ↑/↓ volume</small></div>;
 }
 function Watch(){
  const {id,episode,audio}=useParams();const [params]=useSearchParams();const navigate=useNavigate();
@@ -1047,5 +1066,5 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ao-fatal"><div><h1>Page not found</h1><p>This AniOrbit page does not exist.</p><Link className="ao-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="/stats" element={<StatsDashboard/>}/><Route path="/shared-lists" element={<SharedListsPage/>}/><Route path="/shared-lists/:id" element={<SharedListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
