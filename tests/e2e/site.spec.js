@@ -1101,7 +1101,7 @@ test('statistics and yearly recap render from the existing local library without
   await expect(page.getByRole('heading', { name: 'Top genres in recent history' })).toBeVisible();
   await expect(page.locator('.ao-genre-ranking')).toContainText('Action');
   await expect(page.getByRole('heading', { name: 'Most episodes marked watched' })).toBeVisible();
-  await expect(page.locator('.ao-stats-anime')).toContainText('Another Saved Anime');
+  await expect(page.locator('.ao-stats-columns > .ao-stats-panel').nth(1).locator('.ao-stats-anime')).toContainText('Another Saved Anime');
   await expect(page.getByRole('heading', { name: 'Achievements' })).toBeVisible();
   await expect(page.locator('.ao-achievement-card.unlocked')).toContainText('First episode');
   await expect(page.getByText(/Monthly activity uses the dates stored/)).toBeVisible();
