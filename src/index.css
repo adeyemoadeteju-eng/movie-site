@@ -1260,3 +1260,17 @@ html[data-data-saver="true"] .ao-server-secondary button{
 .ao-direct-player video[data-caption-size="large"]::cue{font-size:1.25em}
 @media(max-width:760px){.ao-stats-page,.ao-shared-page{width:calc(100% - 28px)}.ao-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ao-stats-columns{grid-template-columns:1fr}}
 @media(max-width:520px){.ao-month-chart{gap:3px}.ao-month-column small{font-size:7px}.ao-month-column span{font-size:8px}.ao-stats-grid strong{font-size:22px}.ao-review-form-row{grid-template-columns:1fr}.ao-review-form label{min-width:0}.ao-shared-form{align-items:stretch;flex-direction:column}.ao-shared-form button{width:100%}}
+
+
+/* Watch-history rankings and achievements */
+.ao-achievement-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
+.ao-achievement-card{display:flex;align-items:center;gap:9px;min-width:0;padding:9px;border:1px solid rgba(255,255,255,.07);border-radius:7px;background:#1a1f2a;opacity:.62}
+.ao-achievement-card.unlocked{border-color:rgba(153,145,214,.3);background:rgba(129,121,194,.12);opacity:1}
+.ao-achievement-card>span{display:grid;place-items:center;width:23px;height:23px;flex:none;border-radius:50%;background:#292e3b;color:#989fb0;font-size:12px;font-weight:800}
+.ao-achievement-card.unlocked>span{background:rgba(129,121,194,.24);color:#d7d1ff}
+.ao-achievement-card>div{display:grid;gap:3px;flex:1;min-width:0}
+.ao-achievement-card b{color:#e6e3f0;font-size:9px}
+.ao-achievement-card small{color:#8d95a5;font-size:8px;line-height:1.35}
+.ao-achievement-card>strong{color:#aca4eb;font-size:9px}
+.ao-stats-anime em{color:#9e97d7;font-size:8px;font-style:normal;margin-left:auto;flex:none}
+@media(max-width:520px){.ao-achievement-grid{grid-template-columns:1fr}}
