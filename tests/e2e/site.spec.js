@@ -1096,7 +1096,7 @@ test('statistics and yearly recap render from the existing local library without
   });
   await page.goto('/movie-site/#/stats');
   await expect(page.getByRole('heading', { name: 'Statistics & yearly recap' })).toBeVisible();
-  await expect(page.getByText('Episodes marked watched')).toBeVisible();
+  await expect(page.getByText('Episodes marked watched', { exact: true })).toBeVisible();
   await expect(page.locator('.ao-stats-grid')).toContainText('3');
   await expect(page.getByRole('heading', { name: 'Top genres in recent history' })).toBeVisible();
   await expect(page.locator('.ao-genre-ranking')).toContainText('Action');
