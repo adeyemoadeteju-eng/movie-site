@@ -1140,7 +1140,7 @@ test('starts the main playback lookup while anime maturity verification is still
   await expect(page.locator('.ao-player iframe')).toBeVisible();
 });
 
-test('offers a quick next-server action when an embedded player keeps loading', async ({ page }) => {
+test('offers a quick next-server action after 15 seconds when an embedded player keeps loading', async ({ page }) => {
   await page.route('**/anime/playback/7311?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
