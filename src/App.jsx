@@ -971,11 +971,12 @@ function Watch(){
  const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [loadingStage,setLoadingStage]=useState('Starting playback…');const [error,setError]=useState('');
  const [embedSlowHint,setEmbedSlowHint]=useState(false);
  const selectedSourceUrlRef=useRef(null);
+ const userSelectedSourceRef=useRef(false);
  const [showAdWarning,setShowAdWarning]=useState(()=>!hasHiddenAdWarning());
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
  const [warningAcknowledged,setWarningAcknowledged]=useState(()=>hasHiddenAdWarning());
  const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setWarningAcknowledged(true);setShowAdWarning(false);setDontShowAdWarning(false)};
- const selectServer=index=>{setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
+ const selectServer=index=>{userSelectedSourceRef.current=true;setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [outro,setOutro]=useState(null);
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
@@ -1068,6 +1069,7 @@ function Watch(){
   let slowStartTimer=null;
   const anivexaController=new AbortController();
   selectedSourceUrlRef.current=null;
+  userSelectedSourceRef.current=false;
   setLoading(true);setLoadingStage('Starting playback…');setError('');setSources([]);setActive(0);setEmbedSlowHint(false);
   slowStartTimer=window.setTimeout(()=>{
    if(live)setLoadingStage('The streaming service is waking up. Checking your episode…');
@@ -1081,7 +1083,7 @@ function Watch(){
    const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,aniEmbedSource,animeNexusSource,aniPmSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
-    let chosenIndex=selectedSourceUrlRef.current
+    let chosenIndex=userSelectedSourceRef.current&&selectedSourceUrlRef.current
      ?ranked.findIndex(item=>item.url===selectedSourceUrlRef.current)
      :-1;
     if(chosenIndex<0){
