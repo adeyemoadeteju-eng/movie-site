@@ -932,6 +932,7 @@ function Watch(){
  const [autoNext,setAutoNext]=useState(()=>{try{return localStorage.getItem('aniorbit-auto-next')!=='false'}catch{return true}});
  const [playbackSpeed,setPlaybackSpeed]=useState(()=>{try{const value=Number(localStorage.getItem('aniorbit-playback-speed')||1);return [0.75,1,1.25,1.5,1.75,2].includes(value)?value:1}catch{return 1}});
  const [mediaFormat,setMediaFormat]=useState('');
+ const [mediaFormatId,setMediaFormatId]=useState('');
  const [vidzenMapping,setVidzenMapping]=useState(()=>readVidZenMapping(id));
  const [vidzenIdInput,setVidzenIdInput]=useState(()=>readVidZenMapping(id)?.id||'');
  const [vidzenSeasonInput,setVidzenSeasonInput]=useState(()=>String(readVidZenMapping(id)?.season||1));
@@ -943,6 +944,7 @@ function Watch(){
   setVidzenIdInput(saved?.id||'');
   setVidzenSeasonInput(String(saved?.season||1));
   setMediaFormat('');
+  setMediaFormatId('');
   setVidzenMessage('');
  },[id]);
  const saveVidZenServer=event=>{
@@ -1040,7 +1042,6 @@ function Watch(){
   let slowStartTimer=null;
   const anivexaController=new AbortController();
   selectedSourceUrlRef.current=null;
-  setMediaFormat('');
   setLoading(true);setLoadingStage('Starting playback…');setError('');setSources([]);setActive(0);setEmbedSlowHint(false);
   slowStartTimer=window.setTimeout(()=>{
    if(live)setLoadingStage('The streaming service is waking up. Checking your episode…');
@@ -1107,6 +1108,7 @@ function Watch(){
      return;
     }
     setMediaFormat(String(metadata?.format||'TV').toUpperCase());
+    setMediaFormatId(String(id));
     metadataAllowed=true;
     refresh();
     startAnivexa();
@@ -1157,7 +1159,7 @@ function Watch(){
   };
  },[id,episode,audio,mal]);
  useEffect(()=>{
-  const vidzenSource=buildVidZenSource(id,episode,mediaFormat,readVidZenMapping(id));
+  const vidzenSource=mediaFormatId===String(id)?buildVidZenSource(id,episode,mediaFormat,readVidZenMapping(id)):null;
   setSources(current=>{
    const selectedUrl=selectedSourceUrlRef.current;
    const withoutVidZen=current.filter(item=>item.provider!=='vidzen');
@@ -1172,7 +1174,7 @@ function Watch(){
    }
    return ranked;
   });
- },[vidzenMapping,mediaFormat,id,episode]);
+ },[vidzenMapping,mediaFormat,mediaFormatId,id,episode]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  useEffect(()=>{
