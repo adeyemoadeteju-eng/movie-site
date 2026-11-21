@@ -147,6 +147,38 @@ test('VidZen TV server is imported automatically from an exact title and episode
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
 });
 
+test('VidZen picks the season matching the anime release year when episode numbers repeat', async ({ page }) => {
+  await page.route('**/anime/info/8126', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8126, title: { english: 'Frieren: Beyond Journey\'s End' }, isAdult: false, format: 'TV', seasonYear: 2023, genres: ['Adventure'] })
+  }));
+  await page.route('**/anime/playback/8126?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=Frieren%3A%20Beyond%20Journey%27s%20End.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt22248376', imdb_id: 'tt22248376', name: 'Frieren: Beyond Journey\'s End', releaseInfo: '2023' }] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/meta/series/tt22248376.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ meta: { videos: [
+      { season: 0, episode: 1, firstAired: '2023-10-11T14:00:00.000Z' },
+      { season: 1, episode: 1, firstAired: '2023-09-29T00:00:00.000Z' },
+      { season: 2, episode: 1, firstAired: '2026-01-16T00:00:00.000Z' }
+    ] } })
+  }));
+  await page.route('https://vidzen.fun/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
+  }));
+  await page.goto('/movie-site/#/watch/8126/1/sub/embed?title=Frieren');
+  await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://vidzen.fun/tv/tt22248376/1/1?autoPlay=true&theme=8179c2'
+  );
+});
+
 test('VidZen movie server is imported automatically from an exact title match', async ({ page }) => {
   await page.route('**/anime/info/8124', route => route.fulfill({
     status: 200, contentType: 'application/json',
