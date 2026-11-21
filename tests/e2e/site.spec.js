@@ -155,7 +155,7 @@ test('VidZen picks the season matching the anime release year when episode numbe
   await page.route('**/anime/playback/8126?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
   }));
-  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=Frieren%3A%20Beyond%20Journey%27s%20End.json', route => route.fulfill({
+  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=Frieren*End.json', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ metas: [{ id: 'tt22248376', imdb_id: 'tt22248376', name: 'Frieren: Beyond Journey\'s End', releaseInfo: '2023' }] })
   }));
