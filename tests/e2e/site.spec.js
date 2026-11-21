@@ -1016,8 +1016,7 @@ test('direct playback automatically tries another healthy direct server after a 
   await page.getByRole('button', { name: 'Continue to video' }).click();
 
   const video = page.locator('.ao-direct-player video');
-  // The next server should replace the stalled iframe without reopening the safety notice.
-  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://player.example.test/backup/7311');
+  await expect(video).toHaveAttribute('src', /backup\.mp4/);
   await expect(page.locator('.ao-server-grid button.active')).toContainText('Backup Direct');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]')))
     .toContain('direct-primary');
@@ -1157,5 +1156,5 @@ test('offers a quick next-server action after 15 seconds when an embedded player
   await expect(page.locator('.ao-player iframe')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try next server' })).toBeVisible({ timeout: 20000 });
   await page.getByRole('button', { name: 'Try next server' }).click();
-  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', /backup\\/7311/);
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://player.example.test/backup/7311');
 });
