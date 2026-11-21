@@ -1369,7 +1369,8 @@ function TVRemoteSupport(){
     }
     return;
    }
-   const backPressed=key==='Back'||key==='BrowserBack'||key==='Backspace'||key==='Escape'||keyCode===4||keyCode===8||keyCode===461||keyCode===10009;
+   if((keyCode===13||keyCode===23||keyCode===66)&&key!=='Enter'&&active&&(tag==='a'||tag==='button')){event.preventDefault();active.click();return;}
+   const backPressed=key==='Back'||key==='BrowserBack'||key==='Backspace'||key==='Escape'||keyCode===4||keyCode===8||keyCode===27||keyCode===461||keyCode===10009;
    if(backPressed){
     event.preventDefault();
     const route=(window.location.hash.split('?')[0].split('#')[1]||'/').replace(/\/$/,'')||'/';
