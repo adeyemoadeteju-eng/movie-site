@@ -1328,7 +1328,7 @@ test('ani.pm next-episode message updates AniOrbit route and watch history', asy
   await expect(player.getByRole('button', { name: 'Ani.pm next episode' })).toBeVisible();
   await player.getByRole('button', { name: 'Ani.pm next episode' }).click();
 
-  await expect(page).toHaveURL(/#\\/watch\\/99003\\/2\\/sub\\/embed/);
+  await expect(page).toHaveURL(/#\/watch\/99003\/2\/sub\/embed/);
   await expect(page.getByRole('heading', { name: 'Ani.pm Next Sync - Episode 2' })).toBeVisible();
   await expect.poll(() => page.evaluate(() => {
     const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
