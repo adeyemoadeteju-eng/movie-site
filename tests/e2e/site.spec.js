@@ -12,6 +12,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: '{}'
   }));
+  await page.route('https://ani.pm/api/partner/v1/series/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ data: { episodeList: [] } })
+  }));
   await page.route('**/anime/info/*', route => {
     const id = Number(new URL(route.request().url()).pathname.split('/').pop());
     return route.fulfill({
@@ -165,6 +168,42 @@ test('VidZen movie server uses the movie embed endpoint', async ({ page }) => {
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/movie/63174?autoPlay=true&theme=8179c2'
+  );
+});
+
+test('Anime Nexus and ani.pm appear as separate anime playback servers', async ({ page }) => {
+  await page.route('**/anime/info/8125', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8125, title: { english: 'Provider Test Anime' }, isAdult: false, format: 'TV', genres: ['Action'] })
+  }));
+  await page.route('**/anime/playback/8125?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://ani.pm/api/partner/v1/series/8125', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ data: { episodeList: [{
+      number: 3,
+      available: { sub: true, dub: false, subHard: false, dubHard: false },
+      embed: { sub: 'https://ani.pm/embed/ani/8125/3/sub' }
+    }] } })
+  }));
+  await page.route('https://anime-nexus-blue.vercel.app/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>Anime Nexus mock</title>'
+  }));
+
+  await page.goto('/movie-site/#/watch/8125/3/sub/embed?title=Provider%20Test%20Anime');
+  await expect(page.locator('.ao-server-grid')).toContainText('Anime Nexus');
+  await expect(page.locator('.ao-server-grid')).toContainText('ani.pm');
+  await page.getByRole('button', { name: /Anime Nexus/ }).click();
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://anime-nexus-blue.vercel.app/anime/8125/3/sub?fallback=true'
+  );
+  await page.getByRole('button', { name: /ani\.pm/ }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://ani.pm/embed/ani/8125/3/sub'
   );
 });
 
