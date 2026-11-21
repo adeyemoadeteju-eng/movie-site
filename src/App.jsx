@@ -692,6 +692,26 @@ function buildVidZenSource(animeId,episode,format,mapping){
   :'https://vidzen.fun/tv/'+encodeURIComponent(id)+'/'+Math.min(99,Math.max(1,Math.floor(Number(mapping.season)||1)))+'/'+Math.max(1,Math.floor(Number(episode)||1))+query;
  return {name:'VidZen · Planetary Fleet',provider:'vidzen',type:'embed',url};
 }
+function buildAnimeNexusSource(anilistId,episode,audio){
+ const lang=audio==='dub'?'dub':'sub';
+ const url='https://anime-nexus-blue.vercel.app/anime/'+encodeURIComponent(anilistId)+'/'+Math.max(1,Math.floor(Number(episode)||1))+'/'+lang+'?fallback=true';
+ return {name:'Anime Nexus · '+lang.toUpperCase(),provider:'animenexus',type:'embed',url};
+}
+async function fetchAniPmSource(anilistId,episode,audio,signal){
+ const response=await fetch('https://ani.pm/api/partner/v1/series/'+encodeURIComponent(anilistId),{
+  cache:'no-store',headers:{Accept:'application/json'},signal
+ });
+ if(!response.ok)return null;
+ const payload=await response.json();
+ const rows=Array.isArray(payload?.data?.episodeList)?payload.data.episodeList:[];
+ const row=rows.find(item=>Number(item?.number)===Number(episode));
+ if(!row)return null;
+ const preferred=audio==='dub'?'dub':'sub';
+ const lang=row.available?.[preferred]?preferred:row.available?.sub?'sub':row.available?.dub?'dub':null;
+ const url=String(row.embed?.[lang]||'').trim();
+ if(!lang||!/^https:\/\/ani\.pm\/embed\//i.test(url))return null;
+ return {name:'ani.pm · '+lang.toUpperCase(),provider:'anipm',type:'embed',url};
+}
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
  if(key.includes('vidsrc'))return 0;
@@ -699,10 +719,12 @@ function playbackSourceRank(source){
  if(key.includes('2embed'))return 2;
  if(key.includes('anivexa'))return 3;
  if(isDirectMedia(source))return 4;
+ if(key.includes('anipm'))return 9;
  if(key.includes('vidcore'))return 10;
  if(key.includes('anikoto'))return 11;
  if(key.includes('vidy'))return 12;
- if(key.includes('vidzen'))return 13;
+ if(key.includes('animenexus'))return 13;
+ if(key.includes('vidzen'))return 14;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
@@ -1037,6 +1059,7 @@ function Watch(){
   let anivexaStarted=false;
   let primaryError='';
   let verifiedFormat='';
+  let aniPmSource=null;
   let primarySources=[];
   let anivexaSources=[];
   let anivexaTimer=null;
@@ -1051,7 +1074,8 @@ function Watch(){
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
    const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
-   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource].filter(Boolean));
+   const animeNexusSource=buildAnimeNexusSource(id,episode,audio);
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,animeNexusSource,aniPmSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
     let chosenIndex=selectedSourceUrlRef.current
@@ -1114,6 +1138,12 @@ function Watch(){
     setMediaFormatId(String(id));
     metadataAllowed=true;
     refresh();
+    const aniPmController=new AbortController();
+    const aniPmTimer=window.setTimeout(()=>aniPmController.abort(),8000);
+    fetchAniPmSource(id,episode,audio,aniPmController.signal)
+     .then(source=>{if(live&&source){aniPmSource=source;refresh();}})
+     .catch(()=>{})
+     .finally(()=>window.clearTimeout(aniPmTimer));
     startAnivexa();
    })
    .catch(()=>{
