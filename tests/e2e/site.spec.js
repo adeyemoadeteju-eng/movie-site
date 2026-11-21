@@ -113,6 +113,61 @@ test('direct watch URLs keep the adult gate ahead of the backup provider lookup'
   expect(anivexaRequests).toBe(0);
 });
 
+test('VidZen TV server uses a saved IMDb/TMDB mapping with the chosen season and episode', async ({ page }) => {
+  await page.route('**/anime/info/8123', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8123, title: { english: 'VidZen TV Test' }, isAdult: false, format: 'TV', genres: ['Action'] })
+  }));
+  await page.route('**/anime/playback/8123?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://vidzen.fun/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
+  }));
+
+  await page.goto('/movie-site/#/watch/8123/5/sub/embed?title=VidZen%20TV%20Test');
+  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
+  await page.getByLabel('IMDb or TMDB ID').fill('tt4052886');
+  await page.getByLabel('VidZen season').fill('2');
+  await page.getByRole('button', { name: 'Add VidZen server' }).click();
+  await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://vidzen.fun/tv/tt4052886/2/5?autoPlay=true&theme=8179c2'
+  );
+
+  await page.reload();
+  await expect(page.getByLabel('IMDb or TMDB ID')).toHaveValue('tt4052886');
+  await expect(page.getByLabel('VidZen season')).toHaveValue('2');
+  await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
+});
+
+test('VidZen movie server uses the movie embed endpoint', async ({ page }) => {
+  await page.route('**/anime/info/8124', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8124, title: { english: 'VidZen Movie Test' }, isAdult: false, format: 'MOVIE', genres: ['Drama'] })
+  }));
+  await page.route('**/anime/playback/8124?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://vidzen.fun/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
+  }));
+
+  await page.goto('/movie-site/#/watch/8124/1/sub/embed?title=VidZen%20Movie%20Test');
+  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
+  await expect(page.getByLabel('VidZen season')).toHaveCount(0);
+  await page.getByLabel('IMDb or TMDB ID').fill('63174');
+  await page.getByRole('button', { name: 'Add VidZen server' }).click();
+  await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://vidzen.fun/movie/63174?autoPlay=true&theme=8179c2'
+  );
+});
+
 test('Cyberpunk: Edgerunners has a bundled poster fallback when catalogue artwork is missing', async ({ page }) => {
   await page.route('**/anime/home', route => route.fulfill({
     status: 200, contentType: 'application/json',
