@@ -743,8 +743,8 @@ async function fetchAniPmSource(anilistId,episode,audio,signal){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- if(key.includes('animenexus'))return 0;
- if(key.includes('anipm'))return 1;
+ if(key.includes('anipm'))return 0;
+ if(key.includes('animenexus'))return 1;
  if(key.includes('vidsrc'))return 2;
  if(key.includes('vidlink'))return 3;
  if(key.includes('2embed'))return 4;
