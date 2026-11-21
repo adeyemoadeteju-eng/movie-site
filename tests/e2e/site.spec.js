@@ -92,7 +92,7 @@ test('adult and hentai titles stay out of discovery, search, and direct title pa
   expect(dubRequests).toBe(0);
 });
 
-test('direct watch URLs also block adult titles before requesting either playback API', async ({ page }) => {
+test('direct watch URLs keep the adult gate ahead of the backup provider lookup', async ({ page }) => {
   let kuhiPlaybackRequests = 0;
   let anivexaRequests = 0;
   await page.route('**/anime/info/7100', route => route.fulfill({
@@ -101,7 +101,7 @@ test('direct watch URLs also block adult titles before requesting either playbac
   }));
   await page.route('**/anime/playback/7100?**', route => {
     kuhiPlaybackRequests += 1;
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] }) });
+    return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ detail: 'Adult and hentai titles are excluded from AniOrbit.' }) });
   });
   await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => {
     anivexaRequests += 1;
@@ -109,7 +109,7 @@ test('direct watch URLs also block adult titles before requesting either playbac
   });
   await page.goto('/movie-site/#/watch/7100/1/sub/embed?title=Adult%20Direct%20Watch');
   await expect(page.getByText('Adult and hentai titles are excluded from AniOrbit.')).toBeVisible();
-  expect(kuhiPlaybackRequests).toBe(0);
+  expect(kuhiPlaybackRequests).toBe(1);
   expect(anivexaRequests).toBe(0);
 });
 
@@ -691,7 +691,7 @@ test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
   await expect(page.locator('.ao-player iframe')).toHaveCount(0);
 });
 
-test('site visits warm both APIs once per 20-minute window', async ({ page }) => {
+test('site visits warm both APIs once per 10-minute window', async ({ page }) => {
   let kuhiPings = 0;
   let anivexaPings = 0;
   await page.route('https://anime-api-jqpp.onrender.com/docs', route => {
@@ -709,12 +709,12 @@ test('site visits warm both APIs once per 20-minute window', async ({ page }) =>
   await page.waitForTimeout(100);
   expect(kuhiPings).toBe(1);
   expect(anivexaPings).toBe(1);
-  await page.evaluate(() => localStorage.setItem('aniorbit-api-warmup-v1', String(Date.now() - 21 * 60 * 1000)));
+  await page.evaluate(() => localStorage.setItem('aniorbit-api-warmup-v1', String(Date.now() - 11 * 60 * 1000)));
   await page.reload();
   await expect.poll(() => kuhiPings).toBe(2);
   await expect.poll(() => anivexaPings).toBe(2);
 });
-test('player warning appears again when switching servers unless the user opts out', async ({ page }) => {
+test('switching servers after acknowledging the player warning does not reopen it', async ({ page }) => {
   await page.route('**/anime/playback/4243?episode=1**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
@@ -729,8 +729,8 @@ test('player warning appears again when switching servers unless the user opts o
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ao-player iframe')).toBeVisible();
   await page.getByRole('button', { name: 'Vidy' }).click();
-  await expect(page.locator('.ao-ao-warning')).toBeVisible();
-  await expect(page.locator('.ao-player iframe')).toHaveCount(0);
+  await expect(page.locator('.ao-ao-warning')).toHaveCount(0);
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', /vidy\.st\/anime\/4243\/1/);
 });
 
 
@@ -888,8 +888,8 @@ test('preferred playback server is remembered but an unreliable report takes pri
   await page.goto('/movie-site/#/watch/9100/1/sub/embed?title=Server%20Preference%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await page.locator('.ao-server-grid button').filter({ hasText: 'VidLink' }).click();
-  await expect(page.locator('.ao-ao-warning')).toBeVisible();
-  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-ao-warning')).toHaveCount(0);
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', /vidlink\.example\.test/);
   await page.getByRole('button', { name: 'Use as preferred server' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-preferred-servers-v1') || '{}').sub)).toBe('vidlink');
 
@@ -1112,4 +1112,49 @@ test('shared collections page explains sign-in requirement to guests', async ({ 
   await page.goto('/movie-site/#/shared-lists');
   await expect(page.getByRole('heading', { name: 'Shared collections' })).toBeVisible();
   await expect(page.getByText(/Sign in to create, view and manage shared anime collections/)).toBeVisible();
+});
+
+
+test('starts the main playback lookup while anime maturity verification is still running', async ({ page }) => {
+  let metadataResolved = false;
+  let playbackStartedBeforeMetadata = false;
+  await page.route('**/anime/info/7310', async route => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    metadataResolved = true;
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ id: 7310, isAdult: false, genres: ['Action'], title: { english: 'Parallel Playback Test' } })
+    });
+  });
+  await page.route('**/anime/playback/7310?episode=1**', route => {
+    playbackStartedBeforeMetadata = !metadataResolved;
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ sources: [{ name: 'Fast test server', url: 'https://player.example.test/parallel/7310' }] })
+    });
+  });
+  await page.goto('/movie-site/#/watch/7310/1/sub/embed?title=Parallel%20Playback%20Test');
+  await expect(page.locator('.ao-ao-warning')).toBeVisible();
+  expect(playbackStartedBeforeMetadata).toBe(true);
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
+});
+
+test('offers a quick next-server action after 15 seconds when an embedded player keeps loading', async ({ page }) => {
+  await page.route('**/anime/playback/7311?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'Slow embed', url: 'https://player.example.test/slow/7311' },
+      { name: 'Backup embed', url: 'https://player.example.test/backup/7311' }
+    ] })
+  }));
+  await page.route('https://api.aniskip.com/**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ found: false, results: [] })
+  }));
+  await page.goto('/movie-site/#/watch/7311/1/sub/embed?title=Slow%20Embed%20Test');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try next server' })).toBeVisible({ timeout: 20000 });
+  await page.getByRole('button', { name: 'Try next server' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://player.example.test/backup/7311');
 });
