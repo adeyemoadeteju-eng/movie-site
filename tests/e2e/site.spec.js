@@ -225,8 +225,8 @@ test('Anime Nexus and ani.pm appear as separate anime playback servers', async (
   }));
 
   await page.goto('/movie-site/#/watch/8125/3/sub/embed?title=Provider%20Test%20Anime');
-  await expect(page.locator('.ao-server-grid')).toContainText('Anime Nexus');
-  await expect(page.locator('.ao-server-grid')).toContainText('ani.pm');
+  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('Anime Nexus');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('ani.pm');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await page.getByRole('button', { name: /Anime Nexus/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
