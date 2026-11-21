@@ -703,7 +703,11 @@ async function fetchVidZenMapping(titleText,year,format,episode,signal){
  if(!metaResponse.ok)return null;
  const metaPayload=await metaResponse.json();
  const videos=Array.isArray(metaPayload?.meta?.videos)?metaPayload.meta.videos:[];
- const episodeMatches=videos.filter(video=>Number(video?.episode)===Number(episode)&&Number.isInteger(Number(video?.season))&&Number(video.season)>=1);
+ const episodeMatches=videos.filter(video=>{
+  if(Number(video?.episode)!==Number(episode)||!Number.isInteger(Number(video?.season))||Number(video.season)<1)return false;
+  const airedYear=Number(String(video?.firstAired||video?.released||'').slice(0,4))||0;
+  return !wantedYear||!airedYear||wantedYear===airedYear;
+ });
  const seasons=[...new Set(episodeMatches.map(video=>Number(video.season)))];
  if(seasons.length!==1)return null;
  return {id,season:seasons[0],format:'TV'};
