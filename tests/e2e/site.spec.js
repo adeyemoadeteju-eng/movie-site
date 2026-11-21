@@ -139,6 +139,7 @@ test('VidZen TV server is imported automatically from an exact title and episode
   await page.goto('/movie-site/#/watch/8123/5/sub/embed?title=VidZen%20TV%20Test');
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/tv/tt4052886/2/5?autoPlay=true&theme=8179c2'
@@ -173,6 +174,7 @@ test('VidZen picks the season matching the anime release year when episode numbe
   await page.goto('/movie-site/#/watch/8126/1/sub/embed?title=Frieren');
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/tv/tt22248376/1/1?autoPlay=true&theme=8179c2'
@@ -198,6 +200,7 @@ test('VidZen movie server is imported automatically from an exact title match', 
   await page.goto('/movie-site/#/watch/8124/1/sub/embed?title=VidZen%20Movie%20Test');
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/movie/tt1234567?autoPlay=true&theme=8179c2'
@@ -592,6 +595,7 @@ test('direct video player automatically jumps over a verified opening when auto-
   await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
@@ -785,9 +789,10 @@ test('watch page prioritizes AniEmbed and keeps broken API embeds hidden', async
   await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('VidLink');
   await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('2Embed');
   await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('Anivexa');
-  await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('ReAnime');
+  await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('VidCore');
   await expect(page.locator('.ao-server-grid')).not.toContainText('AnimeEmbed');
   await expect(page.locator('.ao-server-more')).toContainText('Vidy');
+  await expect(page.locator('.ao-server-more')).toContainText('ReAnime');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ao-player iframe');
@@ -931,6 +936,7 @@ test('direct video playback automatically stores its current progress', async ({
   }));
   await page.goto('/movie-site/#/watch/8081/1/sub/embed?title=Progress%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -998,6 +1004,7 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
   await page.addInitScript(() => localStorage.setItem('animedex-auto-skip-intro', 'false'));
   await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -1034,7 +1041,7 @@ test('preferred playback server is remembered but an unreliable report takes pri
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]'))).toContain('vidlink');
 
   await page.reload();
-  await expect(page.locator('.ao-server-grid button.active')).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button.active')).toContainText('AniEmbed');
 });
 
 test('direct video auto-next advances to the next episode when enabled', async ({ page }) => {
@@ -1051,6 +1058,7 @@ test('direct video auto-next advances to the next episode when enabled', async (
   }));
   await page.goto('/movie-site/#/watch/9101/1/sub/embed?title=Auto%20Next%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -1148,6 +1156,7 @@ test('direct playback automatically tries another healthy direct server after a 
   await page.goto('/movie-site/#/watch/88102/1/sub/embed?title=Automatic%20Server%20Recovery');
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Primary Direct' }).click();
 
   const video = page.locator('.ao-direct-player video');
   await expect(video).toHaveAttribute('src', /backup\.mp4/);
@@ -1287,6 +1296,7 @@ test('offers a quick next-server action after 15 seconds when an embedded player
   }));
   await page.goto('/movie-site/#/watch/7311/1/sub/embed?title=Slow%20Embed%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Slow embed' }).click();
   await expect(page.locator('.ao-player iframe')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try next server' })).toBeVisible({ timeout: 20000 });
   await page.getByRole('button', { name: 'Try next server' }).click();
