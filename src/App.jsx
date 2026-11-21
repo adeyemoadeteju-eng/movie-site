@@ -741,6 +741,36 @@ async function fetchAniPmSource(anilistId,episode,audio,signal){
  if(!lang||!/^https:\/\/ani\.pm\/embed\//i.test(url))return null;
  return {name:'ani.pm · '+lang.toUpperCase(),provider:'anipm',type:'embed',url};
 }
+function aniPmNextEpisodeFromMessage(raw,currentEpisode){
+ let root=raw;
+ if(typeof root==='string'){
+  try{root=JSON.parse(root)}catch{root={type:root};}
+ }
+ if(!root||typeof root!=='object')return null;
+ const objects=[root,root.data,root.payload,root.detail,root.event]
+  .filter(value=>value&&typeof value==='object'&&!Array.isArray(value));
+ const labels=[];
+ [root.type,root.event,root.action,root.command,root.method,root.name,root.message].forEach(value=>{
+  if(typeof value==='string')labels.push(value);
+ });
+ objects.slice(1).forEach(value=>{
+  [value.type,value.event,value.action,value.command,value.method,value.name,value.message].forEach(item=>{
+   if(typeof item==='string')labels.push(item);
+  });
+ });
+ const isNextSignal=labels.some(value=>/next|ended|finished|complete|episode.?change|video.?end/i.test(value));
+ if(!isNextSignal)return null;
+ const candidates=[];
+ objects.forEach(value=>{
+  ['nextEpisode','next_episode','nextEpisodeNumber','next_episode_number','episodeNumber','episode_number','episode','number'].forEach(key=>{
+   const item=value[key];
+   if(item&&typeof item==='object')candidates.push(item.number,item.episode,item.episodeNumber,item.episode_number);
+   else candidates.push(item);
+  });
+ });
+ const nextValue=candidates.map(Number).find(value=>Number.isInteger(value)&&value===currentEpisode+1);
+ return nextValue||currentEpisode+1;
+}
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
  if(key.includes('anipm'))return 0;
@@ -965,6 +995,8 @@ function Watch(){
  const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [loadingStage,setLoadingStage]=useState('Starting playback…');const [error,setError]=useState('');
  const [embedSlowHint,setEmbedSlowHint]=useState(false);
  const selectedSourceUrlRef=useRef(null);
+ const aniPmFrameRef=useRef(null);
+ const aniPmAdvanceHandledRef=useRef(false);
  const userSelectedSourceRef=useRef(false);
  const [showAdWarning,setShowAdWarning]=useState(()=>!hasHiddenAdWarning());
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
@@ -1231,6 +1263,26 @@ function Watch(){
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  useEffect(()=>{
+  if(source?.provider!=='anipm'){
+   aniPmAdvanceHandledRef.current=false;
+   return;
+  }
+  aniPmAdvanceHandledRef.current=false;
+  const onAniPmMessage=event=>{
+   const frame=aniPmFrameRef.current;
+   if(!frame||event.origin!=='https://ani.pm'||event.source!==frame.contentWindow)return;
+   const nextEpisode=aniPmNextEpisodeFromMessage(event.data,episodeNumber);
+   if(!nextEpisode||aniPmAdvanceHandledRef.current)return;
+   aniPmAdvanceHandledRef.current=true;
+   markEpisodeWatched(id,episodeNumber,audio);
+   const nextUrl='/watch/'+encodeURIComponent(id)+'/'+nextEpisode+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
+   navigate(nextUrl);
+  };
+  window.addEventListener('message',onAniPmMessage);
+  return()=>window.removeEventListener('message',onAniPmMessage);
+ },[source?.provider,source?.url,id,episodeNumber,audio,mal,name,navigate]);
+
+ useEffect(()=>{
   setEmbedSlowHint(false);
   if(!source||direct||showAdWarning)return;
   const timer=window.setTimeout(()=>setEmbedSlowHint(true),15000);
@@ -1262,7 +1314,7 @@ function Watch(){
     <button type="button" onClick={continueToVideo}>Continue to video</button>
    </div>
   </section>:direct?<DirectMediaPlayer key={source.url} source={source} intro={intro} outro={outro} autoSkip={autoSkip} id={id} episode={episodeNumber} audio={audio} autoNext={autoNext} onEnded={handleDirectEnded} onPlaybackError={handleDirectPlaybackError} speed={playbackSpeed}/>:<>
-   <div className="ao-player"><iframe key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>{embedSlowHint&&<div className="ao-embed-slow-hint" role="status"><span>If the video is still loading, this server may be stuck. Try another server.</span><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button></div>}
+   <div className="ao-player"><iframe ref={source.provider==='anipm'?aniPmFrameRef:null} key={source.url} src={source.url} title={source.name||'Episode player'} allow={source.provider==='vidy'?'encrypted-media; autoplay *; fullscreen *':'autoplay; fullscreen; picture-in-picture; encrypted-media'} allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/></div>{embedSlowHint&&<div className="ao-embed-slow-hint" role="status"><span>If the video is still loading, this server may be stuck. Try another server.</span><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button></div>}
    {intro&&<p className="ao-embed-skip-note">Opening timestamps: {formatSkipTime(intro.start)}–{formatSkipTime(intro.end)}. This server uses an external embedded player that does not expose seeking controls, so AniOrbit cannot automatically jump over the intro here. Choose a direct video server if one is offered.</p>}
   </>}
   {!direct&&!showAdWarning&&<section className="ao-embed-checkpoint" aria-label="Manual embedded playback checkpoint"><div><b>Save your place in this episode</b><small>Embedded players do not share their timeline with AniOrbit. Move this slider to roughly match the player, then save it manually.</small></div><label><span>{manualCheckpoint}%</span><input aria-label="Manual episode progress" type="range" min="0" max="95" step="5" value={manualCheckpoint} onChange={event=>setManualCheckpoint(Number(event.target.value))}/></label><button type="button" onClick={saveEmbedCheckpoint}>Save checkpoint</button>{checkpointMessage&&<p role="status">{checkpointMessage}</p>}</section>}
