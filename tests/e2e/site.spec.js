@@ -232,6 +232,10 @@ test('ani.pm is primary, with AniEmbed and Anime Nexus as separate playback choi
   await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('AniEmbed');
   await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('Anime Nexus');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://ani.pm/embed/ani/8125/3/sub'
+  );
   await page.getByRole('button', { name: /AniEmbed/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
