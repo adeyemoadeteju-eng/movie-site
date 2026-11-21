@@ -691,7 +691,7 @@ test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
   await expect(page.locator('.ao-player iframe')).toHaveCount(0);
 });
 
-test('site visits warm both APIs once per 10-minute window', async ({ page }) => {
+test('site visits warm both APIs once per 5-minute window', async ({ page }) => {
   let kuhiPings = 0;
   let anivexaPings = 0;
   await page.route('https://anime-api-jqpp.onrender.com/docs', route => {
@@ -709,7 +709,7 @@ test('site visits warm both APIs once per 10-minute window', async ({ page }) =>
   await page.waitForTimeout(100);
   expect(kuhiPings).toBe(1);
   expect(anivexaPings).toBe(1);
-  await page.evaluate(() => localStorage.setItem('aniorbit-api-warmup-v1', String(Date.now() - 11 * 60 * 1000)));
+  await page.evaluate(() => localStorage.setItem('aniorbit-api-warmup-v1', String(Date.now() - 6 * 60 * 1000)));
   await page.reload();
   await expect.poll(() => kuhiPings).toBe(2);
   await expect.poll(() => anivexaPings).toBe(2);
