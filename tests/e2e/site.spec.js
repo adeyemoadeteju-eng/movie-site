@@ -194,8 +194,8 @@ test('Anime Nexus and ani.pm appear as separate anime playback servers', async (
   await page.goto('/movie-site/#/watch/8125/3/sub/embed?title=Provider%20Test%20Anime');
   await expect(page.locator('.ao-server-grid')).toContainText('Anime Nexus');
   await expect(page.locator('.ao-server-grid')).toContainText('ani.pm');
-  await page.getByRole('button', { name: /Anime Nexus/ }).click();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /Anime Nexus/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://anime-nexus-blue.vercel.app/anime/8125/3/sub?fallback=true'
