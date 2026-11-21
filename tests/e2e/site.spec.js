@@ -1302,3 +1302,32 @@ test('offers a quick next-server action after 15 seconds when an embedded player
   await page.getByRole('button', { name: 'Try next server' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://player.example.test/backup/7311');
 });
+
+test('TV remote arrow keys move the visible focus between anime cards', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [
+        { id: 99001, title: { english: 'TV Remote First' }, format: 'TV', genres: ['Action'], coverImage: { large: '' } },
+        { id: 99002, title: { english: 'TV Remote Second' }, format: 'TV', genres: ['Comedy'], coverImage: { large: '' } },
+        { id: 99003, title: { english: 'TV Remote Third' }, format: 'TV', genres: ['Drama'], coverImage: { large: '' } }
+      ],
+      recent: []
+    })
+  }));
+
+  await page.goto(pagePath);
+  const cards = page.locator('.ao-grid .ao-tile');
+  await expect(cards.first()).toBeVisible();
+  await cards.first().focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cards.nth(1)).toBeFocused();
+  await expect(cards.nth(1)).toHaveClass(/ao-tv-focus/);
+  await page.keyboard.press('ArrowRight');
+  await expect(cards.nth(2)).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(cards.nth(1)).toBeFocused();
+  const focusStyle = await cards.nth(1).evaluate(element => getComputedStyle(element).outlineStyle);
+  expect(focusStyle).not.toBe('none');
+});
