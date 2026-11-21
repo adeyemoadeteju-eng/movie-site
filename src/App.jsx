@@ -670,7 +670,9 @@ function normalizeVidZenId(value){
 }
 function readVidZenMapping(animeId){
  try{
-  const saved=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}')[String(animeId)];
+  const current=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}');
+  const legacy=JSON.parse(localStorage.getItem('aniorbit-vidzen-id-map-v1')||'{}');
+  const saved=current[String(animeId)]||legacy[String(animeId)];
   const id=normalizeVidZenId(saved?.id);
   if(!id)return null;
   const season=Math.min(99,Math.max(1,Math.floor(Number(saved?.season)||1)));
