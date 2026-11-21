@@ -116,58 +116,59 @@ test('direct watch URLs keep the adult gate ahead of the backup provider lookup'
   expect(anivexaRequests).toBe(0);
 });
 
-test('VidZen TV server uses a saved IMDb/TMDB mapping with the chosen season and episode', async ({ page }) => {
+test('VidZen TV server is imported automatically from an exact title and episode match', async ({ page }) => {
   await page.route('**/anime/info/8123', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ id: 8123, title: { english: 'VidZen TV Test' }, isAdult: false, format: 'TV', genres: ['Action'] })
+    body: JSON.stringify({ id: 8123, title: { english: 'VidZen TV Test' }, isAdult: false, format: 'TV', seasonYear: 2023, genres: ['Action'] })
   }));
   await page.route('**/anime/playback/8123?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=VidZen%20TV%20Test.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt4052886', imdb_id: 'tt4052886', name: 'VidZen TV Test', releaseInfo: '2023' }] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/meta/series/tt4052886.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ meta: { videos: [{ season: 2, episode: 5 }] } })
   }));
   await page.route('https://vidzen.fun/**', route => route.fulfill({
     status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
   }));
 
   await page.goto('/movie-site/#/watch/8123/5/sub/embed?title=VidZen%20TV%20Test');
-  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
-  await page.getByLabel('IMDb or TMDB ID').fill('tt4052886');
-  await page.getByLabel('VidZen season').fill('2');
-  await page.getByRole('button', { name: 'Add VidZen server' }).click();
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/tv/tt4052886/2/5?autoPlay=true&theme=8179c2'
   );
-
   await page.reload();
-  await expect(page.getByLabel('IMDb or TMDB ID')).toHaveValue('tt4052886');
-  await expect(page.getByLabel('VidZen season')).toHaveValue('2');
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
 });
 
-test('VidZen movie server uses the movie embed endpoint', async ({ page }) => {
+test('VidZen movie server is imported automatically from an exact title match', async ({ page }) => {
   await page.route('**/anime/info/8124', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ id: 8124, title: { english: 'VidZen Movie Test' }, isAdult: false, format: 'MOVIE', genres: ['Drama'] })
+    body: JSON.stringify({ id: 8124, title: { english: 'VidZen Movie Test' }, isAdult: false, format: 'MOVIE', seasonYear: 2021, genres: ['Drama'] })
   }));
   await page.route('**/anime/playback/8124?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/movie/top/search=VidZen%20Movie%20Test.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt1234567', imdb_id: 'tt1234567', name: 'VidZen Movie Test', releaseInfo: '2021' }] })
   }));
   await page.route('https://vidzen.fun/**', route => route.fulfill({
     status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
   }));
 
   await page.goto('/movie-site/#/watch/8124/1/sub/embed?title=VidZen%20Movie%20Test');
-  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
-  await expect(page.getByLabel('VidZen season')).toHaveCount(0);
-  await page.getByLabel('IMDb or TMDB ID').fill('63174');
-  await page.getByRole('button', { name: 'Add VidZen server' }).click();
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
-    'https://vidzen.fun/movie/63174?autoPlay=true&theme=8179c2'
+    'https://vidzen.fun/movie/tt1234567?autoPlay=true&theme=8179c2'
   );
 });
 
