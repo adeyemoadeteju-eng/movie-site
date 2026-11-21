@@ -1040,6 +1040,7 @@ function Watch(){
   let slowStartTimer=null;
   const anivexaController=new AbortController();
   selectedSourceUrlRef.current=null;
+  setMediaFormat('');
   setLoading(true);setLoadingStage('Starting playback…');setError('');setSources([]);setActive(0);setEmbedSlowHint(false);
   slowStartTimer=window.setTimeout(()=>{
    if(live)setLoadingStage('The streaming service is waking up. Checking your episode…');
@@ -1156,7 +1157,7 @@ function Watch(){
   };
  },[id,episode,audio,mal]);
  useEffect(()=>{
-  const vidzenSource=buildVidZenSource(id,episode,mediaFormat,vidzenMapping);
+  const vidzenSource=buildVidZenSource(id,episode,mediaFormat,readVidZenMapping(id));
   setSources(current=>{
    const selectedUrl=selectedSourceUrlRef.current;
    const withoutVidZen=current.filter(item=>item.provider!=='vidzen');
