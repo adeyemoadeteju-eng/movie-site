@@ -10,4 +10,6 @@ const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === 'true'
 export default defineConfig({
   plugins: [react()],
   base: isGitHubPagesBuild ? '/movie-site/' : '/',
+  // Older Smart TV browsers often lag behind desktop Chrome; keep emitted syntax conservative.
+  build: { target: 'es2015' },
 })
