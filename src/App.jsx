@@ -1036,6 +1036,7 @@ function Watch(){
   let anivexaDone=false;
   let anivexaStarted=false;
   let primaryError='';
+  let verifiedFormat='';
   let primarySources=[];
   let anivexaSources=[];
   let anivexaTimer=null;
@@ -1049,7 +1050,8 @@ function Watch(){
 
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
-   const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
+   const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
     let chosenIndex=selectedSourceUrlRef.current
@@ -1107,7 +1109,8 @@ function Watch(){
      if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
      return;
     }
-    setMediaFormat(String(metadata?.format||'TV').toUpperCase());
+    verifiedFormat=String(metadata?.format||'TV').toUpperCase();
+    setMediaFormat(verifiedFormat);
     setMediaFormatId(String(id));
     metadataAllowed=true;
     refresh();
