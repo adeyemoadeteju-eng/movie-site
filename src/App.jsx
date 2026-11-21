@@ -726,6 +726,11 @@ function buildAnimeNexusSource(anilistId,episode,audio){
  const url='https://anime-nexus-blue.vercel.app/anime/'+encodeURIComponent(anilistId)+'/'+Math.max(1,Math.floor(Number(episode)||1))+'/'+lang+'?fallback=true';
  return {name:'Anime Nexus · '+lang.toUpperCase(),provider:'animenexus',type:'embed',url};
 }
+function buildAniEmbedSource(anilistId,episode,audio){
+ const lang=audio==='dub'?'dub':'sub';
+ const url='https://aniembed.se/e/'+encodeURIComponent(anilistId)+'/'+Math.max(1,Math.floor(Number(episode)||1))+'?lang='+lang+'&autoplay=1';
+ return {name:'AniEmbed · '+lang.toUpperCase(),provider:'aniembed-direct',type:'embed',url};
+}
 async function fetchAniPmSource(anilistId,episode,audio,signal){
  const response=await fetch('https://ani.pm/api/partner/v1/series/'+encodeURIComponent(anilistId),{
   cache:'no-store',headers:{Accept:'application/json'},signal
@@ -744,21 +749,22 @@ async function fetchAniPmSource(anilistId,episode,audio,signal){
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
  if(key.includes('anipm'))return 0;
- if(key.includes('animenexus'))return 1;
- if(key.includes('vidsrc'))return 2;
- if(key.includes('vidlink'))return 3;
- if(key.includes('2embed'))return 4;
- if(key.includes('anivexa'))return 5;
- if(isDirectMedia(source))return 6;
- if(key.includes('vidcore'))return 7;
- if(key.includes('anikoto'))return 8;
- if(key.includes('vidy'))return 9;
+ if(key.includes('aniembed'))return 1;
+ if(key.includes('animenexus'))return 2;
+ if(key.includes('vidsrc'))return 3;
+ if(key.includes('vidlink'))return 4;
+ if(key.includes('2embed'))return 5;
+ if(key.includes('anivexa'))return 6;
+ if(isDirectMedia(source))return 7;
+ if(key.includes('vidcore'))return 8;
+ if(key.includes('anikoto'))return 9;
+ if(key.includes('vidy'))return 10;
  if(key.includes('vidzen'))return 14;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- return key.includes('aniembed')||key.includes('animeembed');
+ return (key.includes('aniembed')||key.includes('animeembed'))&&source?.provider!=='aniembed-direct';
 }
 function rankPlaybackSources(primary,secondary,own){
  const unique=new Set();
@@ -1070,8 +1076,9 @@ function Watch(){
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
    const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
+   const aniEmbedSource=buildAniEmbedSource(id,episode,audio);
    const animeNexusSource=buildAnimeNexusSource(id,episode,audio);
-   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,animeNexusSource,aniPmSource].filter(Boolean));
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,aniEmbedSource,animeNexusSource,aniPmSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
     let chosenIndex=selectedSourceUrlRef.current
