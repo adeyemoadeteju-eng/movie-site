@@ -1302,3 +1302,40 @@ test('offers a quick next-server action after 15 seconds when an embedded player
   await page.getByRole('button', { name: 'Try next server' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://player.example.test/backup/7311');
 });
+
+test('ani.pm next-episode message updates AniOrbit route and watch history', async ({ page }) => {
+  await page.route('https://ani.pm/api/partner/v1/series/99003', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ data: { episodeList: [
+      { number: 1, available: { sub: true }, embed: { sub: 'https://ani.pm/embed/99003-1' } },
+      { number: 2, available: { sub: true }, embed: { sub: 'https://ani.pm/embed/99003-2' } }
+    ] } })
+  }));
+  await page.route('https://ani.pm/embed/99003-1', route => route.fulfill({
+    status: 200, contentType: 'text/html',
+    body: '<!doctype html><button id="next">Ani.pm next episode</button><script>document.getElementById("next").addEventListener("click",()=>parent.postMessage({type:"nextEpisode",episode:2},"*"));</script>'
+  }));
+  await page.route('https://ani.pm/embed/99003-2', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>Episode 2</title>'
+  }));
+  await page.route('**/anime/playback/99003?episode=1**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+
+  await page.goto('/movie-site/#/watch/99003/1/sub/embed?title=Ani.pm%20Next%20Sync');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  const player = page.frameLocator('.ao-player iframe');
+  await expect(player.getByRole('button', { name: 'Ani.pm next episode' })).toBeVisible();
+  await player.getByRole('button', { name: 'Ani.pm next episode' }).click();
+
+  await expect(page).toHaveURL(/#\\/watch\\/99003\\/2\\/sub\\/embed/);
+  await expect(page.getByRole('heading', { name: 'Ani.pm Next Sync - Episode 2' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.watchedEpisodes?.['99003'] || [];
+  })).toContain(1);
+  await expect.poll(() => page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('animedex-library-v1') || '{}');
+    return library.history?.find(item => String(item.id) === '99003')?.lastEpisode;
+  })).toBe(2);
+});
