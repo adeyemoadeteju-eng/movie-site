@@ -743,16 +743,16 @@ async function fetchAniPmSource(anilistId,episode,audio,signal){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- if(key.includes('vidsrc'))return 0;
- if(key.includes('vidlink'))return 1;
- if(key.includes('2embed'))return 2;
- if(key.includes('anivexa'))return 3;
- if(isDirectMedia(source))return 4;
- if(key.includes('anipm'))return 9;
- if(key.includes('vidcore'))return 10;
- if(key.includes('anikoto'))return 11;
- if(key.includes('vidy'))return 12;
- if(key.includes('animenexus'))return 13;
+ if(key.includes('animenexus'))return 0;
+ if(key.includes('anipm'))return 1;
+ if(key.includes('vidsrc'))return 2;
+ if(key.includes('vidlink'))return 3;
+ if(key.includes('2embed'))return 4;
+ if(key.includes('anivexa'))return 5;
+ if(isDirectMedia(source))return 6;
+ if(key.includes('vidcore'))return 7;
+ if(key.includes('anikoto'))return 8;
+ if(key.includes('vidy'))return 9;
  if(key.includes('vidzen'))return 14;
  return 50;
 }
@@ -1266,8 +1266,8 @@ function Watch(){
   {!direct&&!showAdWarning&&<section className="ao-embed-checkpoint" aria-label="Manual embedded playback checkpoint"><div><b>Save your place in this episode</b><small>Embedded players do not share their timeline with AniOrbit. Move this slider to roughly match the player, then save it manually.</small></div><label><span>{manualCheckpoint}%</span><input aria-label="Manual episode progress" type="range" min="0" max="95" step="5" value={manualCheckpoint} onChange={event=>setManualCheckpoint(Number(event.target.value))}/></label><button type="button" onClick={saveEmbedCheckpoint}>Save checkpoint</button>{checkpointMessage&&<p role="status">{checkpointMessage}</p>}</section>}
   <div className="ao-servers">
    <div className="ao-servers-titlebar"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
-   <div className="ao-server-grid">{sources.slice(0,4).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ao-server-number">0{i+1}</span><span className="ao-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ao-server-active">ACTIVE</span>}</button>)}</div>
-   {sources.length>4&&<details className="ao-server-more" open={active>=4}><summary><span>More servers</span><small>{sources.length-4} additional options</small></summary><div className="ao-server-secondary">{sources.slice(4).map((s,offset)=>{const i=offset+4;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+   <div className="ao-server-grid">{sources.slice(0,6).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ao-server-number">0{i+1}</span><span className="ao-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ao-server-active">ACTIVE</span>}</button>)}</div>
+   {sources.length>6&&<details className="ao-server-more" open={active>=6}><summary><span>More servers</span><small>{sources.length-6} additional options</small></summary><div className="ao-server-secondary">{sources.slice(6).map((s,offset)=>{const i=offset+6;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
    {source&&<div className="ao-server-tools"><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button><button type="button" onClick={makePreferred}>Use as preferred server</button><button type="button" onClick={reportUnreliable}>Mark as not working</button><span>{isServerReportedUnreliable(source)?'Marked unreliable on this device. ':''}{preferredMessage}</span></div>}
   </div>
  </>:<p className="ao-error">{error||'No source available.'}</p>}
