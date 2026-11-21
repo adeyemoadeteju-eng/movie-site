@@ -116,62 +116,98 @@ test('direct watch URLs keep the adult gate ahead of the backup provider lookup'
   expect(anivexaRequests).toBe(0);
 });
 
-test('VidZen TV server uses a saved IMDb/TMDB mapping with the chosen season and episode', async ({ page }) => {
+test('VidZen TV server is imported automatically from an exact title and episode match', async ({ page }) => {
   await page.route('**/anime/info/8123', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ id: 8123, title: { english: 'VidZen TV Test' }, isAdult: false, format: 'TV', genres: ['Action'] })
+    body: JSON.stringify({ id: 8123, title: { english: 'VidZen TV Test' }, isAdult: false, format: 'TV', seasonYear: 2023, genres: ['Action'] })
   }));
   await page.route('**/anime/playback/8123?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=VidZen%20TV%20Test.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt4052886', imdb_id: 'tt4052886', name: 'VidZen TV Test', releaseInfo: '2023' }] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/meta/series/tt4052886.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ meta: { videos: [{ season: 2, episode: 5 }] } })
   }));
   await page.route('https://vidzen.fun/**', route => route.fulfill({
     status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
   }));
 
   await page.goto('/movie-site/#/watch/8123/5/sub/embed?title=VidZen%20TV%20Test');
-  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
-  await page.getByLabel('IMDb or TMDB ID').fill('tt4052886');
-  await page.getByLabel('VidZen season').fill('2');
-  await page.getByRole('button', { name: 'Add VidZen server' }).click();
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://vidzen.fun/tv/tt4052886/2/5?autoPlay=true&theme=8179c2'
   );
-
   await page.reload();
-  await expect(page.getByLabel('IMDb or TMDB ID')).toHaveValue('tt4052886');
-  await expect(page.getByLabel('VidZen season')).toHaveValue('2');
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
 });
 
-test('VidZen movie server uses the movie embed endpoint', async ({ page }) => {
+test('VidZen picks the season matching the anime release year when episode numbers repeat', async ({ page }) => {
+  await page.route('**/anime/info/8126', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8126, title: { english: 'Frieren: Beyond Journey\'s End' }, isAdult: false, format: 'TV', seasonYear: 2023, genres: ['Adventure'] })
+  }));
+  await page.route('**/anime/playback/8126?**', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/series/top/search=Frieren*End.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt22248376', imdb_id: 'tt22248376', name: 'Frieren: Beyond Journey\'s End', releaseInfo: '2023' }] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/meta/series/tt22248376.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ meta: { videos: [
+      { season: 0, episode: 1, firstAired: '2023-10-11T14:00:00.000Z' },
+      { season: 1, episode: 1, firstAired: '2023-09-29T00:00:00.000Z' },
+      { season: 2, episode: 1, firstAired: '2026-01-16T00:00:00.000Z' }
+    ] } })
+  }));
+  await page.route('https://vidzen.fun/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
+  }));
+  await page.goto('/movie-site/#/watch/8126/1/sub/embed?title=Frieren');
+  await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://vidzen.fun/tv/tt22248376/1/1?autoPlay=true&theme=8179c2'
+  );
+});
+
+test('VidZen movie server is imported automatically from an exact title match', async ({ page }) => {
   await page.route('**/anime/info/8124', route => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ id: 8124, title: { english: 'VidZen Movie Test' }, isAdult: false, format: 'MOVIE', genres: ['Drama'] })
+    body: JSON.stringify({ id: 8124, title: { english: 'VidZen Movie Test' }, isAdult: false, format: 'MOVIE', seasonYear: 2021, genres: ['Drama'] })
   }));
   await page.route('**/anime/playback/8124?**', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ sources: [] })
+  }));
+  await page.route('https://v3-cinemeta.strem.io/catalog/movie/top/search=VidZen%20Movie%20Test.json', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ metas: [{ id: 'tt1234567', imdb_id: 'tt1234567', name: 'VidZen Movie Test', releaseInfo: '2021' }] })
   }));
   await page.route('https://vidzen.fun/**', route => route.fulfill({
     status: 200, contentType: 'text/html', body: '<!doctype html><title>VidZen mock player</title>'
   }));
 
   await page.goto('/movie-site/#/watch/8124/1/sub/embed?title=VidZen%20Movie%20Test');
-  await expect(page.getByLabel('IMDb or TMDB ID')).toBeVisible();
-  await expect(page.getByLabel('VidZen season')).toHaveCount(0);
-  await page.getByLabel('IMDb or TMDB ID').fill('63174');
-  await page.getByRole('button', { name: 'Add VidZen server' }).click();
   await expect(page.locator('.ao-server-grid')).toContainText('VidZen');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /VidZen/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
-    'https://vidzen.fun/movie/63174?autoPlay=true&theme=8179c2'
+    'https://vidzen.fun/movie/tt1234567?autoPlay=true&theme=8179c2'
   );
 });
 
-test('Anime Nexus and ani.pm appear as separate anime playback servers', async ({ page }) => {
+test('ani.pm is primary and AniEmbed is the next playback choice', async ({ page }) => {
   await page.route('**/anime/info/8125', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ id: 8125, title: { english: 'Provider Test Anime' }, isAdult: false, format: 'TV', genres: ['Action'] })
@@ -187,18 +223,22 @@ test('Anime Nexus and ani.pm appear as separate anime playback servers', async (
       embed: { sub: 'https://ani.pm/embed/ani/8125/3/sub' }
     }] } })
   }));
-  await page.route('https://anime-nexus-blue.vercel.app/**', route => route.fulfill({
-    status: 200, contentType: 'text/html', body: '<!doctype html><title>Anime Nexus mock</title>'
+  await page.route('https://aniembed.se/**', route => route.fulfill({
+    status: 200, contentType: 'text/html', body: '<!doctype html><title>AniEmbed mock</title>'
   }));
 
   await page.goto('/movie-site/#/watch/8125/3/sub/embed?title=Provider%20Test%20Anime');
-  await expect(page.locator('.ao-server-grid')).toContainText('Anime Nexus');
-  await expect(page.locator('.ao-server-grid')).toContainText('ani.pm');
+  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('ani.pm');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('AniEmbed');
   await page.getByRole('button', { name: 'Continue to video' }).click();
-  await page.getByRole('button', { name: /Anime Nexus/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
-    'https://anime-nexus-blue.vercel.app/anime/8125/3/sub?fallback=true'
+    'https://ani.pm/embed/ani/8125/3/sub'
+  );
+  await page.getByRole('button', { name: /AniEmbed/ }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
+    'src',
+    'https://aniembed.se/e/8125/3?lang=sub&autoplay=1'
   );
   await page.getByRole('button', { name: /ani\.pm/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
@@ -555,6 +595,7 @@ test('direct video player automatically jumps over a verified opening when auto-
   await page.goto('/movie-site/#/watch/202/1/sub/embed?mal=9202&title=Direct%20Skip%20Test');
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await expect(page.getByText('Opening detected: 1:30–3:00')).toBeVisible();
@@ -712,7 +753,7 @@ test('anime detail pages use the saved default audio preference for episode link
 });
 
 
-test('watch page shows VidSrc, VidLink, 2Embed, and Anivexa as its top four and hides broken embeds', async ({ page }) => {
+test('watch page prioritizes AniEmbed and keeps broken API embeds hidden', async ({ page }) => {
   await page.route('**/anime/playback/4242?episode=7**', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ sources: [
@@ -742,20 +783,22 @@ test('watch page shows VidSrc, VidLink, 2Embed, and Anivexa as its top four and 
   await page.goto('/movie-site/#/watch/4242/7/sub/embed?title=Player%20Safety%20Test');
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await expect(page.locator('.ao-player iframe')).toHaveCount(0);
-  await expect(page.locator('.ao-server-grid button')).toHaveCount(4);
-  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('VidSrc');
-  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidLink');
-  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('2Embed');
-  await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('Anivexa');
-  await expect(page.locator('.ao-server-more')).not.toContainText('AniEmbed');
-  await expect(page.locator('.ao-server-more')).not.toContainText('AnimeEmbed');
-  await expect(page.locator('.ao-server-more')).toContainText('VidCore');
+  await expect(page.locator('.ao-server-grid button')).toHaveCount(6);
+  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('AniEmbed');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('VidLink');
+  await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('2Embed');
+  await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('Anivexa');
+  await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('VidCore');
+  await expect(page.locator('.ao-server-grid')).not.toContainText('AnimeEmbed');
+  await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('ReAnime');
+  await expect(page.locator('.ao-server-more')).toContainText('Vidy');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ao-player iframe');
   await expect(frame).toBeVisible();
   await expect(frame).not.toHaveAttribute('sandbox');
-  await expect(frame).toHaveAttribute('src', /vidsrc\.mov\/embed\/tv\/5\/2\/7/);
+  await expect(frame).toHaveAttribute('src', 'https://aniembed.se/e/4242/7?lang=sub&autoplay=1');
   await page.getByRole('button', { name: /VidLink/ }).click();
   await expect(frame).toHaveAttribute('src', /vidlink\.pro\/tv\/5\/2\/7/);
   await page.getByRole('button', { name: /2Embed/ }).click();
@@ -778,9 +821,11 @@ test('Anivexa is a playback fallback when Kuhi fails', async ({ page }) => {
     body: JSON.stringify({ stream_url: 'https://streams.example.test/fallback.m3u8', streams: [] })
   }));
   await page.goto('/movie-site/#/watch/99001/1/sub/embed?title=Anivexa%20Fallback');
-  await expect(page.locator('.ao-server-grid button').first()).toContainText('Anivexa');
+  await expect(page.locator('.ao-server-grid button').first()).toContainText('AniEmbed');
+  await expect(page.locator('.ao-server-grid button').filter({ hasText: 'Anivexa' })).toBeVisible();
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.getByRole('button', { name: /Anivexa/ }).click();
   await expect(page.locator('.ao-direct-player video')).toBeVisible();
   await expect(page.locator('.ao-player iframe')).toHaveCount(0);
 });
@@ -891,6 +936,7 @@ test('direct video playback automatically stores its current progress', async ({
   }));
   await page.goto('/movie-site/#/watch/8081/1/sub/embed?title=Progress%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -958,6 +1004,7 @@ test('direct video detects and offers a verified ending skip', async ({ page }) 
   await page.addInitScript(() => localStorage.setItem('animedex-auto-skip-intro', 'false'));
   await page.goto('/movie-site/#/watch/9002/1/sub/embed?mal=9002&title=Ending%20Skip%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -994,7 +1041,7 @@ test('preferred playback server is remembered but an unreliable report takes pri
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('aniorbit-unreliable-servers-v1') || '[]'))).toContain('vidlink');
 
   await page.reload();
-  await expect(page.locator('.ao-server-grid button.active')).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button.active')).toContainText('AniEmbed');
 });
 
 test('direct video auto-next advances to the next episode when enabled', async ({ page }) => {
@@ -1011,6 +1058,7 @@ test('direct video auto-next advances to the next episode when enabled', async (
   }));
   await page.goto('/movie-site/#/watch/9101/1/sub/embed?title=Auto%20Next%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Direct video' }).click();
   const video = page.locator('.ao-direct-player video');
   await expect(video).toBeVisible();
   await page.evaluate(() => {
@@ -1108,6 +1156,7 @@ test('direct playback automatically tries another healthy direct server after a 
   await page.goto('/movie-site/#/watch/88102/1/sub/embed?title=Automatic%20Server%20Recovery');
   await expect(page.locator('.ao-ao-warning')).toBeVisible();
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Primary Direct' }).click();
 
   const video = page.locator('.ao-direct-player video');
   await expect(video).toHaveAttribute('src', /backup\.mp4/);
@@ -1247,6 +1296,7 @@ test('offers a quick next-server action after 15 seconds when an embedded player
   }));
   await page.goto('/movie-site/#/watch/7311/1/sub/embed?title=Slow%20Embed%20Test');
   await page.getByRole('button', { name: 'Continue to video' }).click();
+  await page.locator('.ao-server-grid button').filter({ hasText: 'Slow embed' }).click();
   await expect(page.locator('.ao-player iframe')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try next server' })).toBeVisible({ timeout: 20000 });
   await page.getByRole('button', { name: 'Try next server' }).click();

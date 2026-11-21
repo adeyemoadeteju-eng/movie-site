@@ -661,7 +661,7 @@ function isDirectMedia(source){
 }
 const AD_WARNING_KEY='aniorbit-hide-third-party-warning-v1';
 function hasHiddenAdWarning(){try{return localStorage.getItem(AD_WARNING_KEY)==='true'}catch{return false}}
-const VIDZEN_MAP_KEY='aniorbit-vidzen-id-map-v1';
+const VIDZEN_MAP_KEY='aniorbit-vidzen-auto-map-v1';
 function normalizeVidZenId(value){
  const id=String(value||'').trim();
  if(/^[1-9]\d{0,11}$/.test(id))return id;
@@ -670,18 +670,47 @@ function normalizeVidZenId(value){
 }
 function readVidZenMapping(animeId){
  try{
-  const saved=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}')[String(animeId)];
+  const current=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}');
+  const legacy=JSON.parse(localStorage.getItem('aniorbit-vidzen-id-map-v1')||'{}');
+  const saved=current[String(animeId)]||legacy[String(animeId)];
   const id=normalizeVidZenId(saved?.id);
   if(!id)return null;
   const season=Math.min(99,Math.max(1,Math.floor(Number(saved?.season)||1)));
-  return {id,season};
+  return {id,season,format:saved?.format||'TV'};
  }catch{return null}
 }
-function writeVidZenMapping(animeId,mapping){
- const saved=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}');
- if(mapping)saved[String(animeId)]=mapping;
- else delete saved[String(animeId)];
- localStorage.setItem(VIDZEN_MAP_KEY,JSON.stringify(saved));
+function normalizeCatalogTitle(value){
+ return String(value||'').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
+}
+async function fetchVidZenMapping(titleText,year,format,episode,signal){
+ const kind=String(format).toUpperCase()==='MOVIE'?'movie':'series';
+ const query=encodeURIComponent(String(titleText||'').trim());
+ if(!query)return null;
+ const catalog=await fetch('https://v3-cinemeta.strem.io/catalog/'+kind+'/top/search='+query+'.json',{signal,cache:'no-store'});
+ if(!catalog.ok)return null;
+ const payload=await catalog.json();
+ const wanted=normalizeCatalogTitle(titleText);
+ const wantedYear=Number(year)||0;
+ const matches=(Array.isArray(payload?.metas)?payload.metas:[]).filter(item=>{
+  const sameTitle=normalizeCatalogTitle(item?.name)===wanted;
+  const itemYear=Number(String(item?.releaseInfo||'').match(/\b(19|20)\d{2}\b/)?.[0])||0;
+  return sameTitle&&(!wantedYear||!itemYear||wantedYear===itemYear)&&normalizeVidZenId(item?.imdb_id||item?.id);
+ });
+ if(matches.length!==1)return null;
+ const id=normalizeVidZenId(matches[0].imdb_id||matches[0].id);
+ if(kind==='movie')return {id,season:1,format:'MOVIE'};
+ const metaResponse=await fetch('https://v3-cinemeta.strem.io/meta/series/'+encodeURIComponent(id)+'.json',{signal,cache:'no-store'});
+ if(!metaResponse.ok)return null;
+ const metaPayload=await metaResponse.json();
+ const videos=Array.isArray(metaPayload?.meta?.videos)?metaPayload.meta.videos:[];
+ const episodeMatches=videos.filter(video=>{
+  if(Number(video?.episode)!==Number(episode)||!Number.isInteger(Number(video?.season))||Number(video.season)<1)return false;
+  const airedYear=Number(String(video?.firstAired||video?.released||'').slice(0,4))||0;
+  return !wantedYear||!airedYear||wantedYear===airedYear;
+ });
+ const seasons=[...new Set(episodeMatches.map(video=>Number(video.season)))];
+ if(seasons.length!==1)return null;
+ return {id,season:seasons[0],format:'TV'};
 }
 function buildVidZenSource(animeId,episode,format,mapping){
  const id=normalizeVidZenId(mapping?.id);
@@ -692,10 +721,10 @@ function buildVidZenSource(animeId,episode,format,mapping){
   :'https://vidzen.fun/tv/'+encodeURIComponent(id)+'/'+Math.min(99,Math.max(1,Math.floor(Number(mapping.season)||1)))+'/'+Math.max(1,Math.floor(Number(episode)||1))+query;
  return {name:'VidZen · Planetary Fleet',provider:'vidzen',type:'embed',url};
 }
-function buildAnimeNexusSource(anilistId,episode,audio){
+function buildAniEmbedSource(anilistId,episode,audio){
  const lang=audio==='dub'?'dub':'sub';
- const url='https://anime-nexus-blue.vercel.app/anime/'+encodeURIComponent(anilistId)+'/'+Math.max(1,Math.floor(Number(episode)||1))+'/'+lang+'?fallback=true';
- return {name:'Anime Nexus · '+lang.toUpperCase(),provider:'animenexus',type:'embed',url};
+ const url='https://aniembed.se/e/'+encodeURIComponent(anilistId)+'/'+Math.max(1,Math.floor(Number(episode)||1))+'?lang='+lang+'&autoplay=1';
+ return {name:'AniEmbed · '+lang.toUpperCase(),provider:'aniembed-direct',type:'embed',url};
 }
 async function fetchAniPmSource(anilistId,episode,audio,signal){
  const response=await fetch('https://ani.pm/api/partner/v1/series/'+encodeURIComponent(anilistId),{
@@ -714,22 +743,22 @@ async function fetchAniPmSource(anilistId,episode,audio,signal){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- if(key.includes('vidsrc'))return 0;
- if(key.includes('vidlink'))return 1;
- if(key.includes('2embed'))return 2;
- if(key.includes('anivexa'))return 3;
- if(isDirectMedia(source))return 4;
- if(key.includes('anipm'))return 9;
- if(key.includes('vidcore'))return 10;
- if(key.includes('anikoto'))return 11;
- if(key.includes('vidy'))return 12;
- if(key.includes('animenexus'))return 13;
+ if(key.includes('anipm'))return 0;
+ if(key.includes('aniembed'))return 1;
+ if(key.includes('vidsrc'))return 2;
+ if(key.includes('vidlink'))return 3;
+ if(key.includes('2embed'))return 4;
+ if(key.includes('anivexa'))return 5;
+ if(isDirectMedia(source))return 6;
+ if(key.includes('vidcore'))return 7;
+ if(key.includes('anikoto'))return 8;
+ if(key.includes('vidy'))return 9;
  if(key.includes('vidzen'))return 14;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- return key.includes('aniembed')||key.includes('animeembed');
+ return (key.includes('aniembed')||key.includes('animeembed'))&&source?.provider!=='aniembed-direct';
 }
 function rankPlaybackSources(primary,secondary,own){
  const unique=new Set();
@@ -936,11 +965,12 @@ function Watch(){
  const [sources,setSources]=useState([]);const [active,setActive]=useState(0);const [loading,setLoading]=useState(true);const [loadingStage,setLoadingStage]=useState('Starting playback…');const [error,setError]=useState('');
  const [embedSlowHint,setEmbedSlowHint]=useState(false);
  const selectedSourceUrlRef=useRef(null);
+ const userSelectedSourceRef=useRef(false);
  const [showAdWarning,setShowAdWarning]=useState(()=>!hasHiddenAdWarning());
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
  const [warningAcknowledged,setWarningAcknowledged]=useState(()=>hasHiddenAdWarning());
  const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setWarningAcknowledged(true);setShowAdWarning(false);setDontShowAdWarning(false)};
- const selectServer=index=>{setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
+ const selectServer=index=>{userSelectedSourceRef.current=true;setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [outro,setOutro]=useState(null);
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
@@ -956,46 +986,12 @@ function Watch(){
  const [mediaFormat,setMediaFormat]=useState('');
  const [mediaFormatId,setMediaFormatId]=useState('');
  const [vidzenMapping,setVidzenMapping]=useState(()=>readVidZenMapping(id));
- const [vidzenIdInput,setVidzenIdInput]=useState(()=>readVidZenMapping(id)?.id||'');
- const [vidzenSeasonInput,setVidzenSeasonInput]=useState(()=>String(readVidZenMapping(id)?.season||1));
- const [vidzenMessage,setVidzenMessage]=useState('');
  const [preferredMessage,setPreferredMessage]=useState('');
  useEffect(()=>{
-  const saved=readVidZenMapping(id);
-  setVidzenMapping(saved);
-  setVidzenIdInput(saved?.id||'');
-  setVidzenSeasonInput(String(saved?.season||1));
+  setVidzenMapping(readVidZenMapping(id));
   setMediaFormat('');
   setMediaFormatId('');
-  setVidzenMessage('');
  },[id]);
- const saveVidZenServer=event=>{
-  event.preventDefault();
-  const mappedId=normalizeVidZenId(vidzenIdInput);
-  if(!mappedId){
-   setVidzenMessage('Enter a numeric TMDB ID or an IMDb ID beginning with tt.');
-   return;
-  }
-  const season=Math.min(99,Math.max(1,Math.floor(Number(vidzenSeasonInput)||1)));
-  const next={id:mappedId,season};
-  try{
-   writeVidZenMapping(id,next);
-   setVidzenMapping(next);
-   setVidzenSeasonInput(String(season));
-   setVidzenMessage('VidZen is saved for this anime on this device.');
-  }catch{
-   setVidzenMessage('AniOrbit could not save this VidZen mapping in browser storage.');
-  }
- };
- const removeVidZenServer=()=>{
-  try{
-   writeVidZenMapping(id,null);
-   setVidzenMapping(null);
-   setVidzenIdInput('');
-   setVidzenSeasonInput('1');
-   setVidzenMessage('VidZen mapping removed from this device.');
-  }catch{setVidzenMessage('AniOrbit could not remove this VidZen mapping.');}
- };
  useEffect(()=>{setManualCheckpoint(Math.round(Number(getEpisodeProgress(readLibrary(),id,episodeNumber,audio)?.percent)||0));setCheckpointMessage('');},[id,episodeNumber,audio]);
  const previousPath='/watch/'+id+'/'+Math.max(1,episodeNumber-1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
  const nextPath='/watch/'+id+'/'+(episodeNumber+1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
@@ -1060,12 +1056,14 @@ function Watch(){
   let primaryError='';
   let verifiedFormat='';
   let aniPmSource=null;
+  let vidzenController=null;
   let primarySources=[];
   let anivexaSources=[];
   let anivexaTimer=null;
   let slowStartTimer=null;
   const anivexaController=new AbortController();
   selectedSourceUrlRef.current=null;
+  userSelectedSourceRef.current=false;
   setLoading(true);setLoadingStage('Starting playback…');setError('');setSources([]);setActive(0);setEmbedSlowHint(false);
   slowStartTimer=window.setTimeout(()=>{
    if(live)setLoadingStage('The streaming service is waking up. Checking your episode…');
@@ -1074,11 +1072,11 @@ function Watch(){
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
    const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
-   const animeNexusSource=buildAnimeNexusSource(id,episode,audio);
-   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,animeNexusSource,aniPmSource].filter(Boolean));
+   const aniEmbedSource=buildAniEmbedSource(id,episode,audio);
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,aniEmbedSource,aniPmSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
-    let chosenIndex=selectedSourceUrlRef.current
+    let chosenIndex=userSelectedSourceRef.current&&selectedSourceUrlRef.current
      ?ranked.findIndex(item=>item.url===selectedSourceUrlRef.current)
      :-1;
     if(chosenIndex<0){
@@ -1138,6 +1136,27 @@ function Watch(){
     setMediaFormatId(String(id));
     metadataAllowed=true;
     refresh();
+    const cachedVidZen=readVidZenMapping(id);
+    if(cachedVidZen){
+     setVidzenMapping(cachedVidZen);
+    }else{
+     vidzenController=new AbortController();
+     const vidzenTimer=window.setTimeout(()=>vidzenController?.abort(),9000);
+     const titleText=metadata?.title?.english||metadata?.title?.romaji||metadata?.title?.native||name;
+     const releaseYear=Number(metadata?.seasonYear||metadata?.startDate?.year||0);
+     fetchVidZenMapping(titleText,releaseYear,verifiedFormat,episode,vidzenController.signal)
+      .then(mapping=>{
+       if(!live||!mapping)return;
+       try{
+        const all=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}');
+        all[String(id)]={...mapping};
+        localStorage.setItem(VIDZEN_MAP_KEY,JSON.stringify(all));
+       }catch{}
+       setVidzenMapping(mapping);
+      })
+      .catch(()=>{})
+      .finally(()=>window.clearTimeout(vidzenTimer));
+    }
     const aniPmController=new AbortController();
     const aniPmTimer=window.setTimeout(()=>aniPmController.abort(),8000);
     fetchAniPmSource(id,episode,audio,aniPmController.signal)
@@ -1187,6 +1206,7 @@ function Watch(){
   return()=>{
    live=false;
    anivexaController.abort();
+   if(vidzenController)vidzenController.abort();
    if(anivexaTimer)window.clearTimeout(anivexaTimer);
    if(slowStartTimer)window.clearTimeout(slowStartTimer);
   };
@@ -1231,15 +1251,7 @@ function Watch(){
   <label><input type="checkbox" checked={autoNext} onChange={event=>setAutoNext(event.target.checked)}/> Auto-next (direct videos only)</label>
   {direct&&<label className="ao-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>}
  </section>
- {mediaFormat&&<section className="ao-vidzen-setup" aria-label="VidZen server setup">
-  <div className="ao-vidzen-setup-copy"><b>VIDZEN · PLANETARY FLEET</b><small>{vidzenMapping?'A VidZen ID is saved for this anime on this device.':'Optional extra playback server. Enter the matching IMDb or TMDB ID.'}</small></div>
-  <form onSubmit={saveVidZenServer}>
-   <label><span>IMDb or TMDB ID</span><input aria-label="IMDb or TMDB ID" value={vidzenIdInput} onChange={event=>setVidzenIdInput(event.target.value)} placeholder="e.g. 63174 or tt4052886" autoComplete="off" required/></label>
-   {mediaFormat!=='MOVIE'&&<label className="ao-vidzen-season"><span>Season</span><input aria-label="VidZen season" type="number" min="1" max="99" step="1" value={vidzenSeasonInput} onChange={event=>setVidzenSeasonInput(event.target.value)} required/></label>}
-   <div className="ao-vidzen-actions"><button type="submit">{vidzenMapping?'Update VidZen server':'Add VidZen server'}</button>{vidzenMapping&&<button type="button" className="ao-vidzen-remove" onClick={removeVidZenServer}>Remove</button>}</div>
-  </form>
-  <p role="status">{vidzenMessage||'Use the exact IMDb/TMDB ID for this show. The season is applied to every episode. VidZen remains an external player.'}</p>
- </section>}
+ {mediaFormat&&vidzenMapping&&<p className="ao-embed-skip-note">VidZen metadata matched automatically.</p>}
  {loading?<div className="ao-player-message" role="status">{loadingStage}</div>:source?<>
   {showAdWarning?<section className="ao-ao-warning" role="dialog" aria-modal="true" aria-labelledby="ao-ao-warning-title">
    <div className="ao-ao-warning-card">
@@ -1256,8 +1268,8 @@ function Watch(){
   {!direct&&!showAdWarning&&<section className="ao-embed-checkpoint" aria-label="Manual embedded playback checkpoint"><div><b>Save your place in this episode</b><small>Embedded players do not share their timeline with AniOrbit. Move this slider to roughly match the player, then save it manually.</small></div><label><span>{manualCheckpoint}%</span><input aria-label="Manual episode progress" type="range" min="0" max="95" step="5" value={manualCheckpoint} onChange={event=>setManualCheckpoint(Number(event.target.value))}/></label><button type="button" onClick={saveEmbedCheckpoint}>Save checkpoint</button>{checkpointMessage&&<p role="status">{checkpointMessage}</p>}</section>}
   <div className="ao-servers">
    <div className="ao-servers-titlebar"><div><b>CHOOSE A SERVER</b><small>Top picks first · switch if one does not work</small></div><span>{sources.length} AVAILABLE</span></div>
-   <div className="ao-server-grid">{sources.slice(0,4).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ao-server-number">0{i+1}</span><span className="ao-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ao-server-active">ACTIVE</span>}</button>)}</div>
-   {sources.length>4&&<details className="ao-server-more" open={active>=4}><summary><span>More servers</span><small>{sources.length-4} additional options</small></summary><div className="ao-server-secondary">{sources.slice(4).map((s,offset)=>{const i=offset+4;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
+   <div className="ao-server-grid">{sources.slice(0,6).map((s,i)=><button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span className="ao-server-number">0{i+1}</span><span className="ao-server-copy"><strong>{s.name||'Server '+(i+1)}</strong><small>{i===0?'First choice':i===3&&s.provider==='anivexa'?'Backup API':'Alternative'}</small></span>{active===i&&<span className="ao-server-active">ACTIVE</span>}</button>)}</div>
+   {sources.length>6&&<details className="ao-server-more" open={active>=6}><summary><span>More servers</span><small>{sources.length-6} additional options</small></summary><div className="ao-server-secondary">{sources.slice(6).map((s,offset)=>{const i=offset+6;return <button type="button" key={s.url} className={active===i?'active':''} onClick={()=>selectServer(i)}><span>{s.name||'Server '+(i+1)}</span>{active===i&&<small>ACTIVE</small>}</button>})}</div></details>}
    {source&&<div className="ao-server-tools"><button type="button" onClick={tryNextServer} disabled={sources.length<2}>Try next server</button><button type="button" onClick={makePreferred}>Use as preferred server</button><button type="button" onClick={reportUnreliable}>Mark as not working</button><span>{isServerReportedUnreliable(source)?'Marked unreliable on this device. ':''}{preferredMessage}</span></div>}
   </div>
  </>:<p className="ao-error">{error||'No source available.'}</p>}
