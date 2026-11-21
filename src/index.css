@@ -1297,3 +1297,31 @@ html[data-data-saver="true"] .ao-server-secondary button{
 .ao-vidzen-actions button.ao-vidzen-remove{background:#202431;color:#c6c9d3}
 .ao-vidzen-setup>p{grid-column:1/-1;margin:0}
 @media(max-width:700px){.ao-vidzen-setup{grid-template-columns:1fr;gap:10px}.ao-vidzen-setup form{align-items:stretch}.ao-vidzen-setup form>label{min-width:0}.ao-vidzen-setup .ao-vidzen-season{flex:0 0 76px;min-width:76px}.ao-vidzen-actions{width:100%}.ao-vidzen-actions button{flex:1}}
+
+
+/* Smart TV and remote-control support: larger couch-distance targets and visible focus. */
+body.ao-tv-navigation :focus,
+.ao-tv-focus{outline:3px solid #c1baff!important;outline-offset:4px!important;box-shadow:0 0 0 5px rgba(145,136,220,.24)!important;}
+.ao-tv-focus{position:relative;z-index:5;}
+@media (min-width:1280px) and (min-height:650px){
+ .ao-topbar-inner{max-width:1760px;padding-left:42px;padding-right:42px;gap:34px;}
+ .ao-wordmark{font-size:30px;}
+ .ao-nav{gap:clamp(20px,1.7vw,34px);}
+ .ao-nav a{font-size:16px;}
+ .ao-search{height:50px;width:min(440px,30vw);}
+ .ao-search input{font-size:15px;}
+ .ao-search button{height:38px;font-size:13px;padding-left:16px;padding-right:16px;}
+ .ao-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:26px 22px;}
+ .ao-tile-info h3{font-size:15px;line-height:1.4;}
+ .ao-tile-info>span{font-size:12px;}
+ .ao-watch,.ao-more{min-height:50px;padding-left:23px;padding-right:23px;font-size:14px;}
+ .ao-servers button,.ao-server-grid button{min-height:62px;font-size:13px;}
+ .ao-server-grid button{padding:12px 14px;}
+ .ao-server-copy strong{font-size:13px;}
+ .ao-server-copy small{font-size:10px;}
+ .ao-home-search input,.ao-search input{min-height:42px;}
+}
+@supports not (aspect-ratio:16 / 9){
+ .ao-player{position:relative;height:56.25vw;max-height:calc(100vh - 220px);}
+ .ao-player iframe,.ao-player video{position:absolute;inset:0;width:100%;height:100%;}
+}
