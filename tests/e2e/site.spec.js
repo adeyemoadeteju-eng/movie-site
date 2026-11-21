@@ -237,7 +237,7 @@ test('ani.pm is primary and AniEmbed is the next playback choice', async ({ page
     'src',
     'https://aniembed.se/e/8125/3?lang=sub&autoplay=1'
   );
-  await page.getByRole('button', { name: /ani\\.pm/ }).click();
+  await page.getByRole('button', { name: /ani\.pm/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://ani.pm/embed/ani/8125/3/sub'
