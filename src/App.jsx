@@ -661,6 +661,37 @@ function isDirectMedia(source){
 }
 const AD_WARNING_KEY='aniorbit-hide-third-party-warning-v1';
 function hasHiddenAdWarning(){try{return localStorage.getItem(AD_WARNING_KEY)==='true'}catch{return false}}
+const VIDZEN_MAP_KEY='aniorbit-vidzen-id-map-v1';
+function normalizeVidZenId(value){
+ const id=String(value||'').trim();
+ if(/^[1-9]\d{0,11}$/.test(id))return id;
+ if(/^tt\d{7,10}$/i.test(id))return id.toLowerCase();
+ return '';
+}
+function readVidZenMapping(animeId){
+ try{
+  const saved=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}')[String(animeId)];
+  const id=normalizeVidZenId(saved?.id);
+  if(!id)return null;
+  const season=Math.min(99,Math.max(1,Math.floor(Number(saved?.season)||1)));
+  return {id,season};
+ }catch{return null}
+}
+function writeVidZenMapping(animeId,mapping){
+ const saved=JSON.parse(localStorage.getItem(VIDZEN_MAP_KEY)||'{}');
+ if(mapping)saved[String(animeId)]=mapping;
+ else delete saved[String(animeId)];
+ localStorage.setItem(VIDZEN_MAP_KEY,JSON.stringify(saved));
+}
+function buildVidZenSource(animeId,episode,format,mapping){
+ const id=normalizeVidZenId(mapping?.id);
+ if(!id||!format)return null;
+ const query='?autoPlay=true&theme=8179c2';
+ const url=String(format).toUpperCase()==='MOVIE'
+  ?'https://vidzen.fun/movie/'+encodeURIComponent(id)+query
+  :'https://vidzen.fun/tv/'+encodeURIComponent(id)+'/'+Math.min(99,Math.max(1,Math.floor(Number(mapping.season)||1)))+'/'+Math.max(1,Math.floor(Number(episode)||1))+query;
+ return {name:'VidZen · Planetary Fleet',provider:'vidzen',type:'embed',url};
+}
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
  if(key.includes('vidsrc'))return 0;
@@ -671,6 +702,7 @@ function playbackSourceRank(source){
  if(key.includes('vidcore'))return 10;
  if(key.includes('anikoto'))return 11;
  if(key.includes('vidy'))return 12;
+ if(key.includes('vidzen'))return 13;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
@@ -679,7 +711,7 @@ function isBrokenPlaybackEmbed(source){
 }
 function rankPlaybackSources(primary,secondary,own){
  const unique=new Set();
- return [...(primary||[]),...(secondary||[]),...(own?[own]:[])]
+ return [...(primary||[]),...(secondary||[]),...(Array.isArray(own)?own:own?[own]:[])]
   .filter(source=>source?.url&&/^https:\/\//i.test(String(source.url))&&!isBrokenPlaybackEmbed(source))
   .map((source,index)=>({source:{...source,url:String(source.url).trim()},index}))
   .filter(({source})=>{
@@ -899,7 +931,49 @@ function Watch(){
  const [checkpointMessage,setCheckpointMessage]=useState('');
  const [autoNext,setAutoNext]=useState(()=>{try{return localStorage.getItem('aniorbit-auto-next')!=='false'}catch{return true}});
  const [playbackSpeed,setPlaybackSpeed]=useState(()=>{try{const value=Number(localStorage.getItem('aniorbit-playback-speed')||1);return [0.75,1,1.25,1.5,1.75,2].includes(value)?value:1}catch{return 1}});
+ const [mediaFormat,setMediaFormat]=useState('');
+ const [mediaFormatId,setMediaFormatId]=useState('');
+ const [vidzenMapping,setVidzenMapping]=useState(()=>readVidZenMapping(id));
+ const [vidzenIdInput,setVidzenIdInput]=useState(()=>readVidZenMapping(id)?.id||'');
+ const [vidzenSeasonInput,setVidzenSeasonInput]=useState(()=>String(readVidZenMapping(id)?.season||1));
+ const [vidzenMessage,setVidzenMessage]=useState('');
  const [preferredMessage,setPreferredMessage]=useState('');
+ useEffect(()=>{
+  const saved=readVidZenMapping(id);
+  setVidzenMapping(saved);
+  setVidzenIdInput(saved?.id||'');
+  setVidzenSeasonInput(String(saved?.season||1));
+  setMediaFormat('');
+  setMediaFormatId('');
+  setVidzenMessage('');
+ },[id]);
+ const saveVidZenServer=event=>{
+  event.preventDefault();
+  const mappedId=normalizeVidZenId(vidzenIdInput);
+  if(!mappedId){
+   setVidzenMessage('Enter a numeric TMDB ID or an IMDb ID beginning with tt.');
+   return;
+  }
+  const season=Math.min(99,Math.max(1,Math.floor(Number(vidzenSeasonInput)||1)));
+  const next={id:mappedId,season};
+  try{
+   writeVidZenMapping(id,next);
+   setVidzenMapping(next);
+   setVidzenSeasonInput(String(season));
+   setVidzenMessage('VidZen is saved for this anime on this device.');
+  }catch{
+   setVidzenMessage('AniOrbit could not save this VidZen mapping in browser storage.');
+  }
+ };
+ const removeVidZenServer=()=>{
+  try{
+   writeVidZenMapping(id,null);
+   setVidzenMapping(null);
+   setVidzenIdInput('');
+   setVidzenSeasonInput('1');
+   setVidzenMessage('VidZen mapping removed from this device.');
+  }catch{setVidzenMessage('AniOrbit could not remove this VidZen mapping.');}
+ };
  useEffect(()=>{setManualCheckpoint(Math.round(Number(getEpisodeProgress(readLibrary(),id,episodeNumber,audio)?.percent)||0));setCheckpointMessage('');},[id,episodeNumber,audio]);
  const previousPath='/watch/'+id+'/'+Math.max(1,episodeNumber-1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
  const nextPath='/watch/'+id+'/'+(episodeNumber+1)+'/'+audio+'/embed?mal='+encodeURIComponent(mal)+'&title='+encodeURIComponent(name);
@@ -962,6 +1036,7 @@ function Watch(){
   let anivexaDone=false;
   let anivexaStarted=false;
   let primaryError='';
+  let verifiedFormat='';
   let primarySources=[];
   let anivexaSources=[];
   let anivexaTimer=null;
@@ -975,7 +1050,8 @@ function Watch(){
 
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
-   const ranked=rankPlaybackSources(primarySources,anivexaSources,own);
+   const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
+   const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource].filter(Boolean));
    setSources(ranked);
    if(ranked.length){
     let chosenIndex=selectedSourceUrlRef.current
@@ -1033,6 +1109,9 @@ function Watch(){
      if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
      return;
     }
+    verifiedFormat=String(metadata?.format||'TV').toUpperCase();
+    setMediaFormat(verifiedFormat);
+    setMediaFormatId(String(id));
     metadataAllowed=true;
     refresh();
     startAnivexa();
@@ -1082,6 +1161,23 @@ function Watch(){
    if(slowStartTimer)window.clearTimeout(slowStartTimer);
   };
  },[id,episode,audio,mal]);
+ useEffect(()=>{
+  const vidzenSource=mediaFormatId===String(id)?buildVidZenSource(id,episode,mediaFormat,readVidZenMapping(id)):null;
+  setSources(current=>{
+   const selectedUrl=selectedSourceUrlRef.current;
+   const withoutVidZen=current.filter(item=>item.provider!=='vidzen');
+   const ranked=rankPlaybackSources(withoutVidZen,[],vidzenSource?[vidzenSource]:[]);
+   if(selectedUrl){
+    const selectedIndex=ranked.findIndex(item=>item.url===selectedUrl);
+    if(selectedIndex>=0)setActive(selectedIndex);
+    else{
+     selectedSourceUrlRef.current=null;
+     setActive(0);
+    }
+   }
+   return ranked;
+  });
+ },[vidzenMapping,mediaFormat,mediaFormatId,id,episode]);
  const source=sources[active];
  const direct=source&&isDirectMedia(source);
  useEffect(()=>{
@@ -1105,6 +1201,15 @@ function Watch(){
   <label><input type="checkbox" checked={autoNext} onChange={event=>setAutoNext(event.target.checked)}/> Auto-next (direct videos only)</label>
   {direct&&<label className="ao-speed-control">Speed<select aria-label="Playback speed" value={playbackSpeed} onChange={event=>setPlaybackSpeed(Number(event.target.value))}><option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option></select></label>}
  </section>
+ {mediaFormat&&<section className="ao-vidzen-setup" aria-label="VidZen server setup">
+  <div className="ao-vidzen-setup-copy"><b>VIDZEN · PLANETARY FLEET</b><small>{vidzenMapping?'A VidZen ID is saved for this anime on this device.':'Optional extra playback server. Enter the matching IMDb or TMDB ID.'}</small></div>
+  <form onSubmit={saveVidZenServer}>
+   <label><span>IMDb or TMDB ID</span><input aria-label="IMDb or TMDB ID" value={vidzenIdInput} onChange={event=>setVidzenIdInput(event.target.value)} placeholder="e.g. 63174 or tt4052886" autoComplete="off" required/></label>
+   {mediaFormat!=='MOVIE'&&<label className="ao-vidzen-season"><span>Season</span><input aria-label="VidZen season" type="number" min="1" max="99" step="1" value={vidzenSeasonInput} onChange={event=>setVidzenSeasonInput(event.target.value)} required/></label>}
+   <div className="ao-vidzen-actions"><button type="submit">{vidzenMapping?'Update VidZen server':'Add VidZen server'}</button>{vidzenMapping&&<button type="button" className="ao-vidzen-remove" onClick={removeVidZenServer}>Remove</button>}</div>
+  </form>
+  <p role="status">{vidzenMessage||'Use the exact IMDb/TMDB ID for this show. The season is applied to every episode. VidZen remains an external player.'}</p>
+ </section>}
  {loading?<div className="ao-player-message" role="status">{loadingStage}</div>:source?<>
   {showAdWarning?<section className="ao-ao-warning" role="dialog" aria-modal="true" aria-labelledby="ao-ao-warning-title">
    <div className="ao-ao-warning-card">
