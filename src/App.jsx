@@ -1321,7 +1321,7 @@ function TVRemoteSupport(){
    const tag=String(active&&active.tagName||'').toLowerCase();
    if(isTextEntry(active)||tag==='iframe'||tag==='video'||tag==='audio')return;
    const directions={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
-   const direction=directions[key];
+   const direction=directions[key]||({37:'left',38:'up',39:'right',40:'down',19:'up',20:'down',21:'left',22:'right'})[keyCode];
    if(direction){
     const elements=focusableElements();
     if(!elements.length){
