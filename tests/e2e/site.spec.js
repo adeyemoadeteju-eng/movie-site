@@ -204,7 +204,7 @@ test('VidZen movie server is imported automatically from an exact title match', 
   );
 });
 
-test('ani.pm is primary, with AniEmbed and Anime Nexus as separate playback choices', async ({ page }) => {
+test('ani.pm is primary and AniEmbed is the next playback choice', async ({ page }) => {
   await page.route('**/anime/info/8125', route => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ id: 8125, title: { english: 'Provider Test Anime' }, isAdult: false, format: 'TV', genres: ['Action'] })
@@ -223,14 +223,10 @@ test('ani.pm is primary, with AniEmbed and Anime Nexus as separate playback choi
   await page.route('https://aniembed.se/**', route => route.fulfill({
     status: 200, contentType: 'text/html', body: '<!doctype html><title>AniEmbed mock</title>'
   }));
-  await page.route('https://anime-nexus-blue.vercel.app/**', route => route.fulfill({
-    status: 200, contentType: 'text/html', body: '<!doctype html><title>Anime Nexus mock</title>'
-  }));
 
   await page.goto('/movie-site/#/watch/8125/3/sub/embed?title=Provider%20Test%20Anime');
   await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('ani.pm');
   await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('AniEmbed');
-  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('Anime Nexus');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
@@ -241,12 +237,7 @@ test('ani.pm is primary, with AniEmbed and Anime Nexus as separate playback choi
     'src',
     'https://aniembed.se/e/8125/3?lang=sub&autoplay=1'
   );
-  await page.getByRole('button', { name: /Anime Nexus/ }).click();
-  await expect(page.locator('.ao-player iframe')).toHaveAttribute(
-    'src',
-    'https://anime-nexus-blue.vercel.app/anime/8125/3/sub?fallback=true'
-  );
-  await page.getByRole('button', { name: /ani\.pm/ }).click();
+  await page.getByRole('button', { name: /ani\\.pm/ }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute(
     'src',
     'https://ani.pm/embed/ani/8125/3/sub'
@@ -790,13 +781,13 @@ test('watch page prioritizes AniEmbed and keeps broken API embeds hidden', async
   await expect(page.locator('.ao-player iframe')).toHaveCount(0);
   await expect(page.locator('.ao-server-grid button')).toHaveCount(6);
   await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('AniEmbed');
-  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('Anime Nexus');
-  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('VidSrc');
-  await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('VidLink');
-  await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('2Embed');
-  await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('Anivexa');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidSrc');
+  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('VidLink');
+  await expect(page.locator('.ao-server-grid button').nth(3)).toContainText('2Embed');
+  await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('Anivexa');
+  await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('VidCore');
   await expect(page.locator('.ao-server-grid')).not.toContainText('AnimeEmbed');
-  await expect(page.locator('.ao-server-more')).toContainText('VidCore');
+  await expect(page.locator('.ao-server-more')).toContainText('Vidy');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ao-player iframe');
