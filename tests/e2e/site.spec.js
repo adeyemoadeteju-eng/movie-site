@@ -791,8 +791,8 @@ test('watch page prioritizes AniEmbed and keeps broken API embeds hidden', async
   await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('Anivexa');
   await expect(page.locator('.ao-server-grid button').nth(5)).toContainText('VidCore');
   await expect(page.locator('.ao-server-grid')).not.toContainText('AnimeEmbed');
+  await expect(page.locator('.ao-server-grid button').nth(4)).toContainText('ReAnime');
   await expect(page.locator('.ao-server-more')).toContainText('Vidy');
-  await expect(page.locator('.ao-server-more')).toContainText('ReAnime');
   await page.getByLabel('Do not show this warning again').check();
   await page.getByRole('button', { name: 'Continue to video' }).click();
   const frame = page.locator('.ao-player iframe');
