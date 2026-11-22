@@ -145,7 +145,7 @@ function trailerEmbed(anime){
 }
 const EMBED=import.meta.env.VITE_EMBED_TEMPLATE||import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE||'';
 const EMBED_NAME=import.meta.env.VITE_EMBED_NAME||'Embed player';
-function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const template=EMBED.replace(/\\{malId\\}/g,encodeURIComponent(mal)).replace(/\\{episode\\}/g,encodeURIComponent(ep)).replace(/\\{audio\\}/g,audio);const u=new URL(template);return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
+function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const template=EMBED.replace(/\{malId\}/g,encodeURIComponent(mal)).replace(/\{episode\}/g,encodeURIComponent(ep)).replace(/\{audio\}/g,audio);const u=new URL(template);return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
 
 
 function seasonNumberFor(anime){
