@@ -10,4 +10,6 @@ const isGitHubPagesBuild = process.env.GITHUB_ACTIONS === 'true'
 export default defineConfig({
   plugins: [react()],
   base: isGitHubPagesBuild ? '/movie-site/' : '/',
+  // Keep output syntax conservative for the built-in browsers on older Smart TVs.
+  build: { target: 'es2015' },
 })

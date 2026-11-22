@@ -1339,3 +1339,63 @@ test('ani.pm next-episode message updates AniOrbit route and watch history', asy
     return library.history?.find(item => String(item.id) === '99003')?.lastEpisode;
   })).toBe(2);
 });
+
+
+test('OLED TV layout uses the available landscape screen for the player', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [{ id: 99011, title: { english: 'OLED TV Layout Check' }, format: 'TV', genres: ['Action'], coverImage: { large: '' } }],
+      recent: []
+    })
+  }));
+  await page.goto(pagePath);
+  await expect(page.locator('.ao-tile').first()).toBeVisible();
+
+  const dimensions = await page.evaluate(() => {
+    const watch = document.createElement('main');
+    watch.className = 'ao-watch-page';
+    watch.innerHTML = '<h1>Screen size test</h1><div class="ao-player"><video></video></div>';
+    document.body.appendChild(watch);
+    const watchRect = watch.getBoundingClientRect();
+    const playerRect = watch.querySelector('.ao-player').getBoundingClientRect();
+    return {
+      watchWidth: watchRect.width,
+      playerWidth: playerRect.width,
+      playerHeight: playerRect.height,
+      playerRatio: playerRect.width / playerRect.height
+    };
+  });
+  expect(dimensions.watchWidth).toBeGreaterThan(1800);
+  expect(dimensions.playerWidth).toBeGreaterThan(1500);
+  expect(dimensions.playerRatio).toBeCloseTo(16 / 9, 1);
+});
+
+test('TV remote arrow keys move the visible focus between anime cards', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [
+        { id: 99021, title: { english: 'TV Remote First' }, format: 'TV', genres: ['Action'], coverImage: { large: '' } },
+        { id: 99022, title: { english: 'TV Remote Second' }, format: 'TV', genres: ['Comedy'], coverImage: { large: '' } },
+        { id: 99023, title: { english: 'TV Remote Third' }, format: 'TV', genres: ['Drama'], coverImage: { large: '' } }
+      ],
+      recent: []
+    })
+  }));
+  await page.goto(pagePath);
+  const cards = page.locator('.ao-grid .ao-tile');
+  await expect(cards.first()).toBeVisible();
+  await cards.first().focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cards.nth(1)).toBeFocused();
+  await expect(cards.nth(1)).toHaveClass(/ao-tv-focus/);
+  await page.keyboard.press('ArrowRight');
+  await expect(cards.nth(2)).toBeFocused();
+  await page.keyboard.press('ArrowLeft');
+  await expect(cards.nth(1)).toBeFocused();
+});

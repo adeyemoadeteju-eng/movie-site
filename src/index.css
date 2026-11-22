@@ -1297,3 +1297,91 @@ html[data-data-saver="true"] .ao-server-secondary button{
 .ao-vidzen-actions button.ao-vidzen-remove{background:#202431;color:#c6c9d3}
 .ao-vidzen-setup>p{grid-column:1/-1;margin:0}
 @media(max-width:700px){.ao-vidzen-setup{grid-template-columns:1fr;gap:10px}.ao-vidzen-setup form{align-items:stretch}.ao-vidzen-setup form>label{min-width:0}.ao-vidzen-setup .ao-vidzen-season{flex:0 0 76px;min-width:76px}.ao-vidzen-actions{width:100%}.ao-vidzen-actions button{flex:1}}
+
+
+/* OLED / Smart TV layout: use the available landscape viewport instead of the desktop-sized 1160px player cap. */
+body.ao-tv-navigation :focus,
+.ao-tv-focus{
+  outline:3px solid #c1baff!important;
+  outline-offset:4px!important;
+  box-shadow:0 0 0 5px rgba(145,136,220,.24)!important;
+}
+.ao-tv-focus{position:relative;z-index:5}
+@media screen and (min-width:1280px) and (min-height:700px) and (orientation:landscape){
+  .ao-topbar{height:clamp(76px,7vh,100px)}
+  .ao-topbar-inner{
+    width:min(3200px,100%);
+    padding:0 clamp(30px,3vw,90px);
+    gap:clamp(28px,2.2vw,62px);
+  }
+  .ao-wordmark{font-size:clamp(30px,1.8vw,44px)}
+  .ao-nav{gap:clamp(22px,1.65vw,44px)}
+  .ao-nav a{font-size:clamp(15px,.8vw,20px)}
+  .ao-search{height:clamp(50px,4.4vh,66px);width:min(560px,30vw);padding-inline:18px}
+  .ao-search input{font-size:clamp(14px,.75vw,18px)}
+  .ao-search button{height:clamp(38px,3.4vh,50px);font-size:clamp(13px,.7vw,16px);padding-inline:20px}
+
+  .ao-hero{height:clamp(480px,50vh,820px);margin-bottom:clamp(38px,4vh,64px)}
+  .ao-hero-content,.ao-section,.ao-footer-inner{width:min(3200px,100%)}
+  .ao-hero-content{padding:clamp(52px,5vh,100px) clamp(36px,3.2vw,104px)}
+  .ao-spotlight{font-size:clamp(12px,.75vw,18px);gap:12px}
+  .ao-hero h1{max-width:min(1100px,58vw);font-size:clamp(44px,3.8vw,88px)}
+  .ao-hero p{max-width:min(800px,48vw);font-size:clamp(16px,.95vw,22px);line-height:1.7}
+  .ao-hero-meta{font-size:clamp(13px,.7vw,17px)}
+  .ao-chip{font-size:clamp(11px,.6vw,14px);padding:6px 11px}
+  .ao-watch,.ao-more{min-height:clamp(52px,5vh,72px);padding-inline:clamp(22px,1.5vw,36px);font-size:clamp(14px,.8vw,19px)}
+  .ao-dots{right:max(36px,calc((100% - 3000px)/2));bottom:32px}
+  .ao-section{padding:0 clamp(36px,3.2vw,104px) clamp(42px,4vh,72px)}
+  .ao-section h2,.ao-episodes h2{font-size:clamp(22px,1.25vw,32px);margin-bottom:clamp(20px,1.6vw,36px)}
+  .ao-section h2:before,.ao-episodes h2:before{height:clamp(22px,1.3vw,32px);width:4px}
+  .ao-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(175px,10.5vw,330px),1fr));gap:clamp(20px,1.5vw,42px)}
+  .ao-tile-info{min-height:clamp(66px,5vw,96px);padding-top:clamp(9px,.7vw,18px)}
+  .ao-tile-info h3{font-size:clamp(14px,.82vw,22px);max-height:3em;line-height:1.45}
+  .ao-tile-info>span:not(.ao-card-arrow){font-size:clamp(11px,.62vw,17px)}
+
+  .ao-watch-page{
+    width:min(calc(100% - clamp(48px,5vw,140px)),3200px);
+    max-width:none;
+    margin:clamp(24px,2.8vh,52px) auto clamp(38px,4vh,72px);
+    padding:0;
+    min-height:calc(100vh - 120px);
+  }
+  .ao-watch-page h1{font-size:clamp(25px,1.65vw,42px);margin-bottom:clamp(16px,1.5vh,24px)}
+  .ao-watch-page h1 small{font-size:clamp(14px,.8vw,20px)}
+  .ao-player{
+    width:min(100%,calc((100vh - 190px)*16/9),3200px);
+    height:auto;
+    aspect-ratio:16/9;
+    margin:0 auto;
+    border-radius:10px;
+  }
+  .ao-player iframe,.ao-player video{display:block;width:100%;height:100%}
+  .ao-servers{padding:clamp(14px,1vw,26px);gap:clamp(10px,.8vw,20px);font-size:clamp(13px,.75vw,19px)}
+  .ao-servers b{font-size:clamp(11px,.62vw,16px)}
+  .ao-servers button,.ao-server-grid button{min-height:clamp(54px,5vh,76px);padding:clamp(11px,.8vw,20px);font-size:clamp(12px,.68vw,17px)}
+  .ao-server-copy strong{font-size:clamp(13px,.72vw,18px)}
+  .ao-server-copy small{font-size:clamp(10px,.56vw,14px)}
+
+  .ao-detail-top,.ao-episodes{width:100%;max-width:3200px;margin-inline:auto}
+  .ao-detail-top{
+    grid-template-columns:clamp(240px,15vw,420px) minmax(0,1fr) minmax(280px,21vw);
+    gap:clamp(30px,2.2vw,70px);
+    padding:clamp(42px,4vh,90px) clamp(36px,3.2vw,104px) 44px;
+  }
+  .ao-detail-poster img{max-width:100%}
+  .ao-detail-copy h1{font-size:clamp(30px,2.2vw,54px)}
+  .ao-detail-tags{font-size:clamp(13px,.7vw,18px)}
+  .ao-synopsis{max-width:1100px;font-size:clamp(14px,.78vw,20px);line-height:1.75}
+  .ao-info{font-size:clamp(13px,.7vw,18px);padding:clamp(18px,1.3vw,32px)}
+  .ao-info h3{font-size:clamp(16px,.9vw,23px)}
+  .ao-episodes{padding:clamp(26px,2.4vw,64px) clamp(36px,3.2vw,104px) 56px}
+  .ao-episode-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(230px,14vw,360px),1fr));gap:clamp(10px,.75vw,20px)}
+  .ao-episode-grid a{padding:clamp(14px,.9vw,24px);font-size:clamp(13px,.7vw,18px)}
+
+  .ao-stats-page,.ao-shared-page{width:min(3000px,calc(100% - clamp(64px,6vw,160px)))}
+}
+@supports not (aspect-ratio:16 / 9){
+  @media screen and (min-width:1280px) and (min-height:700px) and (orientation:landscape){
+    .ao-player{height:calc((100vh - 190px)*.5625);max-height:none}
+  }
+}
