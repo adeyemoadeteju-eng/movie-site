@@ -120,7 +120,7 @@ function isCyberpunkEdgerunners(anime){
 function fallbackArtwork(anime){return isCyberpunkEdgerunners(anime)?CYBERPUNK_ART:'';}
 function isFireflyWedding(anime){
  const names=[anime?.title?.english,anime?.title?.romaji,anime?.title?.native,anime?.name].filter(Boolean).join(' ').toLowerCase();
- return /firefly\\s*wedding|hotaru\\s*no\\s*yomeiri/.test(names);
+ return /firefly\s*wedding|hotaru\s*no\s*yomeiri/.test(names);
 }
 function isAdultAnime(anime){
  if(isFireflyWedding(anime))return false;
