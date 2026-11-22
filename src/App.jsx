@@ -50,9 +50,10 @@ function writeApiCache(path,data){
  try{
   const stored=JSON.parse(sessionStorage.getItem(API_CACHE_KEY)||'{}');
   stored[path]=entry;
-  const compact=Object.fromEntries(Object.entries(stored)
+  const compact=Object.entries(stored)
    .sort((a,b)=>(b[1]?.savedAt||0)-(a[1]?.savedAt||0))
-   .slice(0,16));
+   .slice(0,16)
+   .reduce((result,entry)=>{result[entry[0]]=entry[1];return result;},{});
   sessionStorage.setItem(API_CACHE_KEY,JSON.stringify(compact));
  }catch{}
 }
@@ -60,7 +61,11 @@ function requestApi(path,ttl){
  const pending=API_IN_FLIGHT.get(path);
  if(pending)return pending;
  const request=(async()=>{
-  const response=await fetch(API+path,{cache:'default',headers:{Accept:'application/json'},signal:AbortSignal.timeout(60000)});
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timeout=controller?window.setTimeout(()=>controller.abort(),60000):null;
+  let response;
+  try{response=await fetch(API+path,{cache:'default',headers:{Accept:'application/json'},signal:controller?controller.signal:undefined});}
+  finally{if(timeout!==null)window.clearTimeout(timeout);}
   const data=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'Request failed ('+response.status+')');
   if(ttl>0)writeApiCache(path,data);
@@ -140,7 +145,7 @@ function trailerEmbed(anime){
 }
 const EMBED=import.meta.env.VITE_EMBED_TEMPLATE||import.meta.env.VITE_FALLBACK_EMBED_TEMPLATE||'';
 const EMBED_NAME=import.meta.env.VITE_EMBED_NAME||'Embed player';
-function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const u=new URL(EMBED.replaceAll('{malId}',encodeURIComponent(mal)).replaceAll('{episode}',encodeURIComponent(ep)).replaceAll('{audio}',audio));return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
+function fallback(mal,ep,audio){if(!EMBED||!mal)return null;try{const template=EMBED.replace(/\\{malId\\}/g,encodeURIComponent(mal)).replace(/\\{episode\\}/g,encodeURIComponent(ep)).replace(/\\{audio\\}/g,audio);const u=new URL(template);return u.protocol==='https:'?{name:EMBED_NAME,url:u.href}:null}catch{return null}}
 
 
 function seasonNumberFor(anime){
@@ -1340,5 +1345,107 @@ class AppErrorBoundary extends React.Component{
  }
 }
 function NotFound(){return <main className="ao-fatal"><div><h1>Page not found</h1><p>This AniOrbit page does not exist.</p><Link className="ao-watch" to="/">Return home</Link></div></main>}
-function App(){return <AppErrorBoundary><HashRouter><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="/stats" element={<StatsDashboard/>}/><Route path="/shared-lists" element={<SharedListsPage/>}/><Route path="/shared-lists/:id" element={<SharedListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+const TV_FOCUSABLE_SELECTOR='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function TVRemoteSupport(){
+ const navigate=useNavigate();
+ useEffect(()=>{
+  const isTextEntry=element=>{
+   if(!element)return false;
+   const tag=String(element.tagName||'').toLowerCase();
+   return tag==='input'||tag==='textarea'||tag==='select'||element.isContentEditable===true;
+  };
+  const focusableElements=()=>Array.prototype.slice.call(document.querySelectorAll(TV_FOCUSABLE_SELECTOR)).filter(element=>{
+   if(element.disabled||element.getAttribute('aria-hidden')==='true')return false;
+   const style=window.getComputedStyle(element);
+   return style.display!=='none'&&style.visibility!=='hidden'&&element.getClientRects().length>0;
+  });
+  const onFocusIn=event=>{
+   if(event.target&&event.target.classList)event.target.classList.add('ao-tv-focus');
+  };
+  const onFocusOut=event=>{
+   if(event.target&&event.target.classList)event.target.classList.remove('ao-tv-focus');
+  };
+  const onPointer=()=>document.body.classList.remove('ao-tv-navigation');
+  const onKeyDown=event=>{
+   const active=document.activeElement;
+   const key=event.key||'';
+   const keyCode=event.keyCode||event.which||0;
+   const tag=String(active&&active.tagName||'').toLowerCase();
+   if(isTextEntry(active)||tag==='iframe'||tag==='video'||tag==='audio')return;
+   const directions={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
+   const direction=directions[key]||({37:'left',38:'up',39:'right',40:'down',19:'up',20:'down',21:'left',22:'right'})[keyCode];
+   if(direction){
+    const elements=focusableElements();
+    if(!elements.length){
+     if(direction==='up'||direction==='down'){
+      event.preventDefault();
+      window.scrollBy(0,(direction==='down'?1:-1)*Math.max(240,Math.round(window.innerHeight*.65)));
+     }
+     return;
+    }
+    document.body.classList.add('ao-tv-navigation');
+    const currentIndex=elements.indexOf(active);
+    let next=null;
+    if(currentIndex<0){
+     elements.sort((a,b)=>{
+      const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();
+      return ar.top-br.top||ar.left-br.left;
+     });
+     next=(direction==='up'||direction==='left')?elements[elements.length-1]:elements[0];
+    }else{
+     const rect=active.getBoundingClientRect();
+     const centerX=rect.left+rect.width/2,centerY=rect.top+rect.height/2;
+     let bestScore=Infinity;
+     elements.forEach(candidate=>{
+      if(candidate===active)return;
+      const box=candidate.getBoundingClientRect();
+      const x=box.left+box.width/2,y=box.top+box.height/2;
+      const dx=x-centerX,dy=y-centerY;
+      let primary,secondary,overlap;
+      if(direction==='right'&&dx>2){primary=dx;secondary=Math.abs(dy);overlap=box.bottom>rect.top&&box.top<rect.bottom;}
+      else if(direction==='left'&&dx< -2){primary=-dx;secondary=Math.abs(dy);overlap=box.bottom>rect.top&&box.top<rect.bottom;}
+      else if(direction==='down'&&dy>2){primary=dy;secondary=Math.abs(dx);overlap=box.right>rect.left&&box.left<rect.right;}
+      else if(direction==='up'&&dy< -2){primary=-dy;secondary=Math.abs(dx);overlap=box.right>rect.left&&box.left<rect.right;}
+      else return;
+      const score=primary+secondary*1.65+(overlap?0:100);
+      if(score<bestScore){bestScore=score;next=candidate;}
+     });
+    }
+    if(next){
+     event.preventDefault();
+     try{next.focus({preventScroll:true})}catch{next.focus()}
+     try{next.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'})}catch{try{next.scrollIntoView(false)}catch{}}
+    }else if(direction==='up'||direction==='down'){
+     event.preventDefault();
+     window.scrollBy(0,(direction==='down'?1:-1)*Math.max(220,Math.round(window.innerHeight*.55)));
+    }
+    return;
+   }
+   if((keyCode===13||keyCode===23||keyCode===66)&&key!=='Enter'&&active&&(tag==='a'||tag==='button')){event.preventDefault();active.click();return;}
+   const backPressed=key==='Back'||key==='BrowserBack'||key==='Backspace'||key==='Escape'||keyCode===4||keyCode===8||keyCode===27||keyCode===461||keyCode===10009;
+   if(backPressed){
+    event.preventDefault();
+    const route=(window.location.hash.split('?')[0].split('#')[1]||'/').replace(/\/$/,'')||'/';
+    const historyIndex=window.history.state&&Number(window.history.state.idx);
+    if(Number.isFinite(historyIndex)&&historyIndex>0)navigate(-1);
+    else if(route!=='/')navigate('/');
+   }
+  };
+  document.addEventListener('focusin',onFocusIn);
+  document.addEventListener('focusout',onFocusOut);
+  document.addEventListener('keydown',onKeyDown);
+  document.addEventListener('mousedown',onPointer);
+  document.addEventListener('touchstart',onPointer);
+  return()=>{
+   document.removeEventListener('focusin',onFocusIn);
+   document.removeEventListener('focusout',onFocusOut);
+   document.removeEventListener('keydown',onKeyDown);
+   document.removeEventListener('mousedown',onPointer);
+   document.removeEventListener('touchstart',onPointer);
+   document.body.classList.remove('ao-tv-navigation');
+  };
+ },[navigate]);
+ return null;
+}
+function App(){return <AppErrorBoundary><HashRouter><TVRemoteSupport/><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="/stats" element={<StatsDashboard/>}/><Route path="/shared-lists" element={<SharedListsPage/>}/><Route path="/shared-lists/:id" element={<SharedListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
 export default App;
