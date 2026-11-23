@@ -1515,3 +1515,40 @@ test('homepage shelves scroll horizontally while search results stay in a scan-f
   await expect(page.locator('.ao-results .ao-grid')).toBeVisible();
   await expect(page.locator('.ao-results .ao-grid-rail')).toHaveCount(0);
 });
+
+
+test('streaming catalogue UI keeps compact branding, clear navigation and featured discovery', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [{
+        id: 9911,
+        title: { english: 'Featured UI Test' },
+        format: 'TV',
+        seasonYear: 2026,
+        meanScore: 87,
+        genres: ['Action'],
+        coverImage: { large: '' },
+        isAdult: false
+      }],
+      recent: []
+    })
+  }));
+  await page.goto(pagePath);
+  await expect(page.locator('.ao-topbar')).toBeVisible();
+  await expect(page.locator('.ao-home-intro')).toBeVisible();
+  await expect(page.locator('.ao-home-intro-brand')).toContainText('AniOrbit');
+  await expect(page.locator('.ao-hero')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Featured UI Test' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Discover' })).toBeVisible();
+  await page.locator('.ao-nav-more summary').click();
+  await expect(page.locator('.ao-nav-menu a', { hasText: 'Tracking' })).toBeVisible();
+  await expect(page.locator('.ao-section .ao-card-score').first()).toContainText('8.7');
+  const dimensions = await page.locator('.ao-home-intro').evaluate(element => ({
+    height: element.getBoundingClientRect().height,
+    width: element.getBoundingClientRect().width
+  }));
+  expect(dimensions.height).toBeLessThan(220);
+  expect(dimensions.width).toBeGreaterThan(500);
+});
