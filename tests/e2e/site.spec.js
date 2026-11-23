@@ -24,6 +24,56 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+
+
+test('catalogue retry reloads only the catalogue and keeps the page alive', async ({ page }) => {
+  let calls = 0;
+  await page.route('**/anime/home', route => {
+    calls += 1;
+    if (calls === 1) {
+      return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'Temporarily unavailable' }) });
+    }
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({
+        popular: [{ id: 7411, title: { english: 'Retry Success Anime' }, format: 'TV', genres: ['Action'], isAdult: false }],
+        recent: []
+      })
+    });
+  });
+
+  await page.goto(pagePath);
+  const retry = page.getByRole('button', { name: 'Try again' });
+  await expect(retry).toBeVisible();
+  await retry.click();
+  await expect(page.getByRole('heading', { name: 'Retry Success Anime' })).toBeVisible();
+  await expect(page.locator('.ao-catalogue-error')).toHaveCount(0);
+  expect(calls).toBe(2);
+});
+
+test('Smart TV browsers skip autoplaying homepage trailers', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'userAgent', { configurable: true, value: 'Mozilla/5.0 SMART-TV Tizen' });
+    localStorage.setItem('animedex-settings', JSON.stringify({ autoplayTrailer: true, quickTags: true, accent: 'lavender' }));
+  });
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [{
+        id: 7412, title: { english: 'TV Safe Feature' }, format: 'TV', genres: ['Action'], isAdult: false,
+        trailer: { site: 'youtube', id: 'dQw4w9WgXcQ' }
+      }],
+      recent: []
+    })
+  }));
+
+  await page.goto(pagePath);
+  await expect(page.locator('.ao-hero')).toBeVisible();
+  await expect(page.locator('.ao-hero-trailer')).toHaveCount(0);
+  await expect(page.locator('.ao-tv-mode')).toHaveCount(0);
+  await expect(page.locator('body')).toHaveClass(/ao-tv-mode/);
+});
+
 test('closed account dialog stays hidden and does not block the site', async ({ page }) => {
   await page.route('**/anime/search?**', route => route.fulfill({
     status: 200,
