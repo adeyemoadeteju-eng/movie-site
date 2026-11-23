@@ -70,7 +70,6 @@ test('Smart TV browsers skip autoplaying homepage trailers', async ({ page }) =>
   await page.goto(pagePath);
   await expect(page.locator('.ao-hero')).toBeVisible();
   await expect(page.locator('.ao-hero-trailer')).toHaveCount(0);
-  await expect(page.locator('.ao-tv-mode')).toHaveCount(0);
   await expect(page.locator('body')).toHaveClass(/ao-tv-mode/);
 });
 
