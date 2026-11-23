@@ -1385,3 +1385,49 @@ body.ao-tv-navigation :focus,
     .ao-player{height:calc((100vh - 190px)*.5625);max-height:none}
   }
 }
+
+
+/* Lightweight rendering profile for Samsung/Tizen and other TV browsers. */
+body.ao-tv-mode,
+body.ao-tv-mode *{
+  scroll-behavior:auto!important;
+}
+body.ao-tv-mode .ao-skeleton .ao-poster,
+body.ao-tv-mode .ao-tile,
+body.ao-tv-mode .ao-tile *,
+body.ao-tv-mode .ao-server-grid button,
+body.ao-tv-mode .ao-server-secondary button{
+  animation:none!important;
+  transition:none!important;
+}
+body.ao-tv-mode .ao-hero-bg,
+body.ao-tv-mode .ao-tag,
+body.ao-tv-mode .ao-auth-backdrop{
+  filter:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+body.ao-tv-mode .ao-tile:hover,
+body.ao-tv-mode .ao-tile:hover .ao-poster img{
+  transform:none!important;
+}
+body.ao-tv-mode .ao-watch-page{
+  width:calc(100% - 64px);
+  max-width:none;
+  margin-inline:auto;
+}
+body.ao-tv-mode .ao-player,
+body.ao-tv-mode .ao-direct-player{
+  box-shadow:none!important;
+  border-radius:4px;
+}
+body.ao-tv-mode .ao-player{
+  width:min(100%,calc((100vh - 180px)*16/9),1920px);
+  margin-inline:auto;
+}
+body.ao-tv-mode .ao-tv-focus,
+body.ao-tv-mode.ao-tv-navigation :focus{
+  outline:3px solid #c1baff!important;
+  outline-offset:4px!important;
+  box-shadow:none!important;
+}
