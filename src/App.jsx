@@ -100,7 +100,7 @@ function ApiWarmup(){
    try{last=Number(localStorage.getItem(API_WARMUP_KEY)||0)}catch{}
    if(now-last<API_WARMUP_INTERVAL)return;
    try{localStorage.setItem(API_WARMUP_KEY,String(now))}catch{}
-   fetch(API+'/docs',{method:'GET',mode:'no-cors',cache:'no-store',keepalive:true}).catch(()=>{});
+   fetch(API+'/healthz',{method:'GET',mode:'no-cors',cache:'no-store',keepalive:true}).catch(()=>{});
    fetch(ANIVEXA_API+'/',{method:'GET',mode:'no-cors',cache:'no-store',keepalive:true}).catch(()=>{});
   };
   ping();
@@ -286,6 +286,19 @@ function defaultAudio(){
  try{return JSON.parse(localStorage.getItem('animedex-settings')||'{}').defaultAudio==='dub'?'dub':'sub'}catch{return 'sub'}
 }
 
+const PRECONNECTED_PLAYBACK_ORIGINS=new Set();
+function preconnectPlaybackSource(source){
+ if(!source?.url||typeof document==='undefined')return;
+ try{
+  const origin=new URL(String(source.url)).origin;
+  if(PRECONNECTED_PLAYBACK_ORIGINS.has(origin))return;
+  PRECONNECTED_PLAYBACK_ORIGINS.add(origin);
+  const link=document.createElement('link');
+  link.rel='preconnect';
+  link.href=origin;
+  document.head.appendChild(link);
+ }catch{}
+}
 function sourceServerId(source){return String(source?.provider||source?.name||'unknown').split(/[·|]/)[0].trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');}
 const PREFERRED_SERVER_KEY='aniorbit-preferred-servers-v1';
 const UNRELIABLE_SERVER_KEY='aniorbit-unreliable-servers-v1';
@@ -801,17 +814,19 @@ function aniPmNextEpisodeFromMessage(raw,currentEpisode){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- if(key.includes('anipm'))return 0;
- if(key.includes('aniembed'))return 1;
+ // Prefer browser-native/direct playback where available. Keep ani.pm as a
+ // fallback rather than the default because it has been unreliable on TVs.
+ if(isDirectMedia(source))return 0;
+ if(key.includes('anivexa'))return 1;
  if(key.includes('vidsrc'))return 2;
  if(key.includes('vidlink'))return 3;
  if(key.includes('2embed'))return 4;
- if(key.includes('anivexa'))return 5;
- if(isDirectMedia(source))return 6;
- if(key.includes('vidcore'))return 7;
- if(key.includes('anikoto'))return 8;
- if(key.includes('vidy'))return 9;
- if(key.includes('vidzen'))return 14;
+ if(key.includes('aniembed'))return 5;
+ if(key.includes('vidcore'))return 6;
+ if(key.includes('anikoto'))return 7;
+ if(key.includes('vidy'))return 8;
+ if(key.includes('vidzen'))return 9;
+ if(key.includes('anipm'))return 25;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
@@ -1030,7 +1045,7 @@ function Watch(){
  const [dontShowAdWarning,setDontShowAdWarning]=useState(false);
  const [warningAcknowledged,setWarningAcknowledged]=useState(()=>hasHiddenAdWarning());
  const continueToVideo=()=>{if(dontShowAdWarning){try{localStorage.setItem(AD_WARNING_KEY,'true')}catch{}}setWarningAcknowledged(true);setShowAdWarning(false);setDontShowAdWarning(false)};
- const selectServer=index=>{userSelectedSourceRef.current=true;setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
+ const selectServer=index=>{userSelectedSourceRef.current=true;preconnectPlaybackSource(sources[index]);setActive(index);selectedSourceUrlRef.current=sources[index]?.url||null;setEmbedSlowHint(false);if(!warningAcknowledged){setDontShowAdWarning(false);setShowAdWarning(true)}};
  const [intro,setIntro]=useState(null),[introStatus,setIntroStatus]=useState('checking');
  const [outro,setOutro]=useState(null);
  const [autoSkip,setAutoSkip]=useState(()=>{try{return localStorage.getItem('animedex-auto-skip-intro')!=='false'}catch{return true}});
@@ -1145,6 +1160,7 @@ function Watch(){
      chosenIndex=preferredIndex>=0?preferredIndex:0;
      selectedSourceUrlRef.current=ranked[chosenIndex]?.url||null;
     }
+    preconnectPlaybackSource(ranked[chosenIndex]);
     setActive(chosenIndex);
     setLoading(false);setError('');
     if(slowStartTimer){window.clearTimeout(slowStartTimer);slowStartTimer=null;}
@@ -1372,6 +1388,9 @@ const TV_FOCUSABLE_SELECTOR='a[href],button:not([disabled]),input:not([disabled]
 function TVRemoteSupport(){
  const navigate=useNavigate();
  useEffect(()=>{
+  const userAgent=String(navigator.userAgent||'');
+  const tvBrowser=/Tizen|SMART-TV|SmartTV|Web0S|NetCast|HbbTV/i.test(userAgent);
+  if(tvBrowser)document.body.classList.add('ao-tv-mode');
   const isTextEntry=element=>{
    if(!element)return false;
    const tag=String(element.tagName||'').toLowerCase();
@@ -1466,6 +1485,7 @@ function TVRemoteSupport(){
    document.removeEventListener('mousedown',onPointer);
    document.removeEventListener('touchstart',onPointer);
    document.body.classList.remove('ao-tv-navigation');
+   if(tvBrowser)document.body.classList.remove('ao-tv-mode');
   };
  },[navigate]);
  return null;
