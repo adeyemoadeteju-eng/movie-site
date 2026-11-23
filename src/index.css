@@ -1431,3 +1431,40 @@ body.ao-tv-mode.ao-tv-navigation :focus{
   outline-offset:4px!important;
   box-shadow:none!important;
 }
+
+
+/* Small interaction polish and consistent recovery controls. */
+.ao-catalogue-error{
+  width:min(1160px,calc(100% - 44px));
+  margin:14px auto 0;
+  border-color:rgba(255,255,255,.09);
+  border-radius:12px;
+  background:#111;
+  color:#bdbdbd;
+}
+.ao-catalogue-error button{
+  min-height:36px;
+  padding:8px 15px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:999px;
+  background:#e8e8e8;
+  color:#111;
+  transition:background .18s ease,opacity .18s ease;
+}
+.ao-catalogue-error button:hover:not(:disabled){background:#fff}
+.ao-catalogue-error button:disabled{opacity:.6;cursor:wait}
+.ao-tile:focus-visible{outline-offset:4px;border-radius:10px}
+.ao-quick-tags button:focus-visible,
+.ao-format-filter button:focus-visible,
+.ao-discovery-toggle:focus-visible,
+.ao-alert-button:focus-visible{outline-offset:3px}
+@media(max-width:700px){
+  .ao-catalogue-error{width:calc(100% - 26px);margin-top:12px;align-items:flex-start;padding:12px}
+  .ao-catalogue-error button{flex:none}
+  .ao-home-intro{padding-inline:14px}
+  .ao-discovery-panel,.ao-personal-section{width:calc(100% - 26px);padding:14px;border-radius:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
