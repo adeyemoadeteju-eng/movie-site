@@ -1450,37 +1450,24 @@ test('TV remote arrow keys move the visible focus between anime cards', async ({
 });
 
 
-test('Firefly Wedding appears in its own home row while unrelated adult titles stay excluded', async ({ page }) => {
+test('Firefly Wedding is no longer added as a dedicated homepage row', async ({ page }) => {
+  let fireflySearchRequests = 0;
   await page.route('**/anime/home', route => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify({ popular: [], recent: [] })
   }));
   await page.route('**/anime/search?**', route => {
-    const url = new URL(route.request().url());
-    const query = url.searchParams.get('query') || '';
+    const query = new URL(route.request().url()).searchParams.get('query') || '';
     if (/firefly wedding|hotaru no yomeiri/i.test(query)) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          results: [{
-            id: 99071,
-            title: { english: 'Firefly Wedding', romaji: 'Hotaru no Yomeiri' },
-            format: 'TV',
-            genres: ['Drama', 'Romance'],
-            isAdult: false,
-            coverImage: { large: '' }
-          }]
-        })
-      });
+      fireflySearchRequests += 1;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) });
     }
     return route.continue();
   });
 
   await page.goto(pagePath);
-  const row = page.locator('.ao-firefly-wedding');
-  await expect(row).toBeVisible();
-  await expect(row.getByRole('heading', { name: 'Firefly Wedding' })).toBeVisible();
-  await expect(row.locator('.ao-tile').first()).toContainText('Firefly Wedding');
+  await expect(page.locator('.ao-firefly-wedding')).toHaveCount(0);
+  await expect(page.locator('.ao-tile').filter({ hasText: 'Firefly Wedding' })).toHaveCount(0);
+  expect(fireflySearchRequests).toBe(0);
 });
