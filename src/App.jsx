@@ -313,31 +313,31 @@ function Header({onSearch,onSettings}){
  const [q,setQ]=useState('');
  const nav=useNavigate();
  const submit=e=>{e.preventDefault();const term=q.trim();if(!term)return;if(onSearch)onSearch(e,term);else nav('/?q='+encodeURIComponent(term))};
- return <header className="ao-topbar"><div className="ao-topbar-inner"><Link to="/" className="ao-brand" aria-label="AniOrbit home"><span className="ao-wordmark">Ani<span>Orbit</span></span></Link><nav className="ao-nav" aria-label="Main navigation"><Link to="/">Discover</Link><Link to="/community">Community</Link><Link to="/schedule">Schedule</Link><Link to="/lists">My Lists</Link><Link to="/shared-lists">Shared</Link><Link to="/stats">Stats</Link><Link to="/tracking">Tracking</Link></nav><form className="ao-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ao-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div></header>
+ return <header className="ao-topbar"><div className="ao-topbar-inner">
+  <Link to="/" className="ao-brand" aria-label="AniOrbit home"><span className="ao-wordmark">Ani<span>Orbit</span></span></Link>
+  <nav className="ao-nav" aria-label="Main navigation">
+   <Link to="/">Discover</Link>
+   <Link to="/schedule">Schedule</Link>
+   <Link to="/community">Community</Link>
+   <Link to="/lists">My Lists</Link>
+   <details className="ao-nav-more"><summary>More</summary><div className="ao-nav-menu">
+    <Link to="/tracking">Tracking</Link>
+    <Link to="/stats">Stats</Link>
+    <Link to="/shared-lists">Shared Lists</Link>
+   </div></details>
+  </nav>
+  <form className="ao-search" onSubmit={submit}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" required/><button aria-label="Search"><span>Search</span><b>↵</b></button></form>
+  <div className="ao-header-actions"><PresenceIndicator/><NotificationBell/><AuthControl/>{onSettings&&<button className="ao-settings-trigger" onClick={onSettings} aria-label="Open settings">Settings</button>}</div>
+ </div></header>
 }
 function Footer(){return <footer className="ao-footer"><div className="ao-footer-inner"><Link to="/" className="ao-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ao-footer-note">ANIORBIT</span></div></footer>}
-function Tile({item,priority=false}){return <Link className="ao-tile" to={'/anime/'+item.id}><div className="ao-poster"><AnimePoster item={item} priority={priority}/><span className="ao-tag">{item?.format||'TV'}</span></div><div className="ao-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
-function TileGrid({items,loading,emptyLabel='No anime found.',layout='grid',label='Anime',priorityFirst=false}){
- const railRef=useRef(null);
- const moveRail=direction=>{
-  const rail=railRef.current;
-  if(!rail)return;
-  const reducedMotion=typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  rail.scrollBy({left:direction*Math.max(240,Math.round(rail.clientWidth*.78)),behavior:reducedMotion?'auto':'smooth'});
- };
- const cards=items?.length
-  ?items.map((item,index)=><Tile key={item.id||index} item={item} priority={layout==='rail'?Boolean(priorityFirst)&&index<2:index<3}/>)
-  :loading
-   ?Array.from({length:8},(_,index)=><div className="ao-tile ao-skeleton" key={'skeleton-'+index} role="status" aria-label="Loading anime"><div className="ao-poster"/><div className="ao-tile-info"><span/><span/></div></div>)
-   :<div className="ao-empty">{emptyLabel}</div>;
- if(layout==='rail')return <div className="ao-rail-wrap">
-  <div ref={railRef} className="ao-grid ao-grid-rail" role="region" aria-label={label} tabIndex={0}>{cards}</div>
-  <div className="ao-rail-controls" aria-label={label+' controls'}>
-   <button type="button" onClick={()=>moveRail(-1)} aria-label={'Scroll '+label+' left'}>‹</button>
-   <button type="button" onClick={()=>moveRail(1)} aria-label={'Scroll '+label+' right'}>›</button>
-  </div>
- </div>;
- return <div className="ao-grid">{cards}</div>;
+function Tile({item,priority=false}){
+ const score=Number(item?.meanScore||item?.averageScore||0);
+ const meta=[item?.format||'TV',item?.seasonYear,score>0?(score/10).toFixed(1)+'/10':''].filter(Boolean).join(' · ');
+ return <Link className="ao-tile" to={'/anime/'+item.id}>
+  <div className="ao-poster"><AnimePoster item={item} priority={priority}/><span className="ao-tag">{item?.format||'TV'}</span>{score>0&&<span className="ao-card-score" aria-label={'Rating '+(score/10).toFixed(1)+' out of 10'}>★ {(score/10).toFixed(1)}</span>}</div>
+  <div className="ao-tile-info"><h3>{title(item)}</h3><span className="ao-tile-meta">{meta}</span></div>
+ </Link>;
 }
 function ContinuePoster({item}){
  const candidates=imageCandidates(item);
@@ -467,8 +467,10 @@ function Home(){
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>!isAdultAnime(item)&&(formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE')));
  return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ao-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ao-settings-titlebar"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label><input type="checkbox" checked={prefs.autoServerRecovery!==false} onChange={e=>setPrefs(p=>({...p,autoServerRecovery:e.target.checked}))}/> Automatically try another direct server if playback fails</label><label><input type="checkbox" checked={Boolean(prefs.dataSaver)} onChange={e=>setPrefs(p=>({...p,dataSaver:e.target.checked}))}/> Reduce data use (disable autoplay trailers and heavy effects)</label><label className="ao-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ao-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label></div>}<main className="ao-main">{results===null&&<section className="ao-home-intro" aria-label="AniOrbit search">
- <div className="ao-home-intro-brand"><span>Ani</span><span>Orbit</span></div>
- <p className="ao-home-intro-subtitle">Find your next watch.</p>
+ <div className="ao-home-intro-copy">
+  <div className="ao-home-intro-brand"><span>Ani</span><span>Orbit</span></div>
+  <p className="ao-home-intro-subtitle">Find your next series.</p>
+ </div>
  <form className="ao-home-search" onSubmit={search}>
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
   <input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search anime..." aria-label="Search Anime" autoComplete="off" required/>
