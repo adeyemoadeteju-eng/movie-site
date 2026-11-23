@@ -16,6 +16,9 @@ import StatsDashboard from './components/StatsDashboard.jsx';
 import SharedListsPage from './components/SharedListsPage.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
+function isTVBrowser(){
+ return typeof navigator!=='undefined'&&/(Tizen|SMART-TV|SmartTV|Web0S|NetCast|HbbTV)/i.test(String(navigator.userAgent||''));
+}
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
 const ANIVEXA_PROVIDER_ORDER=['reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','anipm','mkissa','animenosub'];
 const API_WARMUP_KEY='aniorbit-api-warmup-v1';
@@ -355,6 +358,8 @@ function ContinuePoster({item}){
 }
 function Home(){
  const navigate=useNavigate();
+ const tvBrowser=isTVBrowser();
+ const reducedMotion=typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  const defaults={autoplayTrailer:true,quickTags:true,accent:'lavender',defaultAudio:'sub',autoServerRecovery:true,dataSaver:false};
  const [prefs,setPrefs]=useState(()=>{try{const {blockEmbedPopups:_legacyEmbedSetting,...saved}=JSON.parse(localStorage.getItem('animedex-settings')||'{}');return {...defaults,...saved}}catch{return defaults}});
  const [settingsOpen,setSettingsOpen]=useState(false);
@@ -371,6 +376,7 @@ function Home(){
  const followedKey=libraryData.watchlist.map(item=>String(item.id)).sort().join(',');
 
  const [data,setData]=useState({popular:[],recent:[],loading:true,error:''});
+ const [catalogueRetry,setCatalogueRetry]=useState(0);
  const [query,setQuery]=useState(new URLSearchParams(location.hash.split('?')[1]||'').get('q')||'');
  const [results,setResults]=useState(null);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
  const [slide,setSlide]=useState(0);const request=useRef(0);
@@ -401,7 +407,7 @@ function Home(){
   }catch{setAlertMessage('Could not request notification permission in this browser.');}
  };
 
- useEffect(()=>{let live=true;api('/anime/home').then(home=>{if(live)setData({popular:(Array.isArray(home.popular)?home.popular:[]).filter(item=>!isAdultAnime(item)),recent:(Array.isArray(home.recent)?home.recent:[]).filter(item=>!isAdultAnime(item)),loading:false,error:''})}).catch(error=>{if(live)setData({popular:[],recent:[],loading:false,error:error.message||'Could not connect to catalogue.'})});return()=>{live=false}},[]);
+ useEffect(()=>{let live=true;setData(current=>({...current,loading:true}));api('/anime/home').then(home=>{if(live)setData({popular:(Array.isArray(home.popular)?home.popular:[]).filter(item=>!isAdultAnime(item)),recent:(Array.isArray(home.recent)?home.recent:[]).filter(item=>!isAdultAnime(item)),loading:false,error:''})}).catch(error=>{if(live)setData(current=>({...current,loading:false,error:error.message||'Could not connect to catalogue.'}))});return()=>{live=false}},[catalogueRetry]);
  const featured=data.popular[slide%Math.max(data.popular.length,1)];
  const search=async (e,term=query)=>{e?.preventDefault();const q=String(term||'').trim();if(!q){setResults(null);setSelectedGenre('');return}setQuery(q);setSelectedGenre('');setFormatFilter('all');const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
  const filterGenre=async genre=>{const id=++request.current;setSelectedGenre(genre);setFormatFilter('all');setQuery(genre);setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=30');if(id===request.current)setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(e){if(id===request.current)setErr(e.message)}finally{if(id===request.current)setBusy(false)}};
@@ -428,7 +434,15 @@ function Home(){
   finally{if(id===request.current)setBusy(false);}
  };
 
- async function searchQuery(q){setBusy(true);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(e){setErr(e.message)}finally{setBusy(false)}}
+ async function searchQuery(q){
+  const id=++request.current;
+  setBusy(true);setErr('');setResults([]);setSelectedGenre('');setFormatFilter('all');
+  try{
+   const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');
+   if(id===request.current)setResults((d.results||[]).filter(item=>!isAdultAnime(item)));
+  }catch(e){if(id===request.current)setErr(e.message||'Search could not be completed.');}
+  finally{if(id===request.current)setBusy(false);}
+ }
  const genres=['Action','Adventure','Comedy','Drama','Fantasy','Mystery','Romance','Sci-Fi'];
  const visibleResults=(results||[]).filter(item=>!isAdultAnime(item)&&(formatFilter==='all'||(formatFilter==='movie'?String(item?.format||'').toUpperCase()==='MOVIE':String(item?.format||'').toUpperCase()!=='MOVIE')));
  return <><Header onSearch={search} onSettings={()=>setSettingsOpen(v=>!v)}/>{settingsOpen&&<div className="ao-settings-panel" role="dialog" aria-label="AniOrbit settings"><div className="ao-settings-titlebar"><b>Settings</b><button onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div><label><input type="checkbox" checked={prefs.autoplayTrailer} onChange={e=>setPrefs(p=>({...p,autoplayTrailer:e.target.checked}))}/> Autoplay muted trailers</label><label><input type="checkbox" checked={prefs.quickTags} onChange={e=>setPrefs(p=>({...p,quickTags:e.target.checked}))}/> Show quick genre tags</label><label><input type="checkbox" checked={prefs.autoServerRecovery!==false} onChange={e=>setPrefs(p=>({...p,autoServerRecovery:e.target.checked}))}/> Automatically try another direct server if playback fails</label><label><input type="checkbox" checked={Boolean(prefs.dataSaver)} onChange={e=>setPrefs(p=>({...p,dataSaver:e.target.checked}))}/> Reduce data use (disable autoplay trailers and heavy effects)</label><label className="ao-accent-setting">Accent colour<select value={prefs.accent} onChange={e=>setPrefs(p=>({...p,accent:e.target.value}))}><option value="lavender">Lavender</option><option value="blue">Blue</option><option value="mint">Mint</option></select></label><label className="ao-accent-setting">Default audio<select value={prefs.defaultAudio||'sub'} onChange={e=>setPrefs(p=>({...p,defaultAudio:e.target.value}))}><option value="sub">Subtitles (sub)</option><option value="dub">English dub (dub)</option></select></label></div>}<main className="ao-main">{results===null&&<section className="ao-home-intro" aria-label="AniOrbit search">
@@ -440,9 +454,9 @@ function Home(){
   <button type="submit" disabled={busy}>{busy?'Searching':'Search'}<span>↵</span></button>
  </form>
 </section>}
- {data.error&&<div className="ao-catalogue-error" role="alert"><span>The catalogue is temporarily unavailable. Your page is still working; try loading the catalogue again.</span><button onClick={()=>window.location.reload()}>Retry</button></div>}
+ {data.error&&<div className="ao-catalogue-error" role="alert"><span>The catalogue is temporarily unavailable. Your page is still working; try loading it again.</span><button type="button" onClick={()=>setCatalogueRetry(value=>value+1)} disabled={data.loading}>{data.loading?'Retrying…':'Try again'}</button></div>}
  {results===null?<>
- <section className="ao-hero">{featured?<> {prefs.autoplayTrailer&&!prefs.dataSaver&&trailerEmbed(featured)?<iframe className="ao-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ao-hero-bg" src={image(featured)} alt=""/>}<div className="ao-hero-overlay"/><div className="ao-hero-content"><div className="ao-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ao-hero-meta"><span className="ao-chip">HD</span><span className="ao-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ao-hero-actions"><Link className="ao-watch" to={'/anime/'+featured.id}>View details</Link><button className="ao-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button><button className="ao-more" onClick={()=>{if(data.popular.length){const pick=data.popular[Math.floor(Math.random()*data.popular.length)];navigate('/anime/'+pick.id);}}}>Surprise me</button></div></div><div className="ao-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ao-hero-empty"><div className="ao-spotlight">ANIORBIT DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
+ <section className="ao-hero">{featured?<> {prefs.autoplayTrailer&&!prefs.dataSaver&&!tvBrowser&&!reducedMotion&&trailerEmbed(featured)?<iframe className="ao-hero-trailer" loading="lazy" src={trailerEmbed(featured)} title={title(featured)+" muted trailer preview"} allow="autoplay; encrypted-media; picture-in-picture" referrerPolicy="strict-origin-when-cross-origin"/>:<img className="ao-hero-bg" src={image(featured)} alt=""/>}<div className="ao-hero-overlay"/><div className="ao-hero-content"><div className="ao-spotlight">FEATURED ANIME</div><h1>{title(featured)}</h1><div className="ao-hero-meta"><span className="ao-chip">HD</span><span className="ao-chip">{featured.format||'TV'}</span><span>{featured.seasonYear||''}</span></div><p>{clean(featured.description||featured.synopsis).slice(0,210)||'Discover your next favourite anime.'}</p><div className="ao-hero-actions"><Link className="ao-watch" to={'/anime/'+featured.id}>View details</Link><button className="ao-more" onClick={()=>setSlide((slide+1)%Math.max(data.popular.length,1))}>Next pick</button><button className="ao-more" onClick={()=>{if(data.popular.length){const pick=data.popular[Math.floor(Math.random()*data.popular.length)];navigate('/anime/'+pick.id);}}}>Surprise me</button></div></div><div className="ao-dots">{data.popular.slice(0,6).map((x,i)=><button key={x.id||i} className={i===slide?'active':''} onClick={()=>setSlide(i)} aria-label={'Spotlight '+(i+1)}/>)}</div></>:<div className="ao-hero-empty"><div className="ao-spotlight">ANIORBIT DISCOVER</div><h1>Find your next anime obsession.</h1><p>Explore new worlds, unforgettable characters, and stories worth staying up for.</p></div>}</section>
  {prefs.quickTags&&<section className="ao-quick-tags" aria-label="Browse by genre"><span>Browse by genre</span>{genres.map(genre=><button key={genre} onClick={()=>filterGenre(genre)}>{genre}</button>)}</section>}
  <section className="ao-discovery-panel" aria-label="Advanced anime discovery">
   <div className="ao-discovery-titlebar"><div><span className="ao-discovery-kicker">FIND SOMETHING TO WATCH</span><h2>Advanced discovery</h2></div><button type="button" className="ao-discovery-toggle" aria-expanded={filtersOpen} onClick={()=>setFiltersOpen(value=>!value)}>{filtersOpen?'Hide filters':'Open filters'} <span>{filtersOpen?'−':'+'}</span></button></div>
@@ -1370,8 +1384,7 @@ const TV_FOCUSABLE_SELECTOR='a[href],button:not([disabled]),input:not([disabled]
 function TVRemoteSupport(){
  const navigate=useNavigate();
  useEffect(()=>{
-  const userAgent=String(navigator.userAgent||'');
-  const tvBrowser=/Tizen|SMART-TV|SmartTV|Web0S|NetCast|HbbTV/i.test(userAgent);
+  const tvBrowser=isTVBrowser();
   if(tvBrowser)document.body.classList.add('ao-tv-mode');
   const isTextEntry=element=>{
    if(!element)return false;
