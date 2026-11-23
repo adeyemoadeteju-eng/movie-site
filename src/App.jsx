@@ -371,7 +371,6 @@ function Home(){
  const followedKey=libraryData.watchlist.map(item=>String(item.id)).sort().join(',');
 
  const [data,setData]=useState({popular:[],recent:[],loading:true,error:''});
- const [fireflyAnime,setFireflyAnime]=useState([]);
  const [query,setQuery]=useState(new URLSearchParams(location.hash.split('?')[1]||'').get('q')||'');
  const [results,setResults]=useState(null);const [busy,setBusy]=useState(false);const [err,setErr]=useState('');
  const [slide,setSlide]=useState(0);const request=useRef(0);
@@ -403,22 +402,6 @@ function Home(){
  };
 
  useEffect(()=>{let live=true;api('/anime/home').then(home=>{if(live)setData({popular:(Array.isArray(home.popular)?home.popular:[]).filter(item=>!isAdultAnime(item)),recent:(Array.isArray(home.recent)?home.recent:[]).filter(item=>!isAdultAnime(item)),loading:false,error:''})}).catch(error=>{if(live)setData({popular:[],recent:[],loading:false,error:error.message||'Could not connect to catalogue.'})});return()=>{live=false}},[]);
- useEffect(()=>{
-  let live=true;
-  const findFireflyWedding=async()=>{
-   const queries=['Firefly Wedding','Hotaru no Yomeiri'];
-   for(const queryText of queries){
-    try{
-     const response=await api('/anime/search?query='+encodeURIComponent(queryText)+'&page=1&per_page=10');
-     const matches=(Array.isArray(response?.results)?response.results:[]).filter(item=>isFireflyWedding(item));
-     if(matches.length){if(live)setFireflyAnime(matches.slice(0,6));return;}
-    }catch{}
-   }
-   if(live)setFireflyAnime([]);
-  };
-  findFireflyWedding();
-  return()=>{live=false};
- },[]);
  const featured=data.popular[slide%Math.max(data.popular.length,1)];
  const search=async (e,term=query)=>{e?.preventDefault();const q=String(term||'').trim();if(!q){setResults(null);setSelectedGenre('');return}setQuery(q);setSelectedGenre('');setFormatFilter('all');const id=++request.current;setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/search?query='+encodeURIComponent(q)+'&page=1&per_page=30');if(id===request.current)setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(x){if(id===request.current)setErr(x.message)}finally{if(id===request.current)setBusy(false)}};
  const filterGenre=async genre=>{const id=++request.current;setSelectedGenre(genre);setFormatFilter('all');setQuery(genre);setBusy(true);setErr('');setResults([]);try{const d=await api('/anime/filter?genre='+encodeURIComponent(genre)+'&page=1&per_page=30');if(id===request.current)setResults((d.results||[]).filter(item=>!isAdultAnime(item)))}catch(e){if(id===request.current)setErr(e.message)}finally{if(id===request.current)setBusy(false)}};
@@ -493,7 +476,6 @@ function Home(){
   {airingAlerts.length>0?<div className="ao-airing-list"><h3>Upcoming episodes in your list</h3>{airingAlerts.map(item=><div className="ao-airing-item" key={item.id+':'+item.next_episode}><b>{title(item)}</b><span>Episode {item.next_episode} · {formatAiringTime(item.airingAt)}</span></div>)}</div>:<p className="ao-alert-note">No followed shows are currently in the next schedule results.</p>}
  </section>}
 
- {fireflyAnime.length>0&&<section className="ao-section ao-firefly-wedding"><h2>Firefly Wedding</h2><TileGrid items={fireflyAnime} loading={false}/></section>}
  <section className="ao-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  <section className="ao-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
  </>:<section className="ao-section ao-results">
