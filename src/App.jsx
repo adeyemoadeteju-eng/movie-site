@@ -17,7 +17,7 @@ import SharedListsPage from './components/SharedListsPage.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 function isTVBrowser(){
- return typeof navigator!=='undefined'&&/(Tizen|SMART-TV|SmartTV|Web0S|NetCast|HbbTV)/i.test(String(navigator.userAgent||''));
+ return typeof navigator!=='undefined'&&/(Tizen|SMART-TV|SmartTV|WebOS|Web0S|NetCast|HbbTV)/i.test(String(navigator.userAgent||''));
 }
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
 const ANIVEXA_PROVIDER_ORDER=['reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','anipm','mkissa','animenosub'];
