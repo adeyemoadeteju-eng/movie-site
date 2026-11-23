@@ -1471,3 +1471,47 @@ test('Firefly Wedding is no longer added as a dedicated homepage row', async ({ 
   await expect(page.locator('.ao-tile').filter({ hasText: 'Firefly Wedding' })).toHaveCount(0);
   expect(fireflySearchRequests).toBe(0);
 });
+
+
+test('homepage shelves scroll horizontally while search results stay in a scan-friendly grid', async ({ page }) => {
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      popular: Array.from({ length: 14 }, (_, index) => ({
+        id: 8800 + index,
+        title: { english: 'Popular Shelf Anime ' + (index + 1) },
+        format: 'TV',
+        genres: ['Action'],
+        coverImage: { large: '' },
+        isAdult: false
+      })),
+      recent: [{ id: 8899, title: { english: 'Recently Updated Shelf' }, format: 'TV', genres: ['Drama'], isAdult: false }]
+    })
+  }));
+  await page.route('**/anime/search?**', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ results: [{ id: 8901, title: { english: 'Search Grid Result' }, format: 'TV', genres: ['Mystery'], isAdult: false }] })
+  }));
+
+  await page.goto(pagePath);
+  const popularRail = page.locator('.ao-section').filter({ has: page.getByRole('heading', { name: 'Most Popular' }) }).locator('.ao-grid-rail');
+  await expect(popularRail).toBeVisible();
+  await expect(popularRail.locator('.ao-tile')).toHaveCount(14);
+  const dimensions = await popularRail.evaluate(element => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    display: getComputedStyle(element).display
+  }));
+  expect(dimensions.display).toBe('flex');
+  expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+  await page.getByRole('button', { name: 'Scroll Most Popular right' }).click();
+  await expect.poll(() => popularRail.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+
+  await page.locator('.ao-home-search input').fill('Search Grid');
+  await page.locator('.ao-home-search button').click();
+  await expect(page.getByText('Search Grid Result')).toBeVisible();
+  await expect(page.locator('.ao-results .ao-grid')).toBeVisible();
+  await expect(page.locator('.ao-results .ao-grid-rail')).toHaveCount(0);
+});

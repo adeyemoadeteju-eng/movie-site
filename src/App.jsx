@@ -317,7 +317,28 @@ function Header({onSearch,onSettings}){
 }
 function Footer(){return <footer className="ao-footer"><div className="ao-footer-inner"><Link to="/" className="ao-footer-brand">Ani<span>Orbit</span></Link><p>Discover your next anime.</p><span className="ao-footer-note">ANIORBIT</span></div></footer>}
 function Tile({item,priority=false}){return <Link className="ao-tile" to={'/anime/'+item.id}><div className="ao-poster"><AnimePoster item={item} priority={priority}/><span className="ao-tag">{item?.format||'TV'}</span></div><div className="ao-tile-info"><h3>{title(item)}</h3><span>{(item?.genres||[]).slice(0,2).join(' · ')||item?.seasonYear||''}</span></div></Link>}
-function TileGrid({items,loading,emptyLabel='No anime found.'}){return <div className="ao-grid">{items?.length?items.map((x,i)=><Tile key={x.id||i} item={x} priority={i<3}/>):loading?Array.from({length:8},(_,i)=><div className="ao-tile ao-skeleton" key={'skeleton-'+i} role="status" aria-label="Loading anime"><div className="ao-poster"/><div className="ao-tile-info"><span/><span/></div></div>):<div className="ao-empty">{emptyLabel}</div>}</div>}
+function TileGrid({items,loading,emptyLabel='No anime found.',layout='grid',label='Anime',priorityFirst=false}){
+ const railRef=useRef(null);
+ const moveRail=direction=>{
+  const rail=railRef.current;
+  if(!rail)return;
+  const reducedMotion=typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  rail.scrollBy({left:direction*Math.max(240,Math.round(rail.clientWidth*.78)),behavior:reducedMotion?'auto':'smooth'});
+ };
+ const cards=items?.length
+  ?items.map((item,index)=><Tile key={item.id||index} item={item} priority={layout==='rail'?Boolean(priorityFirst)&&index<2:index<3}/>)
+  :loading
+   ?Array.from({length:8},(_,index)=><div className="ao-tile ao-skeleton" key={'skeleton-'+index} role="status" aria-label="Loading anime"><div className="ao-poster"/><div className="ao-tile-info"><span/><span/></div></div>)
+   :<div className="ao-empty">{emptyLabel}</div>;
+ if(layout==='rail')return <div className="ao-rail-wrap">
+  <div ref={railRef} className="ao-grid ao-grid-rail" role="region" aria-label={label} tabIndex={0}>{cards}</div>
+  <div className="ao-rail-controls" aria-label={label+' controls'}>
+   <button type="button" onClick={()=>moveRail(-1)} aria-label={'Scroll '+label+' left'}>‹</button>
+   <button type="button" onClick={()=>moveRail(1)} aria-label={'Scroll '+label+' right'}>›</button>
+  </div>
+ </div>;
+ return <div className="ao-grid">{cards}</div>;
+}
 function ContinuePoster({item}){
  const candidates=imageCandidates(item);
  const [src,setSrc]=useState(candidates[0]||'');
@@ -479,19 +500,19 @@ function Home(){
   <div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">PICK UP WHERE YOU LEFT OFF</span><h2>Continue Watching</h2></div><span>Saved on this device</span></div>
   <div className="ao-continue-grid">{continueList.slice(0,8).map(item=>{const episode=continueEpisode(item,libraryData);const checkpoint=getEpisodeProgress(libraryData,item.id,episode,item.audio);const percent=Math.round(Number(checkpoint?.percent)||0);return <div className="ao-continue-card" key={item.id}><Link className="ao-continue-main" to={'/watch/'+item.id+'/'+episode+'/'+(item.audio||'sub')+'/embed?title='+encodeURIComponent(title(item))}><ContinuePoster item={item}/><span><b>{title(item)}</b><small>Episode {episode} · {(item.audio||'sub').toUpperCase()}{percent>0?' · '+percent+'% saved':''}</small>{percent>0&&<span className="ao-continue-progress" role="progressbar" aria-label={'Episode progress '+percent+' percent'} aria-valuemin="0" aria-valuemax="100" aria-valuenow={percent}><i style={{width:percent+'%'}}/></span>}<em>Continue watching ↗</em></span></Link><button className="ao-continue-remove" type="button" title="Remove from Continue Watching" aria-label={'Remove '+title(item)+' from Continue Watching'} onClick={()=>updateLibrary(data=>({...data,history:data.history.filter(entry=>String(entry.id)!==String(item.id))}))}>×</button></div>})}</div>
  </section>}
- {libraryData.history.some(item=>!isAdultAnime(item))&&<section className="ao-section ao-recently-viewed"><div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">YOUR RECENT ACTIVITY</span><h2>Recently Viewed</h2></div></div><TileGrid items={libraryData.history.filter(item=>!isAdultAnime(item)).slice(0,8)} loading={false}/></section>}
+ {libraryData.history.some(item=>!isAdultAnime(item))&&<section className="ao-section ao-recently-viewed"><div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">YOUR RECENT ACTIVITY</span><h2>Recently Viewed</h2></div></div><TileGrid items={libraryData.history.filter(item=>!isAdultAnime(item)).slice(0,8)} loading={false} layout="rail" label="Recently Viewed"/></section>}
   <section className="ao-personal-section ao-custom-list-promo"><div><span className="ao-discovery-kicker">MAKE IT YOURS</span><h2>Organise your anime</h2><p>Create collections for favourites, watch-later picks, hidden gems and anything else.</p></div><Link to="/lists">Manage custom lists →</Link></section>
-  {recommendations.length>0&&<section className="ao-section ao-recommendations"><div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">BASED ON WHAT YOU VIEWED</span><h2>Picked for You</h2></div></div><TileGrid items={recommendations} loading={false}/></section>}
+  {recommendations.length>0&&<section className="ao-section ao-recommendations"><div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">BASED ON WHAT YOU VIEWED</span><h2>Picked for You</h2></div></div><TileGrid items={recommendations} loading={false} layout="rail" label="Picked for You"/></section>}
  {libraryData.watchlist.some(item=>!isAdultAnime(item))&&<section className="ao-section ao-my-list" id="my-list">
   <div className="ao-personal-titlebar"><div><span className="ao-discovery-kicker">YOUR SAVED SHOWS</span><h2>My Watchlist</h2></div><button className="ao-alert-button" onClick={enableEpisodeAlerts}>{notificationPermission==='granted'?'Episode alerts enabled':'Enable episode alerts'}</button></div>
-  <TileGrid items={libraryData.watchlist.filter(item=>!isAdultAnime(item))} loading={false}/>
+  <TileGrid items={libraryData.watchlist.filter(item=>!isAdultAnime(item))} loading={false} layout="rail" label="My Watchlist"/>
   <p className="ao-alert-note">Airing reminders use the catalogue's episode timetable. Browser notifications need permission and AniOrbit to remain open.</p>
   {alertMessage&&<p className="ao-alert-message" role="status">{alertMessage}</p>}
   {airingAlerts.length>0?<div className="ao-airing-list"><h3>Upcoming episodes in your list</h3>{airingAlerts.map(item=><div className="ao-airing-item" key={item.id+':'+item.next_episode}><b>{title(item)}</b><span>Episode {item.next_episode} · {formatAiringTime(item.airingAt)}</span></div>)}</div>:<p className="ao-alert-note">No followed shows are currently in the next schedule results.</p>}
  </section>}
 
- <section className="ao-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
- <section className="ao-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'}/></section>
+ <section className="ao-section"><h2>Most Popular</h2><TileGrid items={data.popular} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'} layout="rail" label="Most Popular" priorityFirst/></section>
+ <section className="ao-section"><h2>Recently Updated</h2><TileGrid items={data.recent} loading={data.loading} emptyLabel={data.error?'Catalogue unavailable. Select Retry above.':'No anime found.'} layout="rail" label="Recently Updated"/></section>
  </>:<section className="ao-section ao-results">
  <div className="ao-results-titlebar"><div><span className="ao-results-kicker">{selectedGenre?'GENRE':'SEARCH'}</span><h2>{selectedGenre?selectedGenre:'Results for “'+query+'”'}</h2></div>
  <div className="ao-format-filter" role="group" aria-label="Filter results">

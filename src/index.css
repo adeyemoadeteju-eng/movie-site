@@ -1468,3 +1468,95 @@ body.ao-tv-mode.ao-tv-navigation :focus{
   html{scroll-behavior:auto!important}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* UI milestones: lighter landing layout, fast poster shelves, and consistent motion. */
+.ao-home-intro{
+ min-height:clamp(290px,42svh,410px);
+ padding:38px 22px 42px;
+}
+.ao-home-intro-brand{font-size:clamp(52px,7vw,76px)}
+.ao-home-intro-subtitle{margin:13px 0 22px}
+.ao-home-search{height:58px}
+.ao-hero{margin-bottom:32px}
+.ao-section{content-visibility:auto;contain-intrinsic-size:auto 360px}
+.ao-rail-wrap{position:relative;min-width:0}
+.ao-grid-rail{
+ display:flex!important;
+ flex-wrap:nowrap;
+ align-items:flex-start;
+ gap:clamp(12px,1.4vw,18px);
+ overflow-x:auto;
+ overflow-y:hidden;
+ padding:2px 2px 12px;
+ grid-template-columns:none!important;
+ scroll-snap-type:x proximity;
+ scroll-padding-inline:2px;
+ overscroll-behavior-x:contain;
+ scrollbar-width:thin;
+ scrollbar-color:rgba(255,255,255,.2) transparent;
+ -webkit-overflow-scrolling:touch;
+}
+.ao-grid-rail>.ao-tile{
+ flex:0 0 clamp(142px,14vw,178px);
+ width:clamp(142px,14vw,178px);
+ min-width:0;
+ scroll-snap-align:start;
+}
+.ao-grid-rail>.ao-empty{flex:0 0 100%;grid-column:auto}
+.ao-grid-rail>.ao-skeleton{flex:0 0 clamp(142px,14vw,178px)}
+.ao-grid-rail::-webkit-scrollbar{height:4px}
+.ao-grid-rail::-webkit-scrollbar-track{background:transparent}
+.ao-grid-rail::-webkit-scrollbar-thumb{border-radius:9px;background:rgba(255,255,255,.2)}
+.ao-rail-controls{
+ position:absolute;
+ top:-40px;
+ right:0;
+ display:flex;
+ align-items:center;
+ gap:6px;
+}
+.ao-rail-controls button{
+ width:28px;
+ height:28px;
+ display:grid;
+ place-items:center;
+ padding:0 0 2px;
+ border:1px solid rgba(255,255,255,.12);
+ border-radius:50%;
+ background:#171717;
+ color:#e6e6e6;
+ font-size:20px;
+ line-height:1;
+ cursor:pointer;
+ transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+.ao-rail-controls button:hover{border-color:rgba(255,255,255,.25);background:#252525;color:#fff}
+.ao-rail-controls button:focus-visible{outline-offset:3px}
+.ao-grid-rail .ao-tile{transition:transform .18s ease}
+.ao-grid-rail .ao-poster img{transition:transform .22s ease,filter .22s ease}
+.ao-grid-rail .ao-tile:hover{transform:translateY(-2px)}
+.ao-grid-rail .ao-tile:hover .ao-poster img{transform:scale(1.02);filter:brightness(1.035)}
+body.ao-tv-mode .ao-grid-rail{scroll-behavior:auto;scroll-snap-type:x proximity}
+body.ao-tv-mode .ao-rail-controls button{background:#202020;border-color:#444}
+body.ao-tv-mode .ao-grid-rail .ao-tile,
+body.ao-tv-mode .ao-grid-rail .ao-poster img{transition:none!important}
+@media(max-width:1050px){
+ .ao-grid-rail>.ao-tile,.ao-grid-rail>.ao-skeleton{flex-basis:clamp(138px,18vw,170px);width:clamp(138px,18vw,170px)}
+}
+@media(max-width:700px){
+ .ao-home-intro{min-height:clamp(270px,45svh,360px);padding:28px 14px 36px}
+ .ao-home-intro-brand{font-size:clamp(48px,13vw,65px)}
+ .ao-home-search{height:54px}
+ .ao-hero{margin-bottom:25px}
+ .ao-section{content-visibility:auto;contain-intrinsic-size:auto 285px}
+ .ao-section h2{padding-right:72px}
+ .ao-grid-rail{gap:10px;padding-bottom:9px}
+ .ao-grid-rail>.ao-tile,.ao-grid-rail>.ao-skeleton{flex-basis:clamp(116px,34vw,145px);width:clamp(116px,34vw,145px)}
+ .ao-rail-controls{top:-38px;gap:5px}
+ .ao-rail-controls button{width:25px;height:25px;font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ao-grid-rail{scroll-behavior:auto;scroll-snap-type:none}
+ .ao-grid-rail .ao-tile,.ao-grid-rail .ao-poster img{transition:none!important}
+}
