@@ -339,6 +339,30 @@ function Tile({item,priority=false}){
   <div className="ao-tile-info"><h3>{title(item)}</h3><span className="ao-tile-meta">{meta}</span></div>
  </Link>;
 }
+function TileGrid({items,loading,emptyLabel='No anime found.',layout='grid',label='Anime',priorityFirst=false}){
+ const railRef=useRef(null);
+ const moveRail=direction=>{
+  const rail=railRef.current;
+  if(!rail)return;
+  const reducedMotion=typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  rail.scrollBy({left:direction*Math.max(240,Math.round(rail.clientWidth*.78)),behavior:reducedMotion?'auto':'smooth'});
+ };
+ const list=Array.isArray(items)?items:[];
+ const cards=list.length
+  ?list.map((item,index)=><Tile key={item.id||index} item={item} priority={layout==='rail'?Boolean(priorityFirst)&&index<2:index<3}/>)
+  :loading
+   ?Array.from({length:8},(_,index)=><div className="ao-tile ao-skeleton" key={'skeleton-'+index} role="status" aria-label="Loading anime"><div className="ao-poster"/><div className="ao-tile-info"><span/><span/></div></div>)
+   :<div className="ao-empty">{emptyLabel}</div>;
+ if(layout==='rail')return <div className="ao-rail-wrap">
+  <div ref={railRef} className="ao-grid ao-grid-rail" role="region" aria-label={label} tabIndex={0}>{cards}</div>
+  <div className="ao-rail-controls" aria-label={label+' controls'}>
+   <button type="button" onClick={()=>moveRail(-1)} aria-label={'Scroll '+label+' left'}>‹</button>
+   <button type="button" onClick={()=>moveRail(1)} aria-label={'Scroll '+label+' right'}>›</button>
+  </div>
+ </div>;
+ return <div className="ao-grid">{cards}</div>;
+}
+
 function ContinuePoster({item}){
  const candidates=imageCandidates(item);
  const [src,setSrc]=useState(candidates[0]||'');
