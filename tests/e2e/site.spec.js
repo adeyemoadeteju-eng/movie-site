@@ -26,6 +26,33 @@ test.beforeEach(async ({ page }) => {
 
 
 
+test('homepage TileGrid renders popular and recent shelves without a runtime error', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.route('**/anime/home', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      popular: [
+        { id: 98101, title: { english: 'Runtime Grid Check One' }, format: 'TV', genres: ['Action'], seasonYear: 2026, meanScore: 86, isAdult: false },
+        { id: 98102, title: { english: 'Runtime Grid Check Two' }, format: 'TV', genres: ['Drama'], seasonYear: 2025, isAdult: false },
+        { id: 98103, title: { english: 'Runtime Grid Check Three' }, format: 'TV', genres: ['Comedy'], seasonYear: 2024, isAdult: false }
+      ],
+      recent: [
+        { id: 98104, title: { english: 'Runtime Recent Check' }, format: 'TV', genres: ['Mystery'], isAdult: false }
+      ]
+    })
+  }));
+
+  await page.goto(pagePath);
+  await expect(page.locator('.ao-topbar')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Most Popular' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Recently Updated' })).toBeVisible();
+  await expect(page.locator('.ao-section').filter({ has: page.getByRole('heading', { name: 'Most Popular' }) }).locator('.ao-grid-rail .ao-tile')).toHaveCount(3);
+  await expect(page.getByRole('link', { name: /Runtime Recent Check/ })).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
 test('catalogue retry reloads only the catalogue and keeps the page alive', async ({ page }) => {
   let calls = 0;
   await page.route('**/anime/home', route => {
@@ -1552,3 +1579,5 @@ test('streaming catalogue UI keeps compact branding, clear navigation and featur
   expect(dimensions.height).toBeLessThan(220);
   expect(dimensions.width).toBeGreaterThan(500);
 });
+
+
