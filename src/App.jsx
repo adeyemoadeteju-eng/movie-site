@@ -20,7 +20,7 @@ function isTVBrowser(){
  return typeof navigator!=='undefined'&&/(Tizen|SMART-TV|SmartTV|WebOS|Web0S|NetCast|HbbTV)/i.test(String(navigator.userAgent||''));
 }
 const ANIVEXA_API=(import.meta.env.VITE_ANIVEXA_API_URL||'https://anivexa-api-ypbr.onrender.com').replace(/\/+$/,'');
-const ANIVEXA_PROVIDER_ORDER=['reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','anipm','mkissa','animenosub'];
+const ANIVEXA_PROVIDER_ORDER=['anipm','reanime','anikoto','animegg','anizone','aniwaves','kaa','senshi','animedunya','animeonsen','mkissa','animenosub'];
 const API_WARMUP_KEY='aniorbit-api-warmup-v1';
 const API_WARMUP_INTERVAL=5*60*1000;
 const API_CACHE_KEY='animedex-api-cache-v1';
@@ -857,8 +857,9 @@ function aniPmNextEpisodeFromMessage(raw,currentEpisode){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- // Prefer browser-native/direct playback where available. Keep ani.pm as a
- // fallback rather than the default because it has been unreliable on TVs.
+ // ani.pm is AniOrbit's primary playback source. All other servers remain
+ // available as ranked alternatives if ani.pm has no episode or is unreliable.
+ if(key.includes('anipm'))return -1;
  if(isDirectMedia(source))return 0;
  if(key.includes('anivexa'))return 1;
  if(key.includes('vidsrc'))return 2;
@@ -869,7 +870,6 @@ function playbackSourceRank(source){
  if(key.includes('anikoto'))return 7;
  if(key.includes('vidy'))return 8;
  if(key.includes('vidzen'))return 9;
- if(key.includes('anipm'))return 25;
  return 50;
 }
 function isBrokenPlaybackEmbed(source){
@@ -1168,6 +1168,7 @@ function Watch(){
   let live=true;
   let metadataDone=false;
   let metadataAllowed=false;
+  let aniPmDone=false;
   let primaryDone=false;
   let anivexaDone=false;
   let anivexaStarted=false;
@@ -1189,6 +1190,13 @@ function Watch(){
 
   const refresh=()=>{
    if(!live||!metadataDone||!metadataAllowed)return;
+   // Don't activate a backup provider until the primary ani.pm lookup has
+   // completed. If ani.pm returns an episode, it will be selected immediately.
+   if(!aniPmDone&&!aniPmSource){
+    setLoading(true);
+    setLoadingStage('Checking ani.pm first…');
+    return;
+   }
    const vidzenSource=buildVidZenSource(id,episode,verifiedFormat,readVidZenMapping(id));
    const aniEmbedSource=buildAniEmbedSource(id,episode,audio);
    const ranked=rankPlaybackSources(primarySources,anivexaSources,[own,vidzenSource,aniEmbedSource,aniPmSource].filter(Boolean));
@@ -1223,7 +1231,9 @@ function Watch(){
    if(!live||anivexaStarted||!metadataAllowed)return;
    anivexaStarted=true;
    anivexaDone=false;
-   if(!rankPlaybackSources(primarySources,[],own).length)
+   if(!aniPmDone&&!aniPmSource)
+    setLoadingStage('Checking ani.pm first…');
+   else if(!rankPlaybackSources(primarySources,[],own).length)
     setLoadingStage('Checking backup servers…');
    anivexaTimer=window.setTimeout(()=>anivexaController.abort(),15000);
    fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
@@ -1279,9 +1289,12 @@ function Watch(){
     const aniPmController=new AbortController();
     const aniPmTimer=window.setTimeout(()=>aniPmController.abort(),8000);
     fetchAniPmSource(id,episode,audio,aniPmController.signal)
-     .then(source=>{if(live&&source){aniPmSource=source;refresh();}})
+     .then(source=>{if(live&&source)aniPmSource=source;})
      .catch(()=>{})
-     .finally(()=>window.clearTimeout(aniPmTimer));
+     .finally(()=>{
+      window.clearTimeout(aniPmTimer);
+      if(live){aniPmDone=true;refresh();}
+     });
     startAnivexa();
    })
    .catch(()=>{
