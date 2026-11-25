@@ -857,8 +857,9 @@ function aniPmNextEpisodeFromMessage(raw,currentEpisode){
 }
 function playbackSourceRank(source){
  const key=(String(source?.provider||'')+' '+String(source?.name||'')).toLowerCase().replace(/[^a-z0-9]+/g,' ');
- // ani.pm is AniOrbit's primary playback source. All other servers remain
- // available as ranked alternatives if ani.pm has no episode or is unreliable.
+ // Prefer the direct ani.pm result over its Anivexa-provider mirror.
+ // The mirror remains an alternative if the direct source is unavailable.
+ if(String(source?.provider||'').toLowerCase()==='anipm')return -2;
  if(key.includes('anipm'))return -1;
  if(isDirectMedia(source))return 0;
  if(key.includes('anivexa'))return 1;
