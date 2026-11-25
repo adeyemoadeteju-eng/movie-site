@@ -1,19 +1,20 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {HashRouter,Link,Route,Routes,useNavigate,useParams,useSearchParams} from 'react-router-dom';
 import AuthControl from './components/AuthControl.jsx';
-import CommunitySection from './components/CommunitySection.jsx';
 import PresenceIndicator from './components/PresenceIndicator.jsx';
-import ProfilePage from './components/ProfilePage.jsx';
 import ProfileStatsSync from './components/ProfileStatsSync.jsx';
-import CommunityHub from './components/CommunityHub.jsx';
-import CustomListsPage from './components/CustomListsPage.jsx';
 import CustomListActions from './components/CustomListActions.jsx';
-import SchedulePage from './components/SchedulePage.jsx';
+
+const CommunitySection=React.lazy(()=>import('./components/CommunitySection.jsx'));
+const AnimeReviews=React.lazy(()=>import('./components/AnimeReviews.jsx'));
+const ProfilePage=React.lazy(()=>import('./components/ProfilePage.jsx'));
+const CommunityHub=React.lazy(()=>import('./components/CommunityHub.jsx'));
+const CustomListsPage=React.lazy(()=>import('./components/CustomListsPage.jsx'));
+const SchedulePage=React.lazy(()=>import('./components/SchedulePage.jsx'));
+const TrackingPage=React.lazy(()=>import('./components/TrackingPage.jsx'));
+const StatsDashboard=React.lazy(()=>import('./components/StatsDashboard.jsx'));
+const SharedListsPage=React.lazy(()=>import('./components/SharedListsPage.jsx'));
 import NotificationBell from './components/NotificationBell.jsx';
-import TrackingPage from './components/TrackingPage.jsx';
-import AnimeReviews from './components/AnimeReviews.jsx';
-import StatsDashboard from './components/StatsDashboard.jsx';
-import SharedListsPage from './components/SharedListsPage.jsx';
 
 const API=(import.meta.env.VITE_KUHI_API_URL||import.meta.env.VITE_ANIME_API_URL||'https://anime-api-jqpp.onrender.com').replace(/\/+$/,'');
 function isTVBrowser(){
@@ -729,7 +730,7 @@ function Details(){
    </article>;
   })}</div>:characters.length?<p className="ao-characters-message">No characters or voice actors match “{characterQuery}”.</p>:<p className="ao-characters-message">Character details are not available for this title.</p>}
  </section>
- <section className="ao-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><AnimeReviews animeId={String(id)} anime={anime}/><CommunitySection animeId={String(id)} title={title(anime)}/>
+ <section className="ao-section"><h2>Similar Animes</h2><TileGrid items={similar} loading={false}/></section><React.Suspense fallback={<section className="ao-pending" role="status">Loading reviews…</section>}><AnimeReviews animeId={String(id)} anime={anime}/></React.Suspense><React.Suspense fallback={<section className="ao-pending" role="status">Loading community…</section>}><CommunitySection animeId={String(id)} title={title(anime)}/></React.Suspense>
  </main>:<div className="ao-pending ao-error">{err||'Anime could not be loaded.'}</div>}<Footer/></>
 }
 const ANISKIP_CACHE=new Map();
@@ -1427,7 +1428,7 @@ function Watch(){
   </div>
  </>:<p className="ao-error">{error||'No source available.'}</p>}
  <div className="ao-watch-bottom-nav"><button type="button" disabled={episodeNumber<=1} onClick={()=>navigate(previousPath)}>← Previous episode</button><button type="button" onClick={()=>navigate(nextPath)}>Next episode →</button></div>
- <CommunitySection animeId={String(id)} title={name} episodeNumber={episodeNumber}/>
+ <React.Suspense fallback={<section className="ao-pending" role="status">Loading community…</section>}><CommunitySection animeId={String(id)} title={name} episodeNumber={episodeNumber}/></React.Suspense>
  </main><Footer/></>
 }
 
@@ -1546,5 +1547,5 @@ function TVRemoteSupport(){
  },[navigate]);
  return null;
 }
-function App(){return <AppErrorBoundary><HashRouter><TVRemoteSupport/><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="/stats" element={<StatsDashboard/>}/><Route path="/shared-lists" element={<SharedListsPage/>}/><Route path="/shared-lists/:id" element={<SharedListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></HashRouter></AppErrorBoundary>}
+function App(){return <AppErrorBoundary><HashRouter><TVRemoteSupport/><ApiWarmup/><EpisodeAlertScheduler/><ProfileStatsSync/><React.Suspense fallback={<main className="ao-pending ao-page-loading" role="status">Loading page…</main>}><Routes><Route path="/" element={<Home/>}/><Route path="/anime/:id" element={<Details/>}/><Route path="/watch/:id/:episode/:audio/:provider" element={<Watch/>}/><Route path="/user/:username" element={<ProfilePage/>}/><Route path="/community" element={<CommunityHub/>}/><Route path="/schedule" element={<SchedulePage/>}/><Route path="/lists" element={<CustomListsPage/>}/><Route path="/tracking" element={<TrackingPage/>}/><Route path="/stats" element={<StatsDashboard/>}/><Route path="/shared-lists" element={<SharedListsPage/>}/><Route path="/shared-lists/:id" element={<SharedListsPage/>}/><Route path="*" element={<NotFound/>}/></Routes></React.Suspense></HashRouter></AppErrorBoundary>}
 export default App;
