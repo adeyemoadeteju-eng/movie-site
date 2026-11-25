@@ -1231,7 +1231,9 @@ function Watch(){
    if(!live||anivexaStarted||!metadataAllowed)return;
    anivexaStarted=true;
    anivexaDone=false;
-   if(!rankPlaybackSources(primarySources,[],own).length)
+   if(!aniPmDone&&!aniPmSource)
+    setLoadingStage('Checking ani.pm first…');
+   else if(!rankPlaybackSources(primarySources,[],own).length)
     setLoadingStage('Checking backup servers…');
    anivexaTimer=window.setTimeout(()=>anivexaController.abort(),15000);
    fetchAnivexaPlayback(id,episode,audio,anivexaController.signal)
