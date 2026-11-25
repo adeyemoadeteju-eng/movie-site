@@ -1635,3 +1635,26 @@ test('streaming catalogue UI keeps compact branding, clear navigation and featur
 });
 
 
+
+
+test('secondary pages load on demand without runtime errors', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+
+  const routes = [
+    ['#/community', '.ao-community-hub'],
+    ['#/schedule', '.ao-schedule-page'],
+    ['#/user/performance-check', '.ao-profile-page'],
+    ['#/lists', '.ao-lists-page'],
+    ['#/tracking', '.ao-tracking-page'],
+    ['#/stats', '.ao-stats-page'],
+    ['#/shared-lists', '.ao-shared-page']
+  ];
+
+  for (const [route, pageSelector] of routes) {
+    await page.goto(pagePath + route);
+    await expect(page.locator(pageSelector)).toBeVisible();
+  }
+
+  expect(pageErrors).toEqual([]);
+});
