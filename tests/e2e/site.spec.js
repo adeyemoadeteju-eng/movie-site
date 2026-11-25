@@ -69,6 +69,16 @@ test('ani.pm is checked before alternatives and becomes the default source', asy
   let markAniPmRequested;
   const aniPmRequested = new Promise(resolve => { markAniPmRequested = resolve; });
   const aniPmGate = new Promise(resolve => { releaseAniPm = resolve; });
+  await page.route('https://anivexa-api-ypbr.onrender.com/episodes/**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      anipm: { episodes: { sub: [{ id: 'watch/anipm/8126/sub/anipm-1', number: 1 }], dub: [] } }
+    })
+  }));
+  await page.route('https://anivexa-api-ypbr.onrender.com/watch/anipm/8126/sub/anipm-1', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ streams: [{ url: 'https://ani.pm/embed/8126-1?via=anivexa', type: 'embed', server: 'Ani.pm' }] })
+  }));
   await page.route('https://ani.pm/api/partner/v1/series/8126', async route => {
     markAniPmRequested();
     await aniPmGate;
@@ -88,8 +98,9 @@ test('ani.pm is checked before alternatives and becomes the default source', asy
   await expect(page.locator('.ao-server-grid button')).toHaveCount(0);
 
   releaseAniPm();
-  await expect(page.locator('.ao-server-grid button').first()).toContainText('ani.pm');
-  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidSrc Alternative');
+  await expect(page.locator('.ao-server-grid button').nth(0)).toContainText('ani.pm · SUB');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('Anivexa · Anipm · Ani.pm');
+  await expect(page.locator('.ao-server-grid button').nth(2)).toContainText('VidSrc Alternative');
   await page.getByRole('button', { name: 'Continue to video' }).click();
   await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://ani.pm/embed/8126-1');
 });
