@@ -53,6 +53,47 @@ test('homepage TileGrid renders popular and recent shelves without a runtime err
   expect(pageErrors).toEqual([]);
 });
 
+test('ani.pm is checked before alternatives and becomes the default source', async ({ page }) => {
+  await page.route('**/anime/info/8126', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ id: 8126, title: { english: 'Ani.pm Primary Test' }, isAdult: false, format: 'TV', genres: ['Action'] })
+  }));
+  await page.route('**/anime/playback/8126?**', route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ sources: [
+      { name: 'VidSrc Alternative', provider: 'vidsrc', url: 'https://vidsrc.example.test/embed/8126/1' }
+    ] })
+  }));
+
+  let releaseAniPm;
+  let markAniPmRequested;
+  const aniPmRequested = new Promise(resolve => { markAniPmRequested = resolve; });
+  const aniPmGate = new Promise(resolve => { releaseAniPm = resolve; });
+  await page.route('https://ani.pm/api/partner/v1/series/8126', async route => {
+    markAniPmRequested();
+    await aniPmGate;
+    await route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ data: { episodeList: [{
+        number: 1,
+        available: { sub: true, dub: false },
+        embed: { sub: 'https://ani.pm/embed/8126-1' }
+      }] } })
+    });
+  });
+
+  await page.goto('/movie-site/#/watch/8126/1/sub/embed?title=Ani.pm%20Primary%20Test');
+  await aniPmRequested;
+  await expect(page.locator('.ao-player-message')).toContainText('Checking ani.pm first');
+  await expect(page.locator('.ao-server-grid button')).toHaveCount(0);
+
+  releaseAniPm();
+  await expect(page.locator('.ao-server-grid button').first()).toContainText('ani.pm');
+  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidSrc Alternative');
+  await page.getByRole('button', { name: 'Continue to video' }).click();
+  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://ani.pm/embed/8126-1');
+});
+
 test('catalogue retry reloads only the catalogue and keeps the page alive', async ({ page }) => {
   let calls = 0;
   await page.route('**/anime/home', route => {
@@ -1380,46 +1421,6 @@ test('offers a quick next-server action after 15 seconds when an embedded player
 });
 
 
-test('ani.pm is checked before alternatives and becomes the default source', async ({ page }) => {
-  await page.route('**/anime/info/8126', route => route.fulfill({
-    status: 200, contentType: 'application/json',
-    body: JSON.stringify({ id: 8126, title: { english: 'Ani.pm Primary Test' }, isAdult: false, format: 'TV', genres: ['Action'] })
-  }));
-  await page.route('**/anime/playback/8126?**', route => route.fulfill({
-    status: 200, contentType: 'application/json',
-    body: JSON.stringify({ sources: [
-      { name: 'VidSrc Alternative', provider: 'vidsrc', url: 'https://vidsrc.example.test/embed/8126/1' }
-    ] })
-  }));
-
-  let releaseAniPm;
-  let markAniPmRequested;
-  const aniPmRequested = new Promise(resolve => { markAniPmRequested = resolve; });
-  const aniPmGate = new Promise(resolve => { releaseAniPm = resolve; });
-  await page.route('https://ani.pm/api/partner/v1/series/8126', async route => {
-    markAniPmRequested();
-    await aniPmGate;
-    await route.fulfill({
-      status: 200, contentType: 'application/json',
-      body: JSON.stringify({ data: { episodeList: [{
-        number: 1,
-        available: { sub: true, dub: false },
-        embed: { sub: 'https://ani.pm/embed/8126-1' }
-      }] } })
-    });
-  });
-
-  await page.goto('/movie-site/#/watch/8126/1/sub/embed?title=Ani.pm%20Primary%20Test');
-  await aniPmRequested;
-  await expect(page.locator('.ao-player-message')).toContainText('Checking ani.pm first');
-  await expect(page.locator('.ao-server-grid button')).toHaveCount(0);
-
-  releaseAniPm();
-  await expect(page.locator('.ao-server-grid button').first()).toContainText('ani.pm');
-  await expect(page.locator('.ao-server-grid button').nth(1)).toContainText('VidSrc Alternative');
-  await page.getByRole('button', { name: 'Continue to video' }).click();
-  await expect(page.locator('.ao-player iframe')).toHaveAttribute('src', 'https://ani.pm/embed/8126-1');
-});
 
 test('ani.pm next-episode message updates AniOrbit route and watch history', async ({ page }) => {
   await page.route('https://ani.pm/api/partner/v1/series/99003', route => route.fulfill({
