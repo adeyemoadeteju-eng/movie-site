@@ -28,3 +28,13 @@ npm run test:e2e
 
 ## Reference and rights
 This is an independent implementation inspired by the layout of [TechShreyash/AnimeDexLite](https://github.com/TechShreyash/AnimeDexLite). That repository does not declare an open-source licence, so this project does not copy its source files or original branding assets. The original project is discontinued and this project is not affiliated with its author.
+
+## Windows desktop app
+
+AniOrbit also has a lightweight Windows desktop shell built with Tauri 2 and the system WebView2 runtime. It opens the live AniOrbit site, so site improvements ship without reinstalling the desktop app.
+
+- Requires an internet connection.
+- Uses the same AniOrbit sign-in and private cloud-library sync.
+- The desktop WebView has its own local browser storage; browser-only saves are not automatically copied from Chrome or Edge.
+- The Windows installer is produced by the **Build AniOrbit Windows app** GitHub Actions workflow. The workflow publishes an NSIS `.exe` installer and an MSI installer as downloadable build artifacts.
+- The installer downloads the Microsoft WebView2 bootstrapper if the runtime is missing.
